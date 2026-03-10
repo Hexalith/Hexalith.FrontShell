@@ -1,0 +1,4 @@
+[submodule "Hexalith.Tenants"]
+	path = Hexalith.Tenants
+	url = https://github.com/Hexalith/Hexalith.Tenants.git
+	branch = main
