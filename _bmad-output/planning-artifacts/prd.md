@@ -14,13 +14,17 @@ stepsCompleted:
   - step-10-nonfunctional
   - step-11-polish
   - step-12-complete
+  - step-e-01-discovery
+  - step-e-02-review
+  - step-e-03-edit
 inputDocuments:
   - product-brief-Hexalith.FrontShell-2026-03-10.md
   - research/technical-dapr-cqrs-typescript-frontend-research-2026-03-10.md
+  - research/technical-bmad-tea-testing-strategy-architecture-research-2026-03-12.md
 workflowType: 'prd'
 documentCounts:
   briefs: 1
-  research: 1
+  research: 2
   brainstorming: 0
   projectDocs: 0
 classification:
@@ -35,12 +39,18 @@ classification:
   qualityAttributes: "DX ergonomics first-class; shell enforces (not just enables) consistency"
 date: '2026-03-10'
 author: Jerome
-lastEdited: '2026-03-10'
+lastEdited: '2026-03-12'
 editHistory:
   - date: '2026-03-10'
     changes: 'Validation-driven fixes: FR13/FR26/FR40 format compliance, FR44 measurability, build time NFR target'
   - date: '2026-03-10'
     changes: 'Added Migration Path subsection to Developer Platform Specific Requirements for project-type compliance'
+  - date: '2026-03-12'
+    changes: 'TEA compliance: Added Testing & Quality Gates NFR subsection (10 requirements), Testing Strategy FRs (FR52-FR57 including ATDD, contract testing, traceability), TEA workflow integration in build sequence, contract testing in Integration NFR, TEA-aligned success metrics (flakiness, MTTD, release confidence, criteria coverage).'
+  - date: '2026-03-12'
+    changes: 'Validation fixes: Added Journey 8 (Testing/QA workflow) tracing FR52-FR57. Merged FR39/FR40 (component library). Added Migration FR (FR60). Fixed Journey 2 SignalR scope to MVP. Replaced subjective metrics with measurable thresholds (MTTD < 30min, error resilience test, navigation 0 reloads). Harmonized build time targets (90s/10mod MVP, 60s/20mod Phase 2). Clarified FR52-FR55 enforcement mechanisms (CI, workflows). FR renumbered FR42-FR73.'
+  - date: '2026-03-12'
+    changes: 'Architecture alignment: Clarified FR11 MVP scope as polling-based freshness (SignalR push deferred to Phase 2). Updated FR13, FR15, FR17, FR27 for polling-first language. Moved FR60 (Migration) into Phase 2 Capabilities section. Updated build sequence (removed Weeks 10-11 SignalR block, replaced with polling hardening). Updated Risk #1 table, Risk #2 SignalR+Keycloak row, Integration NFR, and Security NFR to reflect Phase 2 SignalR scope. Updated Journey 2 (Lucas) narrative.'
 ---
 
 # Product Requirements Document - Hexalith.FrontShell
@@ -109,7 +119,7 @@ The existential differentiator is domain-nativeness. Remove the CQRS hooks and D
 | Metric | Target | Measurement |
 |--------|--------|-------------|
 | Self-service onboarding rate | 80% (3mo) → 95% (6mo) → 99% (12mo) | Modules onboarded without shell team support tickets |
-| Build-time error detection | 100% | Manifest validation catches all integration errors before deployment |
+| Build-time error detection | All manifest-detectable errors caught before deployment | TypeScript type validation + semantic validation (duplicate routes, invalid navigation) catches all errors expressible through the manifest type system |
 | Breaking change protocol | 100% adherence | Every shell-api/cqrs-client/ui change follows deprecation policy |
 | Component library coverage | 90%+ | Common UI patterns (forms, tables, detail views, dashboards) covered by `@hexalith/ui` |
 | Shell build time ceiling | ≤ 60 seconds with 20 modules | Build-time composition stays performant at scale |
@@ -119,8 +129,8 @@ The existential differentiator is domain-nativeness. Remove the CQRS hooks and D
 | Metric | Target | Measurement |
 |--------|--------|-------------|
 | Visual consistency | 100% | All modules use `@hexalith/ui` components — zero custom design deviations |
-| Cross-module navigation friction | 0 perceived transitions | User testing confirms domain switching feels seamless |
-| Error resilience | Partial failure tolerance | Module failure shows contextual error; rest of app remains functional |
+| Cross-module navigation friction | 0 full-page reloads on module switch | Module-to-module navigation uses client-side routing only. No layout shift, no flash of loading state > 200ms. Validated by Playwright test measuring route transition time |
+| Error resilience | ≥ 1 module can fail without affecting other modules or shell navigation | Module failure shows contextual error with retry option; remaining modules and shell navigation remain fully functional. Validated by Playwright test: force one module's backend offline, verify other modules operate normally |
 | Task completion time | Baseline at 3 months | Key workflow times measured and tracked |
 
 ### Business Success
@@ -144,6 +154,10 @@ The existential differentiator is domain-nativeness. Remove the CQRS hooks and D
 | Bounded context enforcement | Zero cross-module imports detected | CI lint rule — build fails on violation |
 | AI-generability validation | Generated module passes all quality gates without manual edits | Automated test: domain description → generated module → CI pipeline → green |
 | Same gates, different authors | AI modules pass identical quality gates as human modules | No separate AI-specific standards — same CI pipeline |
+| Test flakiness rate | < 2% of test runs flagged as flaky per week | CI tracks flaky occurrences; tests exceeding threshold quarantined and fixed within sprint |
+| Mean time to detect defect | < 30 minutes from commit to CI failure notification | CI pipeline completes smoke stage within 5 minutes of commit; full regression within 30 minutes on PR |
+| Release confidence | Objective quality gate decision (PASS/CONCERNS/FAIL) per release | Traceability matrix + NFR assessment produce data-driven gate recommendation — no subjective "feels ready" |
+| Acceptance criteria coverage | 100% of acceptance criteria mapped to ≥ 1 test | Traceability matrix generated before release gate; unmapped criteria block deployment |
 
 ### Measurable Outcomes
 
@@ -152,7 +166,7 @@ The existential differentiator is domain-nativeness. Remove the CQRS hooks and D
 | DX Indicator | Expected UX Outcome | Measurement |
 |-------------|---------------------|-------------|
 | Module uses 100% `@hexalith/ui` components | Elena sees visually consistent UI | Visual regression score per module |
-| Module passes manifest validation | Navigation and routing work seamlessly | Zero runtime routing errors from that module |
+| Module passes manifest validation | Navigation and routing work without errors | Zero runtime routing errors from that module |
 | Module uses `useProjection` hooks correctly | Data loads consistently with loading states | End-user perceived latency ≤ 200ms for projection renders |
 | Module has ≥ 80% test coverage | Fewer runtime errors in production | Error rate per module correlates inversely with coverage |
 | AI-generated module uses `@hexalith/ui` | AI module visually indistinguishable from human-authored | Visual regression comparison passes |
@@ -204,7 +218,7 @@ The following journeys trace how each persona interacts with FrontShell across r
 
 **Rising Action:** For the Gantt chart, Lucas installs a third-party React charting library inside his module boundary. The manifest doesn't care — it only constrains the shell interface, not module internals. He wraps the chart in a `@hexalith/ui` PageLayout to maintain visual consistency. Freedom within boundaries.
 
-For projection freshness, he discovers `useProjection` accepts an `options` parameter with a `refreshInterval`. He sets it to 2 seconds for the order list. For the detail view, the technical research suggested SignalR push — but that's Phase 2. For now, the polling interval is good enough.
+For projection freshness, he discovers `useProjection` accepts an `options` parameter with a `refreshInterval`. He sets it to 2 seconds for the order list. For the detail view, he uses on-demand refresh triggered by his command success callback. The hook exposes connection state (`connected`, `reconnecting`, `disconnected`), so he can show a subtle indicator when polling encounters errors. *(Phase 2: the same `useProjection` hook upgrades to SignalR push — Lucas's code won't change.)*
 
 **Climax:** Lucas accidentally imports a utility function from the Tenants module — it's convenient, it's right there. The CI pipeline fails: "Cross-module import detected: @hexalith/tenants. Modules must only depend on @hexalith/shell-api and @hexalith/cqrs-client." The bounded context boundary holds. He duplicates the 3-line utility in his own module. It's the right architectural choice, even though it felt wrong for a moment.
 
@@ -307,6 +321,26 @@ He sets up monitoring: container health checks on the Nginx pod, frontend error 
 
 ---
 
+### Journey 8: Quality Gates Before Release (Testing & QA Workflow)
+
+**Opening Scene:** The MVP milestone is approaching. Jerome has the Tenants module and an AI-generated Inventory module running through the shell. Both pass their Playwright component tests. But passing tests isn't enough — Jerome needs to know whether the platform is *ready to release*. He invokes the quality gate workflow.
+
+**Rising Action:** Jerome starts with the Test Design workflow at epic scope. It analyzes the MVP's risk profile: the CQRS integration layer is API-heavy (more integration tests needed), while the shell composition is UI-heavy (more E2E tests needed). The workflow produces a risk-calibrated test strategy that adjusts the test pyramid — 50% unit / 35% integration / 15% E2E for the CQRS package, 60% unit / 15% integration / 25% E2E for the shell. Each acceptance criterion gets a priority classification (P0-P3).
+
+He then runs the ATDD cycle for a new Tenants story. Before writing any implementation code, the workflow generates failing acceptance tests from the story specification. The tests define the exact expected behavior — no hallucinations, no over-engineering. Jerome implements the feature to make the tests pass. The Test Review workflow validates that the new tests follow quality standards: deterministic (no hard waits), isolated (self-cleaning, parallel-safe), explicit (assertions in test body), focused (< 300 lines), and fast (< 1.5 minutes).
+
+**Climax:** Release gate time. Jerome runs the Traceability workflow — it builds a bidirectional matrix mapping every acceptance criterion to its tests. Two criteria are unmapped: a tenant deletion edge case and a projection refresh race condition. The workflow flags them and recommends CONCERNS status. Jerome writes the missing tests. He re-runs the trace — 100% coverage. The NFR assessment checks security (auth tests pass), performance (projection load < 500ms), and reliability (error boundary tests pass). The gate decision: PASS.
+
+Meanwhile, the consumer contract tests verify that the frontend's expectations of the CommandApi and projection APIs match the backend's actual behavior. The `can-i-deploy` check confirms compatibility. Jerome can deploy with confidence — not a subjective "feels ready" but a data-driven PASS backed by traceability, coverage, and risk scoring.
+
+**Resolution:** The CI pipeline runs three stages automatically: smoke tests on every commit (< 5 minutes), regression tests on every PR (< 30 minutes), and the full release gate before deployment. The flakiness rate is 0.8% — well under the 2% threshold. Every defect is caught in CI within minutes of the commit, not days later in production. The quality operating model is working.
+
+**Emotional Arc:** Uncertainty ("are we ready?") → Discipline ("the workflow found gaps") → Confidence ("data says PASS") → Trust ("this is how we release every time")
+
+**Capabilities Revealed:** Test Design workflow, ATDD cycle, Test Review, traceability matrix, NFR assessment, quality gate decision (PASS/CONCERNS/FAIL), contract testing, CI pipeline stages, risk-calibrated test pyramid, test flakiness tracking
+
+---
+
 ### Journey Requirements Summary
 
 | Journey | Persona | Key Capabilities Revealed |
@@ -318,22 +352,28 @@ He sets up monitoring: container health checks on the Nginx pod, frontend error 
 | **Priya Evaluates** | Team Lead | Self-service evaluation, migration path, infrastructure elimination, scaffold as POC |
 | **Jerome's Team** | Shell Team | API evolution protocol, deprecation policy, backward compatibility, self-service metrics |
 | **Ravi Deploys** | DevOps | Static deployment, container hosting, error telemetry, zero-infra module additions |
+| **Quality Gates** | Shell Team (Jerome) | ATDD cycle, test pyramid, traceability matrix, NFR assessment, quality gate decision, contract testing, CI stages |
 
 **Cross-Journey Capability Map:**
 
-| Capability | Lucas | Claude | Elena | Priya | Jerome | Ravi |
-|-----------|:-----:|:------:|:-----:|:-----:|:------:|:----:|
-| Scaffold CLI | x | | | x | | |
-| CQRS hooks | x | x | | | | |
-| Component library | x | x | x | | | |
-| Build-time validation | x | x | | x | x | |
-| CI boundary enforcement | x | x | | | | |
-| Shell dev host | x | | | x | | |
-| Error boundaries | | | x | | | x |
-| Platform knowledge bundle | | x | | | x | |
-| Auth management | | | x | | | x |
-| Deprecation protocol | | | | | x | |
-| Static deployment | | | | | | x |
+| Capability | Lucas | Claude | Elena | Priya | Jerome | Ravi | QA |
+|-----------|:-----:|:------:|:-----:|:-----:|:------:|:----:|:--:|
+| Scaffold CLI | x | | | x | | | |
+| CQRS hooks | x | x | | | | | |
+| Component library | x | x | x | | | | |
+| Build-time validation | x | x | | x | x | | |
+| CI boundary enforcement | x | x | | | | | |
+| Shell dev host | x | | | x | | | |
+| Error boundaries | | | x | | | x | |
+| Platform knowledge bundle | | x | | | x | | |
+| Auth management | | | x | | | x | |
+| Deprecation protocol | | | | | x | | |
+| Static deployment | | | | | | x | |
+| ATDD workflow | | | | | | | x |
+| Traceability matrix | | | | | | | x |
+| Quality gate decision | | | | | | | x |
+| Contract testing | | | | | | | x |
+| CI pipeline stages | | | | | | | x |
 
 ## Innovation & Novel Patterns
 
@@ -573,13 +613,13 @@ The platform requirements above define *what* to build; this section defines *wh
 
 | Capability | Scope | Risk Level |
 |-----------|-------|-----------|
-| `@hexalith/cqrs-client` | `useCommand<T>()` — HTTP POST to EventStore REST CommandApi; `useProjection<T>()` — HTTP GET for initial load + SignalR push for real-time updates with automatic polling fallback when SignalR is unavailable; `ICommandBus`/`IQueryBus` interfaces; DAPR HTTP implementations; mock implementations for testing; hook exposes connection state (`connected`, `reconnecting`, `disconnected`) | **High** — existential differentiator; SignalR + token lifecycle is the most dangerous failure mode |
+| `@hexalith/cqrs-client` | `useCommand<T>()` — HTTP POST to EventStore REST CommandApi; `useProjection<T>()` — HTTP GET for initial load + configurable polling for data freshness; `ICommandBus`/`IQueryBus` interfaces; DAPR HTTP implementations; mock implementations for testing; hook exposes connection state (`connected`, `reconnecting`, `disconnected`). *(Phase 2: SignalR push upgrade — same hook API, no module code changes)* | **High** — existential differentiator; CQRS abstraction + token lifecycle is the most critical integration |
 | `@hexalith/shell-api` | `ModuleManifest` type (routes + navigation); `ShellProvider` (auth context, tenant context) | Medium — typed contract, well-scoped |
 | `@hexalith/ui` | Quality over quantity: Table, Form, Button, Input, Select, PageLayout, LoadingState, ErrorBoundary — polished. DetailView added when Tenants needs it. Ship fewer polished components over more rough ones. | Medium — opinionated components, not novel |
-| Shell application | React + Vite + react-router-dom; module registry; Keycloak authentication with token management and tenant context; fixed layout with sidebar; per-module error boundaries; auth-level error boundary (Keycloak unreachable → diagnostic message, not spinner); build-time manifest type validation + semantic validation (unique routes, valid navigation) | **High** — Keycloak integration + token injection into both HTTP and SignalR connections |
+| Shell application | React + Vite + react-router-dom; module registry; Keycloak authentication with token management and tenant context; fixed layout with sidebar; per-module error boundaries; auth-level error boundary (Keycloak unreachable → diagnostic message, not spinner); build-time manifest type validation + semantic validation (unique routes, valid navigation) | **High** — Keycloak integration + token injection into HTTP connections |
 | `create-hexalith-module` CLI | Scaffolds module with working example, CQRS hooks, Playwright test, manifest | Low — template generation |
 | CI scaffold smoke test | CI runs scaffold CLI → compiles output → runs scaffolded test → green. If this test fails, the platform is broken. | Low — but critical canary |
-| Keycloak + SignalR integration test | Dedicated test: force token expiry → verify SignalR reconnects with fresh token via `accessTokenFactory` calling `keycloak.updateToken()` | **High** — subtle failure mode where both libraries are fine individually but the interaction breaks |
+| Keycloak + SignalR integration test *(Phase 2)* | Dedicated test: force token expiry → verify SignalR reconnects with fresh token via `accessTokenFactory` calling `keycloak.updateToken()` | **High** — subtle failure mode where both libraries are fine individually but the interaction breaks. *(Deferred to Phase 2 with SignalR integration)* |
 | Tenants reference module | List, detail, create form using CQRS hooks and `@hexalith/ui`; happy-path tests + error-handling tests + mock fixture demonstration | Medium — proves the platform |
 | AI module generation | Platform knowledge bundle (manifest JSON Schema, hook API, component catalog); prompt template; validation through existing CI; 8/10 success rate benchmark (fallback: 6/10 if needed) | Medium — start testing in Week 7-8, not at the end |
 | AI-generated reference module | Second module generated entirely by LLM, passes all quality gates | Medium — depends on platform knowledge bundle quality |
@@ -608,6 +648,7 @@ The build sequence is designed so Weeks 1-6 require **zero backend infrastructur
 - `MockCommandBus`/`MockQueryBus` implementations (including simulated push events)
 - `ModuleManifest` type definition
 - `ShellProvider` type definition (auth context shape, tenant context shape)
+- *TEA: Scaffold test framework (TF workflow) — Playwright config, merged-fixtures pattern, data factory conventions*
 
 **Weeks 3-4: Scaffold + Reference Module (still no real backend)**
 - `create-hexalith-module` CLI (generates module using mock implementations)
@@ -615,6 +656,7 @@ The build sequence is designed so Weeks 1-6 require **zero backend infrastructur
 - Playwright CT tests using `MockCommandBus`/`MockQueryBus`
 - `@hexalith/ui` — first components (Table, Button, Input, PageLayout)
 - CI smoke test: scaffold → compile → test → green
+- *TEA: First ATDD cycle (AT workflow) — generate failing acceptance tests for Tenants first story before implementation*
 
 **Weeks 5-6: Shell Application (still mock auth)**
 - React + Vite + react-router-dom shell
@@ -642,17 +684,11 @@ The build sequence is designed so Weeks 1-6 require **zero backend infrastructur
 - `useProjection<T>()` hook wrapping `DaprQueryBus` (polling initially)
 - Tenants module switched from mocks to real implementations
 - **Ports-and-adapters validation gate: Tenants tests pass unchanged**
+- *TEA: Consumer contract tests for CommandApi and projection API boundaries*
 
-**Weeks 10-11: SignalR Integration (Risk #1b — real-time push)**
-- SignalR hub connection with Keycloak token injection
-- `accessTokenFactory` with token refresh
-- `useProjection<T>()` upgraded to SignalR push with polling fallback
-- Connection state exposed in hook return (`connected`, `reconnecting`, `disconnected`)
-- Integration test: token expiry → SignalR reconnect → fresh token
-- UI indicator for disconnected state
-
-**Weeks 11-12: AI Generation + Polish**
-- Platform knowledge bundle (manifest schema, hook API, component catalog)
+**Weeks 10-11: Polling Hardening + AI Generation + Polish**
+- `useProjection<T>()` polling edge cases: error retry, backoff, stale detection
+- Connection state indicator in shell UI (polling healthy/degraded)
 - AI prompt template
 - Generate second reference module via LLM
 - Validate against CI pipeline (8/10 benchmark)
@@ -662,22 +698,25 @@ The build sequence is designed so Weeks 1-6 require **zero backend infrastructur
 
 **Week 12-13: Integration + Hardening**
 - Git submodule pipeline (Tenants + AI module in shell)
-- Full end-to-end: login → navigate → send command → see projection update via SignalR
-- Edge case tests (token expiry during use, SignalR disconnect, module error boundary)
+- Full end-to-end: login → navigate → send command → see projection update via polling
+- *TEA: Test Design (TD) at epic scope — risk assessment and coverage strategy for MVP*
+- *TEA: Traceability matrix (TR) + NFR assessment (NR) — release gate decision for MVP*
+- *TEA: CI pipeline scaffold (CI workflow) — 3-stage execution (smoke/regression/gate)*
+- Edge case tests (token expiry during use, polling failure recovery, module error boundary)
 - MVP release — packages move from `0.x` toward `1.0` candidacy
 
 ### Technical Risk Mitigation
 
-**Risk #1: CQRS Hooks + SignalR (High)**
+**Risk #1: CQRS Hooks (High)**
 
 | Aspect | Risk | Mitigation |
 |--------|------|-----------|
 | `useCommand` | HTTP POST to EventStore CommandApi — relatively straightforward | Start here. Prove command flow works before tackling projections. |
 | `useProjection` initial load | HTTP GET to microservice projection APIs — straightforward | Implement alongside `useCommand` |
-| `useProjection` real-time push | SignalR connection lifecycle (connect, reconnect, auth token injection, connection loss) | Use `@microsoft/signalr` — mature library with automatic reconnection. Single SignalR hub connection shared across hooks. **Explicit fallback: degrade to polling when SignalR is unavailable.** |
-| Token injection | Keycloak access token must be injected into both HTTP headers and SignalR connection | Shell's `ShellProvider` manages token; hooks read from context. Single source of truth. |
-| SignalR + token expiry | Access token expires while SignalR connection is open | `accessTokenFactory` must call `keycloak.updateToken()` before returning token. **Dedicated integration test required.** |
-| Testing mocks | `MockCommandBus` and `MockQueryBus` must simulate both sync responses and SignalR push events | Define mock interface early — this shapes the entire test story |
+| `useProjection` polling | Configurable refresh interval, error retry, stale detection | Polling is well-understood; main risk is excessive server load with aggressive intervals. Default to conservative interval (5s), allow per-hook override. |
+| Token injection | Keycloak access token must be injected into HTTP headers | Shell's `ShellProvider` manages token; hooks read from context. Single source of truth. |
+| Testing mocks | `MockCommandBus` and `MockQueryBus` must simulate sync responses and polling cycles | Define mock interface early — this shapes the entire test story |
+| *Phase 2: SignalR push* | *SignalR connection lifecycle (connect, reconnect, auth token injection, connection loss)* | *Deferred to Phase 2. Use `@microsoft/signalr` — mature library. Same `useProjection` hook API upgrades transparently. Dedicated Keycloak + SignalR token integration test required.* |
 
 **Risk #2: Keycloak Authentication (High)**
 
@@ -686,7 +725,7 @@ The build sequence is designed so Weeks 1-6 require **zero backend infrastructur
 | Keycloak JS integration | Library maturity is good, but React lifecycle integration requires care | Use `keycloak-js` directly with custom React provider in `ShellProvider` |
 | Token refresh | Silent token refresh must work without disrupting user session | `keycloak-js` handles this natively with `onTokenExpired` callback |
 | Tenant context | Multi-tenant auth — tenant from token claims | Extract tenant from Keycloak token claims; shell-managed tenant selector as fallback |
-| SignalR + Keycloak | SignalR needs access token for hub authentication | Pass token via `accessTokenFactory`; refresh token before reconnect |
+| SignalR + Keycloak *(Phase 2)* | SignalR needs access token for hub authentication | *Deferred to Phase 2.* Pass token via `accessTokenFactory`; refresh token before reconnect |
 | Dev realm setup | CORS, redirect URIs, token claim mapping — historically the biggest unexpected time sink | Budget extra time in Weeks 7-8; document every debugging step (becomes Getting Started content) |
 | Keycloak unreachable | Auth failure = total platform failure | Auth-level error boundary: diagnostic message, not infinite spinner |
 
@@ -749,13 +788,13 @@ Each functional requirement traces to capabilities revealed in the [User Journey
 
 - **FR9:** Module developer can send commands to the backend without writing transport, serialization, or authentication code
 - **FR10:** Module developer can query projection data without writing transport code
-- **FR11:** Module developer can receive real-time projection updates without managing connection lifecycle
+- **FR11:** Module developer can receive fresh projection data via configurable polling interval without managing refresh lifecycle *(MVP: polling; Phase 2: SignalR push upgrade — same hook API, no module code changes)*
 - **FR12:** Module developer can observe projection data connection state (connected, reconnecting, disconnected)
-- **FR13:** Module developer can rely on automatic polling fallback when real-time push becomes unavailable, without module code changes
+- **FR13:** Module developer can rely on automatic polling as the primary data freshness mechanism, with the same `useProjection` hook API extending to SignalR push in Phase 2 without module code changes
 - **FR14:** Module developer can test command and projection interactions using provided mock implementations
-- **FR15:** Module developer can simulate real-time push events in tests using mock implementations
+- **FR15:** Module developer can simulate projection update events in tests using mock implementations
 - **FR16:** Module developer can access command execution results (success, validation errors, failures) to provide user feedback
-- **FR17:** Module developer can configure projection refresh behavior (interval, on-demand, or event-triggered)
+- **FR17:** Module developer can configure projection refresh behavior (interval, on-demand) *(Phase 2 adds event-triggered via SignalR)*
 
 ### Shell Composition
 
@@ -768,7 +807,7 @@ Each functional requirement traces to capabilities revealed in the [User Journey
 - **FR24:** CI detects and rejects cross-module dependencies — zero imports between modules allowed
 - **FR25:** End user can retry a failed module operation without leaving the current page
 - **FR26:** End user can switch between modules without losing navigation and filter state
-- **FR27:** End user can see an indicator when real-time data updates are temporarily unavailable
+- **FR27:** End user can see an indicator when projection data freshness is degraded (polling failures or elevated latency)
 - **FR28:** Shell validates that registered modules render successfully at runtime, with fallback to error boundary if loading fails
 - **FR29:** Shell team can add a new module to the shell by adding its repository reference — module routes and navigation are automatically registered from the manifest
 
@@ -786,47 +825,57 @@ Each functional requirement traces to capabilities revealed in the [User Journey
 
 ### Component Library
 
-- **FR39:** Module developer can build common UI patterns (tables, forms, detail views) using provided opinionated components
-- **FR40:** Module developer can build standard UI patterns (tables, forms, detail views, layouts) exclusively through the shared component library
-- **FR41:** Module developer can compose page layouts using provided layout components
-- **FR42:** Module developer can display standardized UI states (loading, error, empty) using provided components
+- **FR39:** Module developer can build standard UI patterns (tables, forms, detail views, layouts) using provided opinionated components — shell-facing surfaces use the shared component library exclusively; module-internal visualizations may use any React library wrapped in shell layout components
+- **FR40:** Module developer can compose page layouts using provided layout components
+- **FR41:** Module developer can display standardized UI states (loading, error, empty) using provided components
 
 ### AI Module Generation
 
-- **FR43:** Platform provides a machine-readable knowledge bundle describing manifest schema, hook API, and component catalog
-- **FR44:** AI agent can generate a module from a domain description that passes all quality gates without manual correction
-- **FR45:** AI-generated modules pass the same quality gates as human-authored modules
-- **FR46:** Platform provides prompt templates for AI module generation
-- **FR47:** Module developer can view validation results when an AI-generated module fails quality gates
+- **FR42:** Platform provides a machine-readable knowledge bundle describing manifest schema, hook API, and component catalog
+- **FR43:** AI agent can generate a module from a domain description that passes all quality gates without manual correction
+- **FR44:** AI-generated modules pass the same quality gates as human-authored modules
+- **FR45:** Platform provides prompt templates for AI module generation
+- **FR46:** Module developer can view validation results when an AI-generated module fails quality gates
 
 ### Build & Deployment
 
-- **FR48:** Module developer can publish their module to the shell via git repository integration
-- **FR49:** Shell CI pipeline validates module manifests and runs module tests on every build
-- **FR50:** Shell build produces a static deployment artifact (HTML/CSS/JS) that can be served by any web server
-- **FR51:** Shell can be configured for different environments without code changes (API URLs, auth provider, tenant configuration)
-- **FR52:** Shell captures module error events and exposes them for external monitoring integration
+- **FR47:** Module developer can publish their module to the shell via git repository integration
+- **FR48:** Shell CI pipeline validates module manifests and runs module tests on every build
+- **FR49:** Shell build produces a static deployment artifact (HTML/CSS/JS) that can be served by any web server
+- **FR50:** Shell can be configured for different environments without code changes (API URLs, auth provider, tenant configuration)
+- **FR51:** Shell captures module error events and exposes them for external monitoring integration
+
+### Testing Strategy & Quality Gates
+
+- **FR52:** CI pipeline enforces a test-first workflow: ATDD workflow generates failing acceptance tests from story specifications; CI rejects implementation PRs that lack corresponding acceptance tests
+- **FR53:** Test Design workflow produces a risk-calibrated test strategy per epic that adjusts test pyramid ratios (unit/integration/E2E) based on risk profile — API-heavy epics weight integration higher, UI-heavy epics weight E2E higher
+- **FR54:** Traceability workflow generates a requirements-to-tests matrix mapping every acceptance criterion to at least one test, with gap identification and quality gate recommendation (PASS/CONCERNS/FAIL)
+- **FR55:** Test Review workflow validates test quality against defined standards (deterministic, isolated, explicit assertions, < 300 lines per file, < 1.5 minutes per test)
+- **FR56:** Platform supports consumer-driven contract tests at the CQRS boundary (CommandApi and projection API) to verify frontend-backend compatibility independently
+- **FR57:** CI pipeline blocks production deployment when contract verification fails
 
 ### Developer Documentation
 
-- **FR53:** Module developer can follow a Getting Started guide to scaffold and ship their first module
-- **FR54:** Platform provides a frontend-focused guide covering the complete module development lifecycle with backend context where needed
+- **FR58:** Module developer can follow a Getting Started guide to scaffold and ship their first module
+- **FR59:** Platform provides a frontend-focused guide covering module scaffold, CQRS hooks, component library, testing patterns, git submodule workflow, and AI generation — with backend context where needed
 
 ### Phase 2 Capabilities (Growth)
 
-- **FR55:** Module developer can contribute UI to named shell slots (sidebar, toolbar, statusbar)
-- **FR56:** Shell manages module lifecycle states (activate, deactivate, health/readiness)
-- **FR57:** Shell broadcasts typed infrastructure signals to modules (auth changed, theme changed, tenant switched)
-- **FR58:** Shell reconciles layout from module declarations and shell configuration
-- **FR59:** Platform generates TypeScript types automatically from backend API contracts
-- **FR60:** Module developer can verify their module's compatibility with current shell package versions
-- **FR61:** Shell team can view platform adoption metrics (modules onboarded, self-service rate, build times)
-- **FR62:** End user can search across module boundaries from a unified search interface
-- **FR63:** System notifies the end user of command completion or failure even after navigating away from the originating module
-- **FR64:** Shell exposes health status for monitoring
-- **FR65:** Shell team can remove a module from the shell without affecting other modules
-- **FR66:** Module developer can customize component library theming within shell-defined constraints
-- **FR67:** Shell team can deprecate shell package APIs with automated warnings to affected modules
+- **FR60:** Module developer can migrate an existing custom React application to FrontShell by replacing infrastructure code (auth, routing, API client) with shell-provided equivalents while keeping domain components unchanged *(Migration — not required for MVP; see Migration Path section)*
+
+- **FR61:** Module developer can contribute UI to named shell slots (sidebar, toolbar, statusbar)
+- **FR62:** Shell manages module lifecycle states (activate, deactivate, health/readiness)
+- **FR63:** Shell broadcasts typed infrastructure signals to modules (auth changed, theme changed, tenant switched)
+- **FR64:** Shell reconciles layout from module declarations and shell configuration
+- **FR65:** Platform generates TypeScript types automatically from backend API contracts
+- **FR66:** Module developer can verify their module's compatibility with current shell package versions
+- **FR67:** Shell team can view platform adoption metrics (modules onboarded, self-service rate, build times)
+- **FR68:** End user can search across module boundaries from a unified search interface
+- **FR69:** System notifies the end user of command completion or failure even after navigating away from the originating module
+- **FR70:** Shell exposes health status for monitoring
+- **FR71:** Shell team can remove a module from the shell without affecting other modules
+- **FR72:** Module developer can customize component library theming within shell-defined constraints
+- **FR73:** Shell team can deprecate shell package APIs with automated warnings to affected modules
 
 ## Non-Functional Requirements
 
@@ -838,7 +887,7 @@ Each functional requirement traces to capabilities revealed in the [User Journey
 | **`useProjection` initial data** | < 500ms | Time from hook mount to data available in component (excluding network latency to backend) |
 | **`useCommand` round-trip** | < 2 seconds | Time from command dispatch to confirmation callback (includes backend processing) |
 | **Dev server hot-reload** | < 2 seconds | Time from file save to updated UI in browser during local development |
-| **Build time** | ≤ 90 seconds with 10 modules | CI tracks build duration per commit; alert on > 20% regression or exceeding 90-second ceiling with 10 modules |
+| **Build time** | ≤ 90 seconds with 10 modules (MVP); ≤ 60 seconds with 20 modules (Phase 2 — via lazy loading and tree-shaking optimization) | CI tracks build duration per commit; alert on > 20% regression or exceeding ceiling |
 | **Shell initial load** (cold start) | < 3 seconds | Time from URL entry to interactive shell with navigation rendered (on 4G connection) |
 
 ### Security
@@ -849,7 +898,7 @@ Each functional requirement traces to capabilities revealed in the [User Journey
 | **Module isolation** | Typed manifest boundary (MVP) | Modules interact with shell through `@hexalith/shell-api` only. No direct cross-module imports. Runtime sandboxing deferred to Phase 2 |
 | **Tenant isolation** | Shell-enforced tenant context | All CQRS operations scoped to active tenant. Modules cannot override or access other tenants' data. Tenant switch clears all module state |
 | **Token propagation** | Automatic, module-transparent | CQRS client injects auth headers automatically. Module code never sees tokens |
-| **Data in transit** | TLS 1.2+ required | All API calls (CommandApi, projection queries, SignalR) over HTTPS |
+| **Data in transit** | TLS 1.2+ required | All API calls (CommandApi, projection queries) over HTTPS. *(Phase 2: SignalR connections also over HTTPS/WSS)* |
 | **GDPR awareness** | Data minimization in frontend | Shell stores no PII in localStorage/sessionStorage beyond session token. Modules must follow same policy (enforced by code review for MVP, lint rule Phase 2) |
 
 ### Scalability (Module Count)
@@ -876,19 +925,35 @@ Each functional requirement traces to capabilities revealed in the [User Journey
 |-------------|--------|-------------|
 | **CommandApi compatibility** | Hexalith.EventStore REST API (`POST /api/v1/commands`) | `@hexalith/cqrs-client` DaprCommandBus wraps this endpoint. Contract validated by integration tests |
 | **Projection queries** | Per-microservice REST endpoints | Each module's manifest declares its projection API base URL. `useProjection` calls through the configured endpoint |
-| **Real-time updates (optional)** | SignalR push for projection freshness | Opt-in per module. Shell manages SignalR connection lifecycle. Fallback: polling with configurable interval |
+| **Projection freshness** | Configurable polling (MVP); SignalR push (Phase 2) | MVP: per-hook polling with configurable interval and error retry. Phase 2: SignalR push upgrade — same `useProjection` hook API, no module code changes |
 | **Infrastructure abstraction** | DAPR-agnostic at module level | Modules never reference DAPR directly. The ports-and-adapters layer in `@hexalith/cqrs-client` isolates transport |
 | **Backend contract types** | Manual TypeScript definitions (MVP) | Modules define their own command/projection types. OpenAPI codegen deferred to Phase 2 |
+| **Consumer-driven contract testing** | Frontend-backend API compatibility verified independently | Consumer contract tests define expected CommandApi and projection API interactions. Provider verification runs on backend PR. `can-i-deploy` gate blocks incompatible deployments |
 
 ### Reliability
 
 | Requirement | Target | Enforcement |
 |-------------|--------|-------------|
 | **Availability** | 99.9% (measured at shell level) | Shell infrastructure uptime — modules failing does not count against shell availability |
-| **Partial failure tolerance** | Module error boundary with retry | If a module's backend is unavailable, the module shows an error state with retry option. Rest of the application remains fully functional |
+| **Partial failure tolerance** | Any single module failure contained; shell + remaining modules unaffected | If a module's backend is unavailable, the module shows an error state with retry option. Shell navigation, auth, and all other modules remain fully functional. Validated by Playwright test |
 | **Stale data policy** | Error boundary, no stale projections (MVP) | If a projection query fails, show error — don't serve cached stale data. Stale-while-revalidate strategy considered for Phase 2 |
 | **Shell crash recovery** | Full page reload fallback | If shell-level error occurs, graceful reload with session preservation (auth token survives) |
 | **Ports-and-adapters abstraction** | Zero module code changes on transport switch | Switching CQRS transport implementation requires changes only in `@hexalith/cqrs-client` internals |
+
+### Testing & Quality Gates
+
+| Requirement | Target | Enforcement |
+|-------------|--------|-------------|
+| **CI pipeline — smoke stage** | < 5 minutes | `@smoke @p0` tagged tests run on every commit. CI alerts on breach |
+| **CI pipeline — regression stage** | < 30 minutes | `@regression @p0-p2` tagged tests run on every PR. CI alerts on breach |
+| **CI pipeline — release gate stage** | < 60 minutes | Full test suite + traceability matrix + NFR assessment. Runs before production deployment |
+| **Test flakiness rate** | < 2% | CI tracks flaky test occurrences per week. Tests exceeding threshold quarantined and fixed |
+| **Test quality — determinism** | Zero hard waits, zero conditional flow, zero try-catch for control flow | Code review and test review workflow enforce. No `waitForTimeout()` — use `waitForResponse()` or `waitForSelector()` |
+| **Test quality — isolation** | Self-cleaning, parallel-safe, no shared state | Each test creates and cleans its own data via factories. Parallel execution enabled by default |
+| **Test quality — focus** | < 300 lines per test file, < 1.5 minutes per test | CI enforces file length lint rule. CI tracks per-test execution time |
+| **Quality gate model** | Objective PASS/CONCERNS/FAIL decision | Risk scoring (Probability 1-3 × Impact 1-3). Score ≥ 6 requires documented mitigation. Score = 9 mandates gate failure. Waivers require approver, reason, and expiry date |
+| **Acceptance criteria traceability** | 100% of acceptance criteria mapped to ≥ 1 test | Traceability matrix generated per release. Unmapped criteria block release gate |
+| **Test pyramid — risk-calibrated** | Ratio adjusted per epic based on risk profile | Default: 70% unit / 20% integration / 10% E2E. Adjusted by Test Design workflow for API-heavy (more integration) or UI-heavy (more E2E) epics |
 
 ### Developer Experience (DX)
 

@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hexalith.FrontShell — Design Direction Exploration</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: #0f0f14;
+    color: #e0e0e0;
+    min-height: 100vh;
+  }
+
+  /* --- Top Navigation --- */
+  .top-nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+    background: #1a1a2e;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    padding: 0 24px;
+    display: flex; align-items: center; gap: 8px;
+    height: 52px;
+  }
+  .top-nav h1 {
+    font-size: 14px; font-weight: 600; color: #7c83db;
+    margin-right: 24px; white-space: nowrap;
+  }
+  .top-nav .tabs { display: flex; gap: 2px; overflow-x: auto; flex: 1; }
+  .top-nav .tab {
+    padding: 8px 16px; border-radius: 6px; cursor: pointer;
+    font-size: 13px; font-weight: 500; white-space: nowrap;
+    color: #e0e0e0; opacity: 0.6;
+    transition: all 0.15s ease;
+    border: none; background: none;
+  }
+  .top-nav .tab:hover { opacity: 0.85; background: rgba(255,255,255,0.05); }
+  .top-nav .tab.active {
+    opacity: 1; background: rgba(124,131,219,0.15); color: #7c83db;
+  }
+  .theme-toggle {
+    margin-left: auto; display: flex; gap: 4px; align-items: center;
+    font-size: 12px; color: #e0e0e0; opacity: 0.6;
+  }
+  .theme-toggle button {
+    padding: 4px 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.12);
+    background: none; color: #e0e0e0; cursor: pointer; font-size: 12px;
+  }
+  .theme-toggle button.active {
+    background: rgba(124,131,219,0.2); border-color: #7c83db; color: #7c83db;
+  }
+
+  /* --- Direction Panels --- */
+  .directions { margin-top: 52px; }
+  .direction { display: none; min-height: calc(100vh - 52px); flex-direction: column; }
+  .direction.active { display: flex; }
+
+  /* --- Shared Mockup Structure --- */
+  .mockup { display: flex; flex: 1; min-height: calc(100vh - 52px); }
+  .mockup-sidebar {
+    width: 240px; min-width: 240px; padding: 16px 0;
+    display: flex; flex-direction: column;
+    border-right: 1px solid var(--border);
+    background: var(--sidebar-bg); color: var(--text);
+  }
+  .mockup-sidebar .logo {
+    padding: 0 16px 16px; font-weight: 700; font-size: 15px;
+    display: flex; align-items: center; gap: 8px; color: var(--text);
+  }
+  .mockup-sidebar .logo .hex {
+    width: 28px; height: 28px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 800; color: white;
+    background: var(--accent);
+  }
+  .mockup-sidebar .nav-group { padding: 8px 0; }
+  .mockup-sidebar .nav-group-label {
+    padding: 4px 16px; font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.08em; font-weight: 600; color: var(--text3);
+  }
+  .mockup-sidebar .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 16px; font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all 0.12s ease;
+    position: relative; color: var(--text2);
+  }
+  .mockup-sidebar .nav-item .icon { width: 18px; text-align: center; opacity: 0.5; font-size: 14px; }
+  .mockup-sidebar .nav-item:hover { background: var(--sidebar-active); color: var(--text); }
+  .mockup-sidebar .nav-item.active {
+    background: var(--sidebar-active); color: var(--accent); font-weight: 600;
+  }
+  .mockup-sidebar .nav-item.active::before {
+    content: ''; position: absolute; left: 0; top: 4px; bottom: 4px;
+    width: 3px; border-radius: 0 3px 3px 0; background: var(--accent);
+  }
+
+  .mockup-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .mockup-topbar {
+    height: 52px; display: flex; align-items: center;
+    padding: 0 24px; gap: 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg); color: var(--text);
+  }
+  .mockup-topbar .breadcrumb { font-size: 13px; color: var(--text3); }
+  .mockup-topbar .page-title { font-size: 16px; font-weight: 600; }
+  .mockup-topbar .search {
+    margin-left: auto; padding: 6px 12px; border-radius: 6px;
+    font-size: 12px; display: flex; align-items: center; gap: 6px;
+    color: var(--text3); background: var(--bg2); border: 1px solid var(--border);
+  }
+  .mockup-topbar .search kbd {
+    font-size: 10px; padding: 1px 5px; border-radius: 3px;
+    font-family: inherit; background: var(--bg); border: 1px solid var(--border);
+  }
+
+  .mockup-content { flex: 1; padding: 24px; overflow-y: auto; background: var(--bg); }
+
+  /* --- Stats Row --- */
+  .stats-row { display: flex; gap: 16px; margin-bottom: 24px; }
+  .stat-card {
+    flex: 1; padding: 16px; border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-elevated); color: var(--text);
+  }
+  .stat-card .stat-label { font-size: 12px; font-weight: 500; color: var(--text3); margin-bottom: 4px; }
+  .stat-card .stat-value { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stat-card .stat-change { font-size: 11px; margin-top: 4px; font-weight: 500; }
+  .stat-card .stat-change.up { color: var(--success); }
+  .stat-card .stat-change.down { color: var(--danger); }
+
+  /* --- Table --- */
+  .data-table {
+    width: 100%; border-collapse: collapse; border-radius: 8px; overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .data-table th {
+    text-align: left; padding: 10px 16px; font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2); color: var(--text3);
+  }
+  .data-table td {
+    padding: 12px 16px; font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+  .data-table .secondary { color: var(--text2); font-size: 12px; }
+  .data-table tr { transition: background 0.1s ease; cursor: pointer; }
+  .data-table tr:hover td { background: var(--table-hover); }
+  .data-table .amount { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .data-table th.amount { text-align: right; }
+
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 9999px; font-size: 11px; font-weight: 600;
+  }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .status-badge.confirmed { background: rgba(45,157,111,0.12); color: var(--success); }
+  .status-badge.confirmed .status-dot { background: var(--success); }
+  .status-badge.pending { background: rgba(212,148,42,0.12); color: var(--warning); }
+  .status-badge.pending .status-dot { background: var(--warning); }
+  .status-badge.cancelled { background: rgba(208,75,75,0.12); color: var(--danger); }
+  .status-badge.cancelled .status-dot { background: var(--danger); }
+  .status-badge.processing { background: var(--accent-subtle); color: var(--accent); }
+  .status-badge.processing .status-dot { background: var(--accent); }
+
+  /* --- Action Bar --- */
+  .action-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px; gap: 12px;
+  }
+  .action-bar .filters { display: flex; gap: 8px; }
+  .action-bar .filter-btn {
+    padding: 7px 14px; border-radius: 6px; font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all 0.12s ease;
+    background: var(--bg2); color: var(--text2); border: 1px solid var(--border);
+  }
+  .action-bar .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .action-bar .primary-btn {
+    padding: 7px 14px; border-radius: 6px; font-size: 13px; font-weight: 500;
+    cursor: pointer; border: none; transition: all 0.12s ease;
+    background: var(--accent); color: white;
+  }
+  .action-bar .primary-btn:hover { background: var(--accent-hover); }
+
+  /* --- Toast --- */
+  .toast-demo {
+    position: fixed; bottom: 24px; right: 24px; z-index: 500;
+    padding: 12px 20px; border-radius: 8px;
+    font-size: 13px; font-weight: 500;
+    display: flex; align-items: center; gap: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    background: var(--bg-elevated); color: var(--text);
+    border: 1px solid var(--border);
+    animation: slideUp 0.2s ease-out;
+  }
+  @keyframes slideUp { from { transform: translateY(12px); opacity: 0; } }
+
+  /* --- Status Bar --- */
+  .status-bar {
+    height: 28px; display: flex; align-items: center;
+    padding: 0 16px; gap: 16px; font-size: 11px;
+    border-top: 1px solid var(--border);
+    background: var(--bg2); color: var(--text3);
+  }
+  .status-bar .status-item { display: flex; align-items: center; gap: 4px; opacity: 0.5; }
+  .status-bar .connected { opacity: 0.8; }
+  .status-bar .connected .dot { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; }
+
+  /* --- Direction Info Panel --- */
+  .direction-info {
+    padding: 24px 32px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2); color: var(--text);
+  }
+  .direction-info h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+  .direction-info p { font-size: 14px; line-height: 1.6; opacity: 0.7; max-width: 800px; }
+  .direction-info .tags { display: flex; gap: 8px; margin-top: 12px; }
+  .direction-info .tag {
+    padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    background: var(--accent-subtle); color: var(--accent);
+  }
+
+  /* --- Theme Variables --- */
+  .d1-light { --bg:#FAFAF8;--bg2:#F3F2EE;--bg-elevated:#FFFFFF;--text:#1C1C1A;--text2:#6B6B66;--text3:#9B9B95;--border:#E5E4E0;--accent:#5B6AD0;--accent-subtle:#EEEEF8;--accent-hover:#4E5CC3;--success:#2D9D6F;--warning:#D4942A;--danger:#D04B4B;--sidebar-bg:#F3F2EE;--sidebar-active:#EEEEF8;--table-hover:#F8F8F6; }
+  .d1-dark { --bg:#1A1917;--bg2:#222120;--bg-elevated:#2A2928;--text:#E8E8E4;--text2:#8A8A84;--text3:#5C5C58;--border:#333330;--accent:#7B86E0;--accent-subtle:#252540;--accent-hover:#8B95EA;--success:#4ADE80;--warning:#FBBF24;--danger:#F87171;--sidebar-bg:#222120;--sidebar-active:#252540;--table-hover:#252423; }
+
+  .d2-light { --bg:#FAF9F7;--bg2:#F0EFEB;--bg-elevated:#FFFFFF;--text:#1A1D1C;--text2:#5E6864;--text3:#8E9692;--border:#DFE2DF;--accent:#2B9E8F;--accent-subtle:#E8F5F3;--accent-hover:#249384;--success:#2D9D6F;--warning:#CC8B22;--danger:#C94444;--sidebar-bg:#F0EFEB;--sidebar-active:#E8F5F3;--table-hover:#F5F4F1; }
+  .d2-dark { --bg:#191B1A;--bg2:#212322;--bg-elevated:#292B2A;--text:#E4E8E6;--text2:#7E8884;--text3:#545E5A;--border:#303432;--accent:#3DBDAD;--accent-subtle:#1D2E2B;--accent-hover:#4DD0C0;--success:#4ADE80;--warning:#FBBF24;--danger:#F87171;--sidebar-bg:#212322;--sidebar-active:#1D2E2B;--table-hover:#242625; }
+
+  .d3-light { --bg:#FDFBF9;--bg2:#F5F1ED;--bg-elevated:#FFFFFF;--text:#211E1C;--text2:#706862;--text3:#9E9590;--border:#E8E2DC;--accent:#8B6CC1;--accent-subtle:#F2EDF8;--accent-hover:#7D5FB5;--success:#2D9D6F;--warning:#CC8B22;--danger:#C94444;--sidebar-bg:#F5F1ED;--sidebar-active:#F2EDF8;--table-hover:#FAF7F4; }
+  .d3-dark { --bg:#1B1919;--bg2:#242121;--bg-elevated:#2C2929;--text:#EAE6E4;--text2:#8E8682;--text3:#5E5854;--border:#363230;--accent:#A889D8;--accent-subtle:#2D2540;--accent-hover:#B899E5;--success:#4ADE80;--warning:#FBBF24;--danger:#F87171;--sidebar-bg:#242121;--sidebar-active:#2D2540;--table-hover:#272424; }
+
+  .d4-light { --bg:#FDFAF7;--bg2:#F4EFEA;--bg-elevated:#FFFFFF;--text:#221E1A;--text2:#736B63;--text3:#A09890;--border:#E6DFD8;--accent:#C07A4E;--accent-subtle:#F8F0E8;--accent-hover:#B06E42;--success:#2D9D6F;--warning:#CC8B22;--danger:#C94444;--sidebar-bg:#F4EFEA;--sidebar-active:#F8F0E8;--table-hover:#FAF6F2; }
+  .d4-dark { --bg:#1C1A18;--bg2:#252220;--bg-elevated:#2D2A28;--text:#ECE6E2;--text2:#908880;--text3:#605A54;--border:#3A3530;--accent:#D9956B;--accent-subtle:#302418;--accent-hover:#E5A87E;--success:#4ADE80;--warning:#FBBF24;--danger:#F87171;--sidebar-bg:#252220;--sidebar-active:#302418;--table-hover:#282522; }
+
+  .d5-light { --bg:#F8F8FA;--bg2:#EEEFF3;--bg-elevated:#FFFFFF;--text:#1A1B20;--text2:#64656E;--text3:#94959E;--border:#DDDEE4;--accent:#5B6AD0;--accent-subtle:#EEEEF8;--accent-hover:#4E5CC3;--success:#2D9D6F;--warning:#D4942A;--danger:#D04B4B;--sidebar-bg:#EEEFF3;--sidebar-active:#EEEEF8;--table-hover:#F4F4F7; }
+  .d5-dark { --bg:#161619;--bg2:#1E1E22;--bg-elevated:#26262B;--text:#E4E4EA;--text2:#84848E;--text3:#54545E;--border:#2E2E34;--accent:#7B86E0;--accent-subtle:#222240;--accent-hover:#8B95EA;--success:#4ADE80;--warning:#FBBF24;--danger:#F87171;--sidebar-bg:#1E1E22;--sidebar-active:#222240;--table-hover:#212125; }
+
+  .d6-light { --bg:#FDFCFA;--bg2:#F5F3EF;--bg-elevated:#FFFFFF;--text:#1A1D1C;--text2:#5E6864;--text3:#8E9692;--border:#E8E6E2;--accent:#2B9E8F;--accent-subtle:#E8F5F3;--accent-hover:#249384;--success:#2D9D6F;--warning:#CC8B22;--danger:#C94444;--sidebar-bg:#F5F3EF;--sidebar-active:#E8F5F3;--table-hover:#F9F8F5; }
+  .d6-dark { --bg:#1A1C1B;--bg2:#232524;--bg-elevated:#2B2D2C;--text:#E4E8E6;--text2:#7E8884;--text3:#545E5A;--border:#343836;--accent:#3DBDAD;--accent-subtle:#1D2E2B;--accent-hover:#4DD0C0;--success:#4ADE80;--warning:#FBBF24;--danger:#F87171;--sidebar-bg:#232524;--sidebar-active:#1D2E2B;--table-hover:#262827; }
+
+  /* --- Density Overrides --- */
+  .d5 .data-table td { padding: 8px 16px; font-size: 12.5px; }
+  .d5 .data-table th { padding: 8px 16px; font-size: 11px; }
+  .d5 .stat-card { padding: 12px; }
+  .d5 .stat-card .stat-value { font-size: 20px; }
+  .d5 .mockup-content { padding: 16px; }
+  .d5 .stats-row { gap: 12px; margin-bottom: 16px; }
+
+  .d6 .data-table td { padding: 14px 20px; }
+  .d6 .data-table th { padding: 12px 20px; }
+  .d6 .stat-card { padding: 20px; }
+  .d6 .mockup-content { padding: 32px; max-width: 1200px; }
+  .d6 .stats-row { gap: 20px; margin-bottom: 32px; }
+  .d6 .action-bar { margin-bottom: 20px; }
+</style>
+</head>
+<body>
+
+<nav class="top-nav">
+  <h1>Hexalith.FrontShell</h1>
+  <div class="tabs" id="tabs">
+    <button class="tab active" onclick="switchTo('d1',this)">1. Indigo Precision</button>
+    <button class="tab" onclick="switchTo('d2',this)">2. Teal Clarity</button>
+    <button class="tab" onclick="switchTo('d3',this)">3. Warm Violet</button>
+    <button class="tab" onclick="switchTo('d4',this)">4. Copper Craft</button>
+    <button class="tab" onclick="switchTo('d5',this)">5. Dense Indigo</button>
+    <button class="tab" onclick="switchTo('d6',this)">6. Spacious Teal</button>
+  </div>
+  <div class="theme-toggle">
+    <button id="btn-light" class="active" onclick="setTheme('light')">Light</button>
+    <button id="btn-dark" onclick="setTheme('dark')">Dark</button>
+  </div>
+</nav>
+
+<div class="directions" id="directions">
+
+  <!-- Direction 1: Indigo Precision -->
+  <div class="direction active d1-light" id="dir-d1" data-light="d1-light" data-dark="d1-dark" data-density="">
+    <div class="direction-info">
+      <h2>Indigo Precision — The Linear Path</h2>
+      <p>Cool indigo accent on warm neutrals. The most conventional "modern SaaS" direction — trustworthy, professional, familiar. Borrows heavily from Linear's visual language. Risk: looks like every other modern tool.</p>
+      <div class="tags"><span class="tag">Indigo Accent</span><span class="tag">Warm Neutrals</span><span class="tag">Linear-Inspired</span></div>
+    </div>
+    <div class="mockup">
+      <aside class="mockup-sidebar">
+        <div class="logo"><span class="hex">H</span> Hexalith</div>
+        <div class="nav-group"><div class="nav-group-label">Pinned</div><div class="nav-item active"><span class="icon">📋</span> Orders</div><div class="nav-item"><span class="icon">🏢</span> Tenants</div><div class="nav-item"><span class="icon">📦</span> Inventory</div></div>
+        <div class="nav-group"><div class="nav-group-label">Modules</div><div class="nav-item"><span class="icon">👥</span> Customers</div><div class="nav-item"><span class="icon">📊</span> Analytics</div><div class="nav-item"><span class="icon">⚙️</span> Settings</div></div>
+      </aside>
+      <div class="mockup-main">
+        <div class="mockup-topbar"><span class="breadcrumb">Modules ›</span><span class="page-title">Orders</span><div class="search">Search or jump to... <kbd>Ctrl+K</kbd></div></div>
+        <div class="mockup-content">
+          <div class="stats-row"><div class="stat-card"><div class="stat-label">Total Orders</div><div class="stat-value">2,847</div><div class="stat-change up">↑ 12% vs last month</div></div><div class="stat-card"><div class="stat-label">Revenue</div><div class="stat-value">€196,640</div><div class="stat-change up">↑ 8.3% vs last month</div></div><div class="stat-card"><div class="stat-label">Pending</div><div class="stat-value">23</div><div class="stat-change down">↑ 4 since yesterday</div></div><div class="stat-card"><div class="stat-label">Avg. Fulfillment</div><div class="stat-value">1.8d</div><div class="stat-change up">↓ 0.3d improvement</div></div></div>
+          <div class="action-bar"><div class="filters"><button class="filter-btn">All Status</button><button class="filter-btn">Date Range</button><button class="filter-btn">Tenant</button></div><button class="primary-btn">+ New Order</button></div>
+          <table class="data-table"><thead><tr><th>Order ID</th><th>Customer</th><th>Items</th><th class="amount">Amount</th><th>Status</th><th>Date</th></tr></thead><tbody><tr><td><strong>ORD-2847</strong></td><td>Acme Corp<div class="secondary">sarah.chen@acme.com</div></td><td>12</td><td class="amount">€24,580.00</td><td><span class="status-badge confirmed"><span class="status-dot"></span>Confirmed</span></td><td>2026-03-12</td></tr><tr><td><strong>ORD-2846</strong></td><td>TechFlow GmbH<div class="secondary">mweiss@techflow.de</div></td><td>5</td><td class="amount">€8,420.00</td><td><span class="status-badge processing"><span class="status-dot"></span>Processing</span></td><td>2026-03-12</td></tr><tr><td><strong>ORD-2845</strong></td><td>Nordic Solutions<div class="secondary">j.eriksen@nordic.no</div></td><td>23</td><td class="amount">€41,200.00</td><td><span class="status-badge pending"><span class="status-dot"></span>Pending</span></td><td>2026-03-11</td></tr><tr><td><strong>ORD-2844</strong></td><td>Meridian Labs<div class="secondary">patel@meridian.co.uk</div></td><td>8</td><td class="amount">€15,750.00</td><td><span class="status-badge confirmed"><span class="status-dot"></span>Confirmed</span></td><td>2026-03-11</td></tr><tr><td><strong>ORD-2843</strong></td><td>Atlas Industries<div class="secondary">r.silva@atlas.pt</div></td><td>3</td><td class="amount">€4,280.00</td><td><span class="status-badge cancelled"><span class="status-dot"></span>Cancelled</span></td><td>2026-03-11</td></tr><tr><td><strong>ORD-2842</strong></td><td>Quantum Retail<div class="secondary">lee@quantum.sg</div></td><td>17</td><td class="amount">€32,100.00</td><td><span class="status-badge confirmed"><span class="status-dot"></span>Confirmed</span></td><td>2026-03-10</td></tr><tr><td><strong>ORD-2841</strong></td><td>BrightPath Inc<div class="secondary">k.johnson@bright.com</div></td><td>6</td><td class="amount">€11,890.00</td><td><span class="status-badge processing"><span class="status-dot"></span>Processing</span></td><td>2026-03-10</td></tr><tr><td><strong>ORD-2840</strong></td><td>Stonewall Mfg<div class="secondary">dubois@stonewall.fr</div></td><td>31</td><td class="amount">€58,420.00</td><td><span class="status-badge pending"><span class="status-dot"></span>Pending</span></td><td>2026-03-10</td></tr></tbody></table>
+        </div>
+        <div class="status-bar"><span class="status-item connected"><span class="dot"></span> Connected</span><span class="status-item">Tenant: Acme Corp</span><span class="status-item">Last command: ✓ ORD-2847 confirmed</span><span class="status-item" style="margin-left:auto">Orders module v1.2.0</span></div>
+      </div>
+    </div>
+    <div class="toast-demo">✓ Order ORD-2847 status updated to Confirmed</div>
+  </div>
+
+  <!-- Direction 2: Teal Clarity -->
+  <div class="direction d2-light" id="dir-d2" data-light="d2-light" data-dark="d2-dark" data-density="">
+    <div class="direction-info">
+      <h2>Teal Clarity — The Distinctive Choice</h2>
+      <p>Fresh teal accent on warm stone neutrals. Uncommon in enterprise — immediately distinctive in a screenshot. Communicates confidence and modernity without corporate blue gravity. The "nobody else looks like this" option.</p>
+      <div class="tags"><span class="tag">Teal Accent</span><span class="tag">Stone Neutrals</span><span class="tag">Distinctive</span></div>
+    </div>
+    <div class="mockup">
+      <aside class="mockup-sidebar"><div class="logo"><span class="hex">H</span> Hexalith</div><div class="nav-group"><div class="nav-group-label">Pinned</div><div class="nav-item active"><span class="icon">📋</span> Orders</div><div class="nav-item"><span class="icon">🏢</span> Tenants</div><div class="nav-item"><span class="icon">📦</span> Inventory</div></div><div class="nav-group"><div class="nav-group-label">Modules</div><div class="nav-item"><span class="icon">👥</span> Customers</div><div class="nav-item"><span class="icon">📊</span> Analytics</div><div class="nav-item"><span class="icon">⚙️</span> Settings</div></div></aside>
+      <div class="mockup-main"><div class="mockup-topbar"><span class="breadcrumb">Modules ›</span><span class="page-title">Orders</span><div class="search">Search or jump to... <kbd>Ctrl+K</kbd></div></div><div class="mockup-content"><div class="stats-row"><div class="stat-card"><div class="stat-label">Total Orders</div><div class="stat-value">2,847</div><div class="stat-change up">↑ 12% vs last month</div></div><div class="stat-card"><div class="stat-label">Revenue</div><div class="stat-value">€196,640</div><div class="stat-change up">↑ 8.3% vs last month</div></div><div class="stat-card"><div class="stat-label">Pending</div><div class="stat-value">23</div><div class="stat-change down">↑ 4 since yesterday</div></div><div class="stat-card"><div class="stat-label">Avg. Fulfillment</div><div class="stat-value">1.8d</div><div class="stat-change up">↓ 0.3d improvement</div></div></div><div class="action-bar"><div class="filters"><button class="filter-btn">All Status</button><button class="filter-btn">Date Range</button><button class="filter-btn">Tenant</button></div><button class="primary-btn">+ New Order</button></div><table class="data-table"><thead><tr><th>Order ID</th><th>Customer</th><th>Items</th><th class="amount">Amount</th><th>Status</th><th>Date</th></tr></thead><tbody><tr><td><strong>ORD-2847</strong></td><td>Acme Corp<div class="secondary">sarah.chen@acme.com</div></td><td>12</td><td class="amount">€24,580.00</td><td><span class="status-badge confirmed"><span class="status-dot"></span>Confirmed</span></td><td>2026-03-12</td></tr><tr><td><strong>ORD-2846</strong></td><td>TechFlow GmbH<div class="secondary">mweiss@techflow.de</div></td><td>5</td><td class="amount">€8,420.00</td><td><span class="status-badge processing"><span class="status-dot"></span>Processing</span></td><td>2026-03-12</td></tr><tr><td><strong>ORD-2845</strong></td><td>Nordic Solutions<div class="secondary">j.eriksen@nordic.no</div></td><td>23</td><td class="amount">€41,200.00</td><td><span class="status-badge pending"><span class="status-dot"></span>Pending</span></td><td>2026-03-11</td></tr><tr><td><strong>ORD-2844</strong></td><td>Meridian Labs<div class="secondary">patel@meridian.co.uk</div></td><td>8</td><td class="amount">€15,750.00</td><td><span class="status-badge confirmed"><span class="status-dot"></span>Confirmed</span></td><td>2026-03-11</td></tr><tr><td><strong>ORD-2843</strong></td><td>Atlas Industries<div class="secondary">r.silva@atlas.pt</div></td><td>3</td><td class="amount">€4,280.00</td><td><span class="status-badge cancelled"><span class="status-dot"></span>Cancelled</span></td><td>2026-03-11</td></tr><tr><td><strong>ORD-2842</strong></td><td>Quantum Retail<div class="secondary">lee@quantum.sg</div></td><td>17</td><td class="amount">€32,100.00</td><td><span class="status-badge confirmed"><span class="status-dot"></span>Confirmed</span></td><td>2026-03-10</td></tr><tr><td><strong>ORD-2841</strong></td><td>BrightPath Inc<div class="secondary">k.johnson@bright.com</div></td><td>6</td><td class="amount">€11,890.00</td><td><span class="status-badge processing"><span class="status-dot"></span>Processing</span></td><td>2026-03-10</td></tr><tr><td><strong>ORD-2840</strong></td><td>Stonewall Mfg<div class="secondary">dubois@stonewall.fr</div></td><td>31</td><td class="amount">€58,420.00</td><td><span class="status-badge pending"><span class="status-dot"></span>Pending</span></td><td>2026-03-10</td></tr></tbody></table></div><div class="status-bar"><span class="status-item connected"><span class="dot"></span> Connected</span><span class="status-item">Tenant: Acme Corp</span><span class="status-item">Last command: ✓ ORD-2847 confirmed</span><span class="status-item" style="margin-left:auto">Orders module v1.2.0</span></div></div>
+    </div>
+    <div class="toast-demo">✓ Order ORD-2847 status updated to Confirmed</div>
+  </div>
+
+  <!-- Direction 3: Warm Violet -->
+  <div class="direction d3-light" id="dir-d3" data-light="d3-light" data-dark="d3-dark" data-density="">
+    <div class="direction-info">
+      <h2>Warm Violet — The Sophisticated Signal</h2>
+      <p>Violet accent on cream-warm neutrals. The most visually distinctive option — violet is rare in enterprise tools, communicating sophistication and creative confidence. The warmest overall feeling. The "Priya takes a screenshot" option.</p>
+      <div class="tags"><span class="tag">Violet Accent</span><span class="tag">Cream Neutrals</span><span class="tag">Sophisticated</span></div>
+    </div>
+    <div class="mockup">
+      <aside class="mockup-sidebar"><div class="logo"><span class="hex">H</span> Hexalith</div><div class="nav-group"><div class="nav-group-label">Pinned</div><div class="nav-item active"><span class="icon">📋</span> Orders</div><div class="nav-item"><span class="icon">🏢</span> Tenants</div><div class="nav-item"><span class="icon">📦</span> Inventory</div></div><div class="nav-group"><div class="nav-group-label">Modules</div><div class="nav-item"><span class="icon">👥</span> Customers</div><div class="nav-item"><span class="icon">📊</span> Analytics</div><div class="nav-item"><span class="icon">⚙️</span> Settings</div></div></aside>
+      <div class="mockup-main"><div class="mockup-topbar"><span class="breadcrumb">Modules ›</span><span class="page-title">Orders</span><div class="search">Search or jump to... <kbd>Ctrl+K</kbd></div></div><div class="mockup-content"><div class="stats-row"><div class="stat-card"><div class="stat-label">Total Orders</div><div class="stat-value">2,847</div><div class="stat-change up">↑ 12% vs last month</div></div><div class="stat-card"><div class="stat-label">Revenue</div><div class="stat-value">€196,640</div><div class="stat-change up">↑ 8.3% vs last month</div></div><div class="stat-card"><div class="stat-label">Pending</div><div class="stat-value">23</div><div class="stat-change down">↑ 4 since yesterday</div></div><div class="stat-card"><div class="stat-label">Avg. Fulfillment</div><div class="stat-value">1.8d</div><div class="stat-change up">↓ 0.3d improvement</div></div></div><div class="action-bar"><div class="filters"><button class="filter-btn">All Status</button><button class="filter-btn">Date Range</button><button class="filter-btn">Tenant</button></div><button class="primary-btn">+ New Order</button></div><table class="data-table"><thead><tr><th>Order ID</th><th>Customer</th><th>Items</th><th class="amount">Amount</th><th>Status</th><th>Date</th></tr></thead><tbody><tr><td><strong>ORD-2847</strong></td><td>Acme Corp<div class="secondary">sarah.chen@acme.com</div></td><td>12</td><td class="amount">€24,580.00</td><td><span class="status-badge confirmed"><span class="status-dot"></span>Confirmed</span></td><td>2026-03-12</td></tr><tr><td><strong>ORD-2846</strong></td><td>TechFlow GmbH<div class="secondary">mweiss@techflow.de</div></td><td>5</td><td class="amount">€8,420.00</td><td><span class="status-badge processing"><span class="status-dot"></span>Processing</span></td><td>2026-03-12</td></tr><tr><td><strong>ORD-2845</strong></td><td>Nordic Solutions<div class="secondary">j.eriksen@nordic.no</div></td><td>23</td><td class="amount">€41,200.00</td><td><span class="status-badge pending"><span class="status-dot"></span>Pending</span></td><td>2026-03-11</td></tr><tr><td><strong>ORD-2844</strong></td><td>Meridian Labs<div class="secondary">patel@meridian.co.uk</div></td><td>8</td><td class="amount">€15,750.00</td><td><span class="status-badge confirmed"><span class="status-dot"></span>Confirmed</span></td><td>2026-03-11</td></tr><tr><td><strong>ORD-2843</strong></td><td>Atlas Industries<div class="secondary">r.silva@atlas.pt</div></td><td>3</td><td class="amount">€4,280.00</td><td><span class="status-badge cancelled"><span class="status-dot"></span>Cancelled</span></td><td>2026-03-11</td></tr><tr><td><strong>ORD-2842</strong></td><td>Quantum Retail<div class="secondary">lee@quantum.sg</div></td><td>17</td><td class="amount">€32,100.00</td><td><span class="status-badge confirmed"><span class="status-dot"></span>Confirmed</span></td><td>2026-03-10</td></tr><tr><td><strong>ORD-2841</strong></td><td>BrightPath Inc<div class="secondary">k.johnson@bright.com</div></td><td>6</td><td class="amount">€11,890.00</td><td><span class="status-badge processing"><span class="status-dot"></span>Processing</span></td><td>2026-03-10</td></tr><tr><td><strong>ORD-2840</strong></td><td>Stonewall Mfg<div class="secondary">dubois@stonewall.fr</div></td><td>31</td><td class="amount">€58,420.00</td><td><span class="status-badge pending"><span class="status-dot"></span>Pending</span></td><td>2026-03-10</td></tr></tbody></table></div><div class="status-bar"><span class="status-item connected"><span class="dot"></span> Connected</span><span class="status-item">Tenant: Acme Corp</span><span class="status-item">Last command: ✓ ORD-2847 confirmed</span><span class="status-item" style="margin-left:auto">Orders module v1.2.0</span></div></div>
+    </div>
+    <div class="toast-demo">✓ Order ORD-2847 status updated to Confirmed</div>
+  </div>
+
+  <!-- Direction 4: Copper Craft -->
+  <div class="direction d4-light" id="dir-d4" data-light="d4-light" data-dark="d4-dark" data-density="">
+    <div class="direction-info">
+      <h2>Copper Craft — The Warm Premium</h2>
+      <p>Copper/amber accent on warm stone. The most cohesive warm palette — accent and neutrals share the same color temperature. Communicates craftsmanship and premium quality. Unique in enterprise. Risk: lower accent contrast needs careful calibration.</p>
+      <div class="tags"><span class="tag">Copper Accent</span><span class="tag">Warm Stone</span><span class="tag">Crafted</span></div>
+    </div>
+    <div class="mockup">
+      <aside class="mockup-sidebar"><div class="logo"><span class="hex">H</span> Hexalith</div><div class="nav-group"><div class="nav-group-label">Pinned</div><div class="nav-item active"><span class="icon">📋</span> Orders</div><div class="nav-item"><span class="icon">🏢</span> Tenants</div><div class="nav-item"><span class="icon">📦</span> Inventory</div></div><div class="nav-group"><div class="nav-group-label">Modules</div><div class="nav-item"><span class="icon">👥</span> Customers</div><div class="nav-item"><span class="icon">📊</span> Analytics</div><div class="nav-item"><span class="icon">⚙️</span> Settings</div></div></aside>
+      <div class="mockup-main"><div class="mockup-topbar"><span class="breadcrumb">Modules ›</span><span class="page-title">Orders</span><div class="search">Search or jump to... <kbd>Ctrl+K</kbd></div></div><div class="mockup-content"><div class="stats-row"><div class="stat-card"><div class="stat-label">Total Orders</div><div class="stat-value">2,847</div><div class="stat-change up">↑ 12% vs last month</div></div><div class="stat-card"><div class="stat-label">Revenue</div><div class="stat-value">€196,640</div><div class="stat-change up">↑ 8.3% vs last month</div></div><div class="stat-card"><div class="stat-label">Pending</div><div class="stat-value">23</div><div class="stat-change down">↑ 4 since yesterday</div></div><div class="stat-card"><div class="stat-label">Avg. Fulfillment</div><div class="stat-value">1.8d</div><div class="stat-change up">↓ 0.3d improvement</div></div></div><div class="action-bar"><div class="filters"><button class="filter-btn">All Status</button><button class="filter-btn">Date Range</button><button class="filter-btn">Tenant</button></div><button class="primary-btn">+ New Order</button></div><table class="data-table"><thead><tr><th>Order ID</th><th>Customer</th><th>Items</th><th class="amount">Amount</th><th>Status</th><th>Date</th></tr></thead><tbody><tr><td><strong>ORD-2847</strong></td><td>Acme Corp<div class="secondary">sarah.chen@acme.com</div></td><td>12</td><td class="amount">€24,580.00</td><td><span class="status-badge confirmed"><span class="status-dot"></span>Confirmed</span></td><td>2026-03-12</td></tr><tr><td><strong>ORD-2846</strong></td><td>TechFlow GmbH<div class="secondary">mweiss@techflow.de</div></td><td>5</td><td class="amount">€8,420.00</td><td><span class="status-badge processing"><span class="status-dot"></span>Processing</span></td><td>2026-03-12</td></tr><tr><td><strong>ORD-2845</strong></td><td>Nordic Solutions<div class="secondary">j.eriksen@nordic.no</div></td><td>23</td><td class="amount">€41,200.00</td><td><span class="status-badge pending"><span class="status-dot"></span>Pending</span></td><td>2026-03-11</td></tr><tr><td><strong>ORD-2844</strong></td><td>Meridian Labs<div class="secondary">patel@meridian.co.uk</div></td><td>8</td><td class="amount">€15,750.00</td><td><span class="status-badge confirmed"><span class="status-dot"></span>Confirmed</span></td><td>2026-03-11</td></tr><tr><td><strong>ORD-2843</strong></td><td>Atlas Industries<div class="secondary">r.silva@atlas.pt</div></td><td>3</td><td class="amount">€4,280.00</td><td><span class="status-badge cancelled"><span class="status-dot"></span>Cancelled</span></td><td>2026-03-11</td></tr><tr><td><strong>ORD-2842</strong></td><td>Quantum Retail<div class="secondary">lee@quantum.sg</div></td><td>17</td><td class="amount">€32,100.00</td><td><span class="status-badge confirmed"><span class="status-dot"></span>Confirmed</span></td><td>2026-03-10</td></tr><tr><td><strong>ORD-2841</strong></td><td>BrightPath Inc<div class="secondary">k.johnson@bright.com</div></td><td>6</td><td class="amount">€11,890.00</td><td><span class="status-badge processing"><span class="status-dot"></span>Processing</span></td><td>2026-03-10</td></tr><tr><td><strong>ORD-2840</strong></td><td>Stonewall Mfg<div class="secondary">dubois@stonewall.fr</div></td><td>31</td><td class="amount">€58,420.00</td><td><span class="status-badge pending"><span class="status-dot"></span>Pending</span></td><td>2026-03-10</td></tr></tbody></table></div><div class="status-bar"><span class="status-item connected"><span class="dot"></span> Connected</span><span class="status-item">Tenant: Acme Corp</span><span class="status-item">Last command: ✓ ORD-2847 confirmed</span><span class="status-item" style="margin-left:auto">Orders module v1.2.0</span></div></div>
+    </div>
+    <div class="toast-demo">✓ Order ORD-2847 status updated to Confirmed</div>
+  </div>
+
+  <!-- Direction 5: Dense Indigo -->
+  <div class="direction d5 d5-light" id="dir-d5" data-light="d5-light" data-dark="d5-dark" data-density="d5">
+    <div class="direction-info">
+      <h2>Dense Indigo — Maximum Information</h2>
+      <p>Same indigo accent with compact density — tighter rows, smaller stats, less padding. Optimized for Elena's 50-order morning. Shows how the density system changes feel while keeping the same identity. The "I can see more data" option.</p>
+      <div class="tags"><span class="tag">Indigo Accent</span><span class="tag">Cool Slate</span><span class="tag">Compact Density</span></div>
+    </div>
+    <div class="mockup">
+      <aside class="mockup-sidebar"><div class="logo"><span class="hex">H</span> Hexalith</div><div class="nav-group"><div class="nav-group-label">Pinned</div><div class="nav-item active"><span class="icon">📋</span> Orders</div><div class="nav-item"><span class="icon">🏢</span> Tenants</div><div class="nav-item"><span class="icon">📦</span> Inventory</div></div><div class="nav-group"><div class="nav-group-label">Modules</div><div class="nav-item"><span class="icon">👥</span> Customers</div><div class="nav-item"><span class="icon">📊</span> Analytics</div><div class="nav-item"><span class="icon">⚙️</span> Settings</div></div></aside>
+      <div class="mockup-main"><div class="mockup-topbar"><span class="breadcrumb">Modules ›</span><span class="page-title">Orders</span><div class="search">Search or jump to... <kbd>Ctrl+K</kbd></div></div><div class="mockup-content"><div class="stats-row"><div class="stat-card"><div class="stat-label">Total Orders</div><div class="stat-value">2,847</div><div class="stat-change up">↑ 12%</div></div><div class="stat-card"><div class="stat-label">Revenue</div><div class="stat-value">€196,640</div><div class="stat-change up">↑ 8.3%</div></div><div class="stat-card"><div class="stat-label">Pending</div><div class="stat-value">23</div><div class="stat-change down">↑ 4</div></div><div class="stat-card"><div class="stat-label">Avg. Fulfillment</div><div class="stat-value">1.8d</div><div class="stat-change up">↓ 0.3d</div></div></div><div class="action-bar"><div class="filters"><button class="filter-btn">All Status</button><button class="filter-btn">Date Range</button><button class="filter-btn">Tenant</button></div><button class="primary-btn">+ New Order</button></div><table class="data-table"><thead><tr><th>Order ID</th><th>Customer</th><th>Items</th><th class="amount">Amount</th><th>Status</th><th>Date</th></tr></thead><tbody><tr><td><strong>ORD-2847</strong></td><td>Acme Corp<div class="secondary">sarah.chen@acme.com</div></td><td>12</td><td class="amount">€24,580.00</td><td><span class="status-badge confirmed"><span class="status-dot"></span>Confirmed</span></td><td>2026-03-12</td></tr><tr><td><strong>ORD-2846</strong></td><td>TechFlow GmbH<div class="secondary">mweiss@techflow.de</div></td><td>5</td><td class="amount">€8,420.00</td><td><span class="status-badge processing"><span class="status-dot"></span>Processing</span></td><td>2026-03-12</td></tr><tr><td><strong>ORD-2845</strong></td><td>Nordic Solutions<div class="secondary">j.eriksen@nordic.no</div></td><td>23</td><td class="amount">€41,200.00</td><td><span class="status-badge pending"><span class="status-dot"></span>Pending</span></td><td>2026-03-11</td></tr><tr><td><strong>ORD-2844</strong></td><td>Meridian Labs<div class="secondary">patel@meridian.co.uk</div></td><td>8</td><td class="amount">€15,750.00</td><td><span class="status-badge confirmed"><span class="status-dot"></span>Confirmed</span></td><td>2026-03-11</td></tr><tr><td><strong>ORD-2843</strong></td><td>Atlas Industries<div class="secondary">r.silva@atlas.pt</div></td><td>3</td><td class="amount">€4,280.00</td><td><span class="status-badge cancelled"><span class="status-dot"></span>Cancelled</span></td><td>2026-03-11</td></tr><tr><td><strong>ORD-2842</strong></td><td>Quantum Retail<div class="secondary">lee@quantum.sg</div></td><td>17</td><td class="amount">€32,100.00</td><td><span class="status-badge confirmed"><span class="status-dot"></span>Confirmed</span></td><td>2026-03-10</td></tr><tr><td><strong>ORD-2841</strong></td><td>BrightPath Inc<div class="secondary">k.johnson@bright.com</div></td><td>6</td><td class="amount">€11,890.00</td><td><span class="status-badge processing"><span class="status-dot"></span>Processing</span></td><td>2026-03-10</td></tr><tr><td><strong>ORD-2840</strong></td><td>Stonewall Mfg<div class="secondary">dubois@stonewall.fr</div></td><td>31</td><td class="amount">€58,420.00</td><td><span class="status-badge pending"><span class="status-dot"></span>Pending</span></td><td>2026-03-10</td></tr></tbody></table></div><div class="status-bar"><span class="status-item connected"><span class="dot"></span> Connected</span><span class="status-item">Tenant: Acme Corp</span><span class="status-item">Last command: ✓ ORD-2847 confirmed</span><span class="status-item" style="margin-left:auto">Orders module v1.2.0</span></div></div>
+    </div>
+    <div class="toast-demo">✓ Order ORD-2847 status updated to Confirmed</div>
+  </div>
+
+  <!-- Direction 6: Spacious Teal -->
+  <div class="direction d6 d6-light" id="dir-d6" data-light="d6-light" data-dark="d6-dark" data-density="d6">
+    <div class="direction-info">
+      <h2>Spacious Teal — Breathing Room</h2>
+      <p>Teal accent with Notion-inspired generous spacing — wider padding, constrained content width, more vertical breathing room. Shows how the same system feels in spacious mode. Better for forms and detail views than tables. The "it feels calm" option.</p>
+      <div class="tags"><span class="tag">Teal Accent</span><span class="tag">Warm Neutrals</span><span class="tag">Spacious</span></div>
+    </div>
+    <div class="mockup">
+      <aside class="mockup-sidebar"><div class="logo"><span class="hex">H</span> Hexalith</div><div class="nav-group"><div class="nav-group-label">Pinned</div><div class="nav-item active"><span class="icon">📋</span> Orders</div><div class="nav-item"><span class="icon">🏢</span> Tenants</div><div class="nav-item"><span class="icon">📦</span> Inventory</div></div><div class="nav-group"><div class="nav-group-label">Modules</div><div class="nav-item"><span class="icon">👥</span> Customers</div><div class="nav-item"><span class="icon">📊</span> Analytics</div><div class="nav-item"><span class="icon">⚙️</span> Settings</div></div></aside>
+      <div class="mockup-main"><div class="mockup-topbar"><span class="breadcrumb">Modules ›</span><span class="page-title">Orders</span><div class="search">Search or jump to... <kbd>Ctrl+K</kbd></div></div><div class="mockup-content"><div class="stats-row"><div class="stat-card"><div class="stat-label">Total Orders</div><div class="stat-value">2,847</div><div class="stat-change up">↑ 12% vs last month</div></div><div class="stat-card"><div class="stat-label">Revenue</div><div class="stat-value">€196,640</div><div class="stat-change up">↑ 8.3% vs last month</div></div><div class="stat-card"><div class="stat-label">Pending</div><div class="stat-value">23</div><div class="stat-change down">↑ 4 since yesterday</div></div><div class="stat-card"><div class="stat-label">Avg. Fulfillment</div><div class="stat-value">1.8d</div><div class="stat-change up">↓ 0.3d improvement</div></div></div><div class="action-bar"><div class="filters"><button class="filter-btn">All Status</button><button class="filter-btn">Date Range</button><button class="filter-btn">Tenant</button></div><button class="primary-btn">+ New Order</button></div><table class="data-table"><thead><tr><th>Order ID</th><th>Customer</th><th>Items</th><th class="amount">Amount</th><th>Status</th><th>Date</th></tr></thead><tbody><tr><td><strong>ORD-2847</strong></td><td>Acme Corp<div class="secondary">sarah.chen@acme.com</div></td><td>12</td><td class="amount">€24,580.00</td><td><span class="status-badge confirmed"><span class="status-dot"></span>Confirmed</span></td><td>2026-03-12</td></tr><tr><td><strong>ORD-2846</strong></td><td>TechFlow GmbH<div class="secondary">mweiss@techflow.de</div></td><td>5</td><td class="amount">€8,420.00</td><td><span class="status-badge processing"><span class="status-dot"></span>Processing</span></td><td>2026-03-12</td></tr><tr><td><strong>ORD-2845</strong></td><td>Nordic Solutions<div class="secondary">j.eriksen@nordic.no</div></td><td>23</td><td class="amount">€41,200.00</td><td><span class="status-badge pending"><span class="status-dot"></span>Pending</span></td><td>2026-03-11</td></tr><tr><td><strong>ORD-2844</strong></td><td>Meridian Labs<div class="secondary">patel@meridian.co.uk</div></td><td>8</td><td class="amount">€15,750.00</td><td><span class="status-badge confirmed"><span class="status-dot"></span>Confirmed</span></td><td>2026-03-11</td></tr><tr><td><strong>ORD-2843</strong></td><td>Atlas Industries<div class="secondary">r.silva@atlas.pt</div></td><td>3</td><td class="amount">€4,280.00</td><td><span class="status-badge cancelled"><span class="status-dot"></span>Cancelled</span></td><td>2026-03-11</td></tr><tr><td><strong>ORD-2842</strong></td><td>Quantum Retail<div class="secondary">lee@quantum.sg</div></td><td>17</td><td class="amount">€32,100.00</td><td><span class="status-badge confirmed"><span class="status-dot"></span>Confirmed</span></td><td>2026-03-10</td></tr><tr><td><strong>ORD-2841</strong></td><td>BrightPath Inc<div class="secondary">k.johnson@bright.com</div></td><td>6</td><td class="amount">€11,890.00</td><td><span class="status-badge processing"><span class="status-dot"></span>Processing</span></td><td>2026-03-10</td></tr><tr><td><strong>ORD-2840</strong></td><td>Stonewall Mfg<div class="secondary">dubois@stonewall.fr</div></td><td>31</td><td class="amount">€58,420.00</td><td><span class="status-badge pending"><span class="status-dot"></span>Pending</span></td><td>2026-03-10</td></tr></tbody></table></div><div class="status-bar"><span class="status-item connected"><span class="dot"></span> Connected</span><span class="status-item">Tenant: Acme Corp</span><span class="status-item">Last command: ✓ ORD-2847 confirmed</span><span class="status-item" style="margin-left:auto">Orders module v1.2.0</span></div></div>
+    </div>
+    <div class="toast-demo">✓ Order ORD-2847 status updated to Confirmed</div>
+  </div>
+
+</div>
+
+<script>
+function switchTo(id, btn) {
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+  btn.classList.add('active');
+  document.querySelectorAll('.direction').forEach(function(d) { d.classList.remove('active'); });
+  document.getElementById('dir-' + id).classList.add('active');
+}
+
+function setTheme(theme) {
+  document.getElementById('btn-light').classList.toggle('active', theme === 'light');
+  document.getElementById('btn-dark').classList.toggle('active', theme === 'dark');
+  document.querySelectorAll('.direction').forEach(function(d) {
+    var lightClass = d.getAttribute('data-light');
+    var darkClass = d.getAttribute('data-dark');
+    d.classList.remove(lightClass, darkClass);
+    d.classList.add(theme === 'light' ? lightClass : darkClass);
+  });
+}
+</script>
+</body>
+</html>
