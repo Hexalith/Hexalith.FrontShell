@@ -1,0 +1,24 @@
+{
+  "name": "@hexalith/create-hexalith-module",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "lint": "eslint src tsup.config.ts vitest.config.ts eslint.config.js",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@hexalith/eslint-config": "workspace:*",
+    "@hexalith/tsconfig": "workspace:*",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  }
+}

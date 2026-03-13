@@ -1,0 +1,25 @@
+{
+  "name": "hexalith-frontshell",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.25.0",
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=9"
+  },
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "test": "turbo test",
+    "lint": "eslint vitest.config.ts eslint.config.js && turbo lint && pnpm lint:styles",
+    "lint:styles": "turbo build && node ./scripts/run-stylelint.mjs"
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0",
+    "postcss": "^8.5.8",
+    "stylelint": "^17.4.0",
+    "turbo": "^2.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^3.0.0"
+  }
+}

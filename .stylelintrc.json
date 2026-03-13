@@ -1,0 +1,13 @@
+{
+  "plugins": ["./packages/ui/dist/tokenCompliance.js"],
+  "ignoreFiles": ["**/tokens/*.css", "**/node_modules/**", "**/dist/**"],
+  "rules": {
+    "hexalith/no-hardcoded-colors": true,
+    "hexalith/no-hardcoded-spacing": true,
+    "hexalith/no-hardcoded-typography": true,
+    "hexalith/no-hardcoded-motion": true,
+    "hexalith/no-important": true,
+    "hexalith/no-hardcoded-custom-props": true,
+    "hexalith/theme-parity": true
+  }
+}

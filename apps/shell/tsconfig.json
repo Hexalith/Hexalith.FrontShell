@@ -1,0 +1,4 @@
+{
+  "extends": "@hexalith/tsconfig/react-app.json",
+  "include": ["src"]
+}

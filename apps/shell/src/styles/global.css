@@ -1,0 +1,51 @@
+@import "../../../../packages/ui/src/tokens/layers.css";
+@import "../../../../packages/ui/src/tokens/colors.css";
+@import "../../../../packages/ui/src/tokens/spacing.css";
+@import "../../../../packages/ui/src/tokens/typography.css";
+@import "../../../../packages/ui/src/tokens/motion.css";
+
+/* Global styles — composition root for tokens and reset */
+
+@layer reset {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  body,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  ul,
+  ol {
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  body {
+    background: var(--color-surface-primary);
+    color: var(--color-text-primary);
+    font-family: var(--font-family-sans);
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+
+  .app-shell {
+    display: grid;
+    gap: var(--spacing-3);
+    padding: var(--spacing-6);
+  }
+}
