@@ -1,0 +1,22 @@
+.banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-2) var(--spacing-4);
+  background: var(--color-status-danger);
+  color: var(--color-text-inverse, white);
+  font-size: var(--font-size-sm);
+  text-align: center;
+  transition: opacity 200ms ease-out;
+}
+
+.bannerHidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .banner {
+    transition: none;
+  }
+}

@@ -1,20 +1,18 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+
 import "@fontsource-variable/inter";
 import "@fontsource-variable/jetbrains-mono";
 import "./styles/global.css";
+import App from "./App";
+import { loadRuntimeConfig } from "./config/loadRuntimeConfig";
 
-function App() {
-  return (
-    <div className="app-shell">
-      <h1>Hexalith FrontShell</h1>
-      <p>Shell application is running.</p>
-    </div>
+const config = await loadRuntimeConfig();
+
+if (config) {
+  createRoot(document.getElementById("root")!).render(
+    <StrictMode>
+      <App config={config} />
+    </StrictMode>,
   );
 }
-
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);

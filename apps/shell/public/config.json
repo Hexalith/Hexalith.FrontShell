@@ -1,0 +1,6 @@
+{
+  "oidcAuthority": "https://localhost:8443/realms/hexalith",
+  "oidcClientId": "hexalith-frontshell",
+  "commandApiBaseUrl": "http://localhost:5000",
+  "tenantClaimName": "eventstore:tenant"
+}

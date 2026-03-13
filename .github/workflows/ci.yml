@@ -1,0 +1,115 @@
+# Hexalith FrontShell CI Pipeline
+#
+# Triggers on pull requests (opened/synchronize) and pushes to main.
+# Runs: checkout (with submodules) → pnpm install → build → lint → test
+#
+# SETUP:
+# 1. Turborepo Remote Caching (optional, improves speed):
+#    - Go to GitHub repo → Settings → Secrets and variables → Actions
+#    - Add secret: TURBO_TOKEN (from Vercel → Settings → Tokens)
+#    - Add variable: TURBO_TEAM (your Vercel team slug)
+#    Without these, CI still works — just without remote caching.
+
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+
+jobs:
+  ci:
+    name: Build, Lint & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        # Reads pnpm version from package.json "packageManager" field
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # ─── Build ───
+      - name: Build
+        id: build
+        run: |
+          START_SECONDS=$SECONDS
+          pnpm turbo build
+          echo "duration=$(( SECONDS - START_SECONDS ))" >> "$GITHUB_OUTPUT"
+
+      # ─── Lint ───
+      - name: Lint
+        run: pnpm lint
+
+      # ─── Test ───
+      - name: Test
+        run: pnpm turbo test
+
+      # ─── Build duration tracking & regression detection ───
+      - name: Restore build time history
+        id: build-history
+        uses: actions/cache@v4
+        with:
+          path: .build-times.json
+          key: build-times-${{ runner.os }}
+
+      - name: Check build time regression
+        run: |
+          DURATION=${{ steps.build.outputs.duration }}
+          FILE=".build-times.json"
+
+          # Initialize history if missing
+          if [ ! -f "$FILE" ]; then
+            echo "[]" > "$FILE"
+          fi
+
+          HISTORY=$(cat "$FILE")
+          COUNT=$(echo "$HISTORY" | jq 'length')
+
+          if [ "$COUNT" -gt 0 ]; then
+            AVG=$(echo "$HISTORY" | jq '[.[] | .duration] | add / length | floor')
+            if [ "$AVG" -gt 0 ]; then
+              THRESHOLD=$(( AVG * 120 / 100 ))
+              if [ "$DURATION" -gt "$THRESHOLD" ]; then
+                PERCENT=$(( (DURATION - AVG) * 100 / AVG ))
+                echo "::warning::Build time regressed ${PERCENT}% (${DURATION}s vs ${AVG}s average)"
+              fi
+            fi
+          else
+            echo "First build recorded — no baseline for regression check"
+          fi
+
+          # Append current duration and trim to last 10 entries
+          UPDATED=$(echo "$HISTORY" | jq --argjson d "$DURATION" --arg s "${{ github.sha }}" \
+            '. + [{"duration": $d, "sha": $s}] | .[-10:]')
+          echo "$UPDATED" > "$FILE"
+
+      # ─── Artifact upload (main only) ───
+      - name: Upload production build
+        if: github.ref == 'refs/heads/main' && success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shell-build-${{ github.sha }}
+          path: apps/shell/dist/
+          retention-days: 90

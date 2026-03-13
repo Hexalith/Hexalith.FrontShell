@@ -1,0 +1,32 @@
+.page {
+  display: grid;
+  gap: var(--spacing-4);
+}
+
+.title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.subtitle {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.body {
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+}
+
+.link {
+  color: var(--color-accent-default);
+  font-size: var(--font-size-body);
+  text-decoration: none;
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--color-accent-default);
+  outline-offset: 2px;
+}

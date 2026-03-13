@@ -1,0 +1,42 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-3);
+  gap: var(--spacing-1);
+}
+
+.navLink {
+  display: block;
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family-sans);
+  text-decoration: none;
+}
+
+.navLink:hover {
+  background: var(--color-surface-primary);
+}
+
+.navLink:focus-visible {
+  outline: 2px solid var(--color-accent-default);
+  outline-offset: 2px;
+}
+
+.active {
+  color: var(--color-accent-default);
+  font-weight: var(--font-weight-semibold);
+  border-inline-start: 3px solid var(--color-accent-default);
+}
+
+/* Structural preparation for collapse — NOT toggled in this story */
+.collapsed {
+  width: 64px;
+}
+
+.collapsed .navLink {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -1,0 +1,89 @@
+.statusbarArea {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.statusBar {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  background: var(--color-surface-secondary);
+  border-block-start: 1px solid var(--color-border-default);
+}
+
+.segment {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding-inline: var(--spacing-3);
+  height: 100%;
+}
+
+.segment + .segment {
+  border-inline-start: 1px solid var(--color-border-default);
+}
+
+/* Use explicit class concatenation in JSX: className={`${styles.segment} ${styles.tenantSegment}`} */
+.tenantSegment {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.defaultSegment {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.tenantSelect {
+  appearance: none;
+  background: transparent;
+  border: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.tenantSelect:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.tenantSelect:focus-visible {
+  outline: 2px solid var(--color-accent-default);
+  outline-offset: 2px;
+}
+
+.healthDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Use explicit class concatenation: className={`${styles.healthDot} ${styles.healthDotConnected}`} */
+.healthDotConnected {
+  background: var(--color-status-success);
+}
+
+.healthDotReconnecting {
+  background: var(--color-status-warning);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.healthDotDisconnected {
+  background: var(--color-status-danger);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .healthDotReconnecting {
+    animation: none;
+  }
+}
