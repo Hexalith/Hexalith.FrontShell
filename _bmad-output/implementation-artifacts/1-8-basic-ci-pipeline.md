@@ -51,6 +51,7 @@ So that quality is enforced from the first commit and builds are fast.
 - **Story 1.7** (Environment Configuration & Static Build) — Static build must work, `pnpm build` must produce `apps/shell/dist/`. **In Progress — must be complete before CI can pass**
 
 **Prerequisite check:** Before implementing Story 1.8, verify:
+
 1. `pnpm build` succeeds across all packages (exit code 0)
 2. `pnpm lint` succeeds (ESLint + turbo lint + stylelint all pass)
 3. `pnpm test` succeeds (Vitest passes across all packages)
@@ -60,16 +61,16 @@ If any of these fail locally, Story 1.7 is not complete — do NOT proceed.
 
 ## Acceptance Criteria
 
-| AC  | Summary |
-| --- | ------- |
-| #1  | GitHub Actions workflow triggers on PR (opened/synchronize) and push to main |
+| AC  | Summary                                                                                                                                                      |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| #1  | GitHub Actions workflow triggers on PR (opened/synchronize) and push to main                                                                                 |
 | #2  | Pipeline executes: checkout (submodules: recursive) → install (pnpm install --frozen-lockfile) → build (turbo build) → lint (turbo lint) → test (turbo test) |
-| #3  | TypeScript build failure produces clear error identifying package and file |
-| #4  | ESLint violation produces error with rule name and remediation guidance |
-| #5  | Token compliance violation is reported within the lint step |
-| #6  | On push to main, production build artifact is uploaded as CI artifact |
-| #7  | Build duration is logged; CI warns on > 20% regression vs 10-commit rolling average |
-| #8  | Turborepo remote caching is configured; unchanged packages skip build/lint/test |
+| #3  | TypeScript build failure produces clear error identifying package and file                                                                                   |
+| #4  | ESLint violation produces error with rule name and remediation guidance                                                                                      |
+| #5  | Token compliance violation is reported within the lint step                                                                                                  |
+| #6  | On push to main, production build artifact is uploaded as CI artifact                                                                                        |
+| #7  | Build duration is logged; CI warns on > 20% regression vs 10-commit rolling average                                                                          |
+| #8  | Turborepo remote caching is configured; unchanged packages skip build/lint/test                                                                              |
 
 **Detailed BDD:**
 
@@ -152,25 +153,25 @@ If any of these fail locally, Story 1.7 is not complete — do NOT proceed.
 
 ### Technical Stack Versions (Verified from Codebase)
 
-| Tool | Version | Source |
-|------|---------|--------|
-| Node.js | 22 | `.nvmrc` |
-| pnpm | 10.25.0 | `package.json` `packageManager` field |
-| Turborepo | ^2.0.0 | `package.json` devDependencies |
-| TypeScript | ^5.0.0 | `package.json` devDependencies |
-| ESLint | ^9.0.0 | `package.json` devDependencies (flat config format) |
-| Vitest | ^3.0.0 | `package.json` devDependencies |
-| Stylelint | ^17.4.0 | `package.json` devDependencies |
+| Tool       | Version | Source                                              |
+| ---------- | ------- | --------------------------------------------------- |
+| Node.js    | 22      | `.nvmrc`                                            |
+| pnpm       | 10.25.0 | `package.json` `packageManager` field               |
+| Turborepo  | ^2.0.0  | `package.json` devDependencies                      |
+| TypeScript | ^5.0.0  | `package.json` devDependencies                      |
+| ESLint     | ^9.0.0  | `package.json` devDependencies (flat config format) |
+| Vitest     | ^3.0.0  | `package.json` devDependencies                      |
+| Stylelint  | ^17.4.0 | `package.json` devDependencies                      |
 
 ### GitHub Actions Versions (Latest Stable)
 
-| Action | Version | Notes |
-|--------|---------|-------|
-| `actions/checkout` | `v4` | Use `submodules: recursive` |
-| `pnpm/action-setup` | `v4` | Reads `packageManager` from `package.json` — do NOT set `version:` manually |
-| `actions/setup-node` | `v4` | Use `node-version-file: '.nvmrc'` and `cache: 'pnpm'` |
-| `actions/upload-artifact` | `v4` | v3 is deprecated; v4 has improved performance |
-| `actions/cache` | `v4` | For build-time history persistence |
+| Action                    | Version | Notes                                                                       |
+| ------------------------- | ------- | --------------------------------------------------------------------------- |
+| `actions/checkout`        | `v4`    | Use `submodules: recursive`                                                 |
+| `pnpm/action-setup`       | `v4`    | Reads `packageManager` from `package.json` — do NOT set `version:` manually |
+| `actions/setup-node`      | `v4`    | Use `node-version-file: '.nvmrc'` and `cache: 'pnpm'`                       |
+| `actions/upload-artifact` | `v4`    | v3 is deprecated; v4 has improved performance                               |
+| `actions/cache`           | `v4`    | For build-time history persistence                                          |
 
 ### Critical Implementation Details
 
@@ -254,21 +255,25 @@ Packages in workspace: `@hexalith/shell-api`, `@hexalith/ui`, `@hexalith/cqrs-cl
 ### Previous Story Intelligence
 
 **From Story 1.7 (in-progress):**
+
 - `apps/shell/src/config/loadRuntimeConfig.ts` and `types.ts` exist — config loading infrastructure is partially built
 - Dockerfile and nginx.conf do NOT exist yet — they are part of 1.7 but not yet created
 - The static build output (`apps/shell/dist/`) must work before CI can validate it
 - Story 1.7 uses `vi.useFakeTimers()` for timeout testing — no impact on CI setup
 
 **From Story 1.6 (done):**
+
 - `ConnectionHealthProvider` accepts `backendUrl` prop — runtime config dependent
 - Status bar renders with 4 segments — all UI is in place
 
 **From Story 1.5 (done):**
+
 - CSS Modules pattern established — co-located `.module.css` files
 - Co-located `.test.ts` files next to source — test runner finds them automatically
 - Provider composition pattern: AuthProvider → TenantProvider → ThemeProvider → LocaleProvider
 
 **Git patterns from recent commits:**
+
 - Commit message format: `feat(scope): description` (conventional commits style)
 - Single large commits per story implementation
 
