@@ -50,7 +50,7 @@ development_status:
   1-5-shell-application-layout-and-auth-flow: done
   1-6-tenant-switching-and-status-bar: done
   1-7-environment-configuration-and-static-build: done
-  1-8-basic-ci-pipeline: in-progress
+  1-8-basic-ci-pipeline: done
   epic-1-retrospective: optional
 
   # Epic 2: Backend Integration — Commands & Projections

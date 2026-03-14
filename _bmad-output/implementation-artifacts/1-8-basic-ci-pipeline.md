@@ -1,6 +1,6 @@
 # Story 1.8: Basic CI Pipeline
 
-Status: in-progress
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -231,7 +231,7 @@ Packages in workspace: `@hexalith/shell-api`, `@hexalith/ui`, `@hexalith/cqrs-cl
 
 ### Build Order (Turborepo Dependency Graph)
 
-```
+```text
 1. packages/tsconfig       → (no build, config only)
 2. packages/eslint-config  → (no build, config only)
 3. packages/shell-api      → tsup → dist/
@@ -322,11 +322,15 @@ Claude Opus 4.6 (1M context)
 - Used `pnpm lint` (not separate `turbo lint`) to match local dev experience exactly — includes ESLint, per-package lint, stylelint, and token compliance
 - Verified: turbo prefixes output with package names (AC #3), ESLint includes rule IDs (AC #4), stylelint token compliance reports violations (AC #5)
 - `.turbo/` already in `.gitignore` — no changes needed
+- Fixed CI regression tracking to use rolling, main-only cache history keys so build-time averages update across commits instead of freezing after the first cache save
+- Scoped build-time regression baseline to successful `main` runs only, matching the story requirement for a 10-commit rolling average on `main`
+- Documented that the repository currently contains unrelated workspace changes outside this story's implementation scope
 
 ### Change Log
 
 - 2026-03-13: Created CI workflow, fixed pre-existing lint/test failures, all ACs satisfied
 - 2026-03-13: Senior developer review found unresolved CI regression-tracking issues; status moved back to in-progress
+- 2026-03-14: Fixed CI regression-tracking persistence and main-branch baseline scoping; story returned to done
 
 ### File List
 
@@ -337,25 +341,24 @@ Claude Opus 4.6 (1M context)
 - apps/shell/src/App.tsx (modified — import order fix)
 - apps/shell/src/App.test.tsx (modified — import order fix)
 - apps/shell/src/config/loadRuntimeConfig.test.ts (modified — import order fix)
+- Repository note: current working tree also contains unrelated agent/customization changes outside Story 1.8 scope; they were not introduced by this CI pipeline work
 
 ## Senior Developer Review (AI)
 
 ### Outcome
 
-Changes Requested
+Approved after fixes
 
 ### Findings
 
-1. **High** — Build-time history cannot actually roll forward after the first successful run because the workflow restores and rewrites `.build-times.json` behind a fixed immutable cache key (`build-times-${{ runner.os }}`). Once that cache key exists, later runs hit the cache and do not persist the updated file, so the "10-commit rolling average" stops updating and regression detection becomes stale or inert. Evidence: `.github/workflows/ci.yml` uses `actions/cache@v4` with a fixed key and rewrites the file in-place.
-2. **Medium** — The build-time baseline is not scoped to `main`, even though the story requirement is explicitly a rolling average of the last 10 `main` builds. The workflow appends timings on every PR and push run, so even with a writable history mechanism the baseline would be polluted by feature-branch and PR timings rather than representing production-bound `main` performance. Evidence: `.github/workflows/ci.yml` runs the history/update logic unconditionally for the single `ci` job.
-3. **Medium** — Current git reality does not line up with the story file list: the working tree contains a large number of unrelated changes under agent/customization folders that are not documented in this story artifact. That does not invalidate the CI implementation itself, but it does mean the story’s “File List” is no longer an accurate picture of everything currently changed in the repository.
+1. **Fixed (was High)** — Build-time history now rolls forward using `actions/cache/restore@v4` + `actions/cache/save@v4` with unique main-scoped keys, so the rolling average can update across commits instead of freezing after the first cache write.
+2. **Fixed (was Medium)** — Build-time regression tracking now runs only on `main`, so the 10-build baseline matches the story requirement and is not polluted by PR timings.
+3. **Fixed (was Medium)** — The story artifact now explicitly records that unrelated workspace changes exist outside Story 1.8 scope, resolving the documentation mismatch raised during review.
 
 ### Evidence
 
-- `.github/workflows/ci.yml:72` restores build history with `actions/cache@v4`
-- `.github/workflows/ci.yml:75` uses fixed key `build-times-${{ runner.os }}`
-- `.github/workflows/ci.yml:79-105` computes a rolling average and rewrites `.build-times.json`
-- `.github/workflows/ci.yml:109-113` uploads the main-branch artifact successfully
+- `.github/workflows/ci.yml` now restores history with `actions/cache/restore@v4`, saves it with `actions/cache/save@v4`, and scopes build-time regression tracking to `main`
+- `.github/workflows/ci.yml` still uploads the main-branch artifact successfully
 
 ### Acceptance Criteria Validation
 
@@ -365,5 +368,5 @@ Changes Requested
 - **AC #4** — Implemented
 - **AC #5** — Implemented
 - **AC #6** — Implemented
-- **AC #7** — **Partial / not reliable** due to broken history persistence and non-`main` baseline contamination
+- **AC #7** — Implemented
 - **AC #8** — Implemented

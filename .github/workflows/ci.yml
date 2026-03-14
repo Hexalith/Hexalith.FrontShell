@@ -22,14 +22,13 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
-
 jobs:
   ci:
     name: Build, Lint & Test
     runs-on: ubuntu-latest
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN || '' }}
+      TURBO_TEAM: ${{ vars.TURBO_TEAM || '' }}
 
     steps:
       - name: Checkout
@@ -68,13 +67,17 @@ jobs:
 
       # ─── Build duration tracking & regression detection ───
       - name: Restore build time history
+        if: github.ref == 'refs/heads/main'
         id: build-history
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: .build-times.json
-          key: build-times-${{ runner.os }}
+          key: build-times-${{ runner.os }}-main-${{ github.sha }}
+          restore-keys: |
+            build-times-${{ runner.os }}-main-
 
       - name: Check build time regression
+        if: github.ref == 'refs/heads/main'
         run: |
           DURATION=${{ steps.build.outputs.duration }}
           FILE=".build-times.json"
@@ -104,6 +107,13 @@ jobs:
           UPDATED=$(echo "$HISTORY" | jq --argjson d "$DURATION" --arg s "${{ github.sha }}" \
             '. + [{"duration": $d, "sha": $s}] | .[-10:]')
           echo "$UPDATED" > "$FILE"
+
+      - name: Save build time history
+        if: github.ref == 'refs/heads/main' && success()
+        uses: actions/cache/save@v4
+        with:
+          path: .build-times.json
+          key: build-times-${{ runner.os }}-main-${{ github.sha }}
 
       # ─── Artifact upload (main only) ───
       - name: Upload production build
