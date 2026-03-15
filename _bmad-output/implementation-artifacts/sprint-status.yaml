@@ -38,7 +38,7 @@ project: Hexalith.FrontShell
 project_key: NOKEY
 tracking_system: file-system
 story_location: "{project-root}/_bmad-output/implementation-artifacts"
-last_updated: 2026-03-13
+last_updated: 2026-03-15
 
 development_status:
   # Epic 1: Platform Foundation & Authentication
@@ -53,14 +53,18 @@ development_status:
   1-8-basic-ci-pipeline: done
   epic-1-retrospective: optional
 
-  # Epic 2: Backend Integration — Commands & Projections
-  epic-2: backlog
-  2-1-cqrs-client-package-and-error-hierarchy: backlog
-  2-2-http-client-with-auth-and-tenant-injection: backlog
-  2-3-command-bus-send-commands-and-status-polling: backlog
-  2-4-query-bus-projection-data-with-zod-validation: backlog
+  # Epic 2: Backend Integration — Commands, Projections & Real-Time
+  # Updated 2026-03-15 per Sprint Change Proposal (SignalR, ETag, pre-flight validation)
+  epic-2: in-progress
+  2-1-cqrs-client-package-and-error-hierarchy: ready-for-dev
+  2-2-authenticated-fetch-client-with-correlation-id: backlog
+  2-3-command-hooks-submit-status-pipeline: backlog
+  2-4-query-hook-with-zod-validation: backlog
   2-5-projection-freshness-and-connection-state: backlog
   2-6-mock-implementations-and-contract-tests: backlog
+  2-7-signalr-connection-and-projection-subscriptions: backlog
+  2-8-etag-query-cache-integration: backlog
+  2-9-preflight-authorization-validation: backlog
   epic-2-retrospective: optional
 
   # Epic 3: Component Library — Beautiful by Default

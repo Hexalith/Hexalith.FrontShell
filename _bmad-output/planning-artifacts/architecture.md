@@ -29,7 +29,7 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 
 | Domain | Scope | Architectural Impact |
 |--------|-------|---------------------|
-| **CQRS Integration** | useCommand, useProjection hooks, ICommandBus/IQueryBus interfaces, DaprCommandBus/DaprQueryBus implementations, MockCommandBus/MockQueryBus | Core abstraction layer — ports-and-adapters pattern. Frontend calls REST CommandApi (POST /api/v1/commands) and per-microservice projection query APIs. SignalR for real-time projection freshness. Transport-agnostic by design. |
+| **CQRS Integration** | useCommandPipeline, useQuery hooks, ICommandBus/IQueryBus interfaces, useSignalR, useProjectionSubscription, ETag caching, MockCommandBus/MockQueryBus/MockSignalRHub | Core abstraction layer — ports-and-adapters pattern. Frontend calls REST CommandApi (POST /api/v1/commands) and projection query API. SignalR for real-time projection change notifications. ETag caching for bandwidth-efficient re-queries. Transport-agnostic by design. |
 | **Shell Infrastructure** | Auth provider, tenant context, layout, router, error boundaries, status bar | Shell-as-platform — manages all cross-cutting infrastructure. Modules receive context via React providers. Shell owns the entire chrome (sidebar, top bar, status bar). |
 | **Module System** | Typed manifest, build-time registration, route declaration, navigation contribution | Contract-bounded composition. Manifest is the center of gravity. Build-time validation catches integration errors before deployment. |
 | **Component Library** | @hexalith/ui — ~15 MVP components wrapping Radix primitives with design tokens | Enforcement architecture — CSS @layer cascade, token compliance scanner, import boundary ESLint rules. Components are the coherence guarantee. |
@@ -192,12 +192,12 @@ hexalith-frontshell/
 
 | # | Decision | Choice | Rationale |
 |---|----------|--------|-----------|
-| 1 | Client-side state management | React Context (shell) + TanStack Query (projections) | Context matches PRD's provider model; TanStack Query provides battle-tested caching/invalidation for the CQRS query layer |
+| 1 | Client-side state management | React Context (shell) + ETag-based projection caching with in-memory store | Context matches PRD's provider model; ETag caching with SignalR push invalidation provides efficient cache management for the CQRS query layer |
 | 2 | Authentication library | oidc-client-ts + react-oidc-context | Provider-agnostic OIDC — same build deploys against Keycloak or Entra ID |
-| 3 | REST client | ky (~3KB) | Thin fetch wrapper with hooks for auth token injection, retry, and JSON shortcuts |
+| 3 | REST client | Native `fetch` API | Browser-native — sufficient for JSON POST/GET with auth header injection. No additional dependency needed. Correlation ID propagation via `X-Correlation-ID` header. |
 | 4 | Runtime type validation | Zod (~13KB) | Projection data crosses a trust boundary (external API). Zod validates responses at runtime and infers TypeScript types from schemas |
-| 5 | Command lifecycle (three-phase feedback) | Status polling (GET /api/v1/commands/status/{correlationId}) | Backend has no SignalR. Status endpoint returns `Retry-After: 1`. Polling maps to the UX three-phase pattern. |
-| 6 | Projection freshness | TanStack Query refetch-on-command-complete + configurable background refetchInterval | No push mechanism in backend. Command completion triggers targeted projection refetch. Background polling optional per use case. |
+| 5 | Command lifecycle (three-phase feedback) | Status polling (GET /api/v1/commands/status/{correlationId}) | Status endpoint returns `Retry-After: 1`. Polling maps to the UX three-phase pattern. SignalR notifications complement polling by triggering projection cache invalidation on command completion. |
+| 6 | Projection freshness | Command-complete refetch + SignalR push notifications + configurable background polling | SignalR hub at `/hubs/projection-changes` broadcasts `ProjectionChanged(projectionType, tenantId)` signals. Client re-queries with `If-None-Match` ETag for cache-optimized refresh. Polling remains available as fallback and for dashboards needing periodic refresh. |
 
 **Important Decisions (Shape Architecture):**
 
@@ -212,7 +212,7 @@ hexalith-frontshell/
 
 | Decision | Rationale for Deferral | Target Phase |
 |----------|----------------------|--------------|
-| SignalR real-time push | Backend doesn't implement it yet. MVP uses polling (Decision #5: command status polling, Decision #6: TanStack Query refetch). FR11 (real-time updates) addressed via polling; FR12 (connection state) and FR27 (real-time indicator) deferred until SignalR exists. Architecture supports adding SignalR via TanStack Query cache invalidation when backend adds SignalR hub — no module code changes required. | Phase 2 |
+| SignalR Redis backplane (multi-instance) | Single CommandApi instance sufficient for MVP. Redis backplane needed when scaling to multiple CommandApi instances. | Phase 2 |
 | Remote logging/monitoring | Focus on core platform first. Add structured logging (e.g., Sentry, OpenTelemetry) when production traffic exists | Phase 2 |
 | Module-to-module communication | PRD explicitly defers. No validated use case yet | Phase 3+ |
 | OpenAPI codegen pipeline | Types manually maintained for 1-2 modules. Automated generation at scale | Phase 2 |
@@ -228,24 +228,41 @@ Backend APIs                    @hexalith/cqrs-client              Module UI
 ─────────────                   ─────────────────────              ─────────
 POST /api/v1/commands    ←──    ICommandBus.send(cmd)       ←──    useCommand()
 GET  /status/{id}        ←──    (internal polling)                 (status via hook)
-POST /api/v1/queries     ←──    IQueryBus.query(q)          ←──    useProjection<T>()
-                         ──→    TanStack Query cache        ──→    typed data + loading/error
+POST /api/v1/queries     ←──    IQueryBus.query(q)          ←──    useQuery<T>()
+                         ──→    ETag cache (in-memory)      ──→    typed data + loading/error
 ```
 
-**Projection Caching Strategy (TanStack Query):**
+**Projection Caching Strategy (ETag + SignalR + Polling):**
 
-| Behavior | Configuration | Rationale |
-|----------|--------------|-----------|
-| Cache key | `['projection', tenantId, domain, queryType, aggregateId, params]` | Tenant-scoped — tenant switch invalidates all cached projections |
-| Stale time | 30 seconds (default, configurable per projection) | Balance between freshness and API load |
-| Cache time | 5 minutes | Keep data for return-visit instant render |
-| Refetch on command complete | `useCommand` calls `queryClient.invalidateQueries` for affected projection keys | Targeted freshness after writes |
-| Background refetch | Optional `refetchInterval` per `useProjection` call | For dashboards or tables needing near-real-time |
-| Refetch on window focus | Enabled | Catch up after tab switching |
+Projection freshness uses a layered strategy:
+
+| Layer | Mechanism | When It Fires |
+|-------|-----------|---------------|
+| 1. ETag cache validation | `If-None-Match` / `304 Not Modified` on every query | Every request — avoids re-downloading unchanged data |
+| 2. Command-complete invalidation | `useCommandPipeline` triggers re-query for affected domain on `Completed` status | After successful command |
+| 3. SignalR push invalidation | `ProjectionChanged(projectionType, tenantId)` signal triggers re-query | When any client's command changes a projection |
+| 4. Background polling | Optional `refetchInterval` per query | For dashboards needing periodic refresh |
+| 5. Window focus refetch | Re-query on tab return | Catch up after tab switching |
+
+**ETag Flow:**
+1. First query: no `If-None-Match` → 200 + response body + `ETag` header
+2. Subsequent queries: `If-None-Match: "{etag}"` → 304 (no body, use cached) or 200 (new data + new ETag)
+3. ETag storage: in-memory Map keyed by query identity — resets on page refresh (acceptable for projections)
+
+**SignalR Flow:**
+1. Shell connects to `/hubs/projection-changes` on startup (single multiplexed connection)
+2. Active queries auto-subscribe via `JoinGroup(projectionType, tenantId)`
+3. On `ProjectionChanged` signal → re-query with `If-None-Match` (ETag-optimized)
+4. On disconnect → automatic reconnect with exponential backoff (1s, 3s, 5s, 10s, 30s) + auto-rejoin groups
+
+**Cache Key Pattern:** `{tenantId}:{domain}:{queryType}:{aggregateId}:{entityId?}`
+- Tenant switch invalidates all cached projections (tenant-scoped keys)
+
+**Fallback Behavior:** If SignalR is unavailable, polling and command-complete invalidation still provide data freshness. SignalR is an optimization layer, not a requirement.
 
 **Runtime Validation (Zod):**
 
-Module developers define Zod schemas for their projection types. The `useProjection<T>()` hook validates the query response payload against the schema at runtime:
+Module developers define Zod schemas for their projection types. The `useQuery<T>()` hook validates the query response payload against the schema at runtime:
 
 ```typescript
 // Module developer writes:
@@ -259,13 +276,13 @@ const OrderViewSchema = z.object({
 type OrderView = z.infer<typeof OrderViewSchema>;
 
 // Usage — validated at runtime, typed at compile time:
-const { data, isLoading, error } = useProjection(OrderViewSchema, {
+const { data, isLoading, error } = useQuery(OrderViewSchema, {
   domain: 'Orders',
   queryType: 'GetOrderList',
 });
 ```
 
-If the backend returns a shape that doesn't match the schema, `useProjection` surfaces a clear validation error instead of a runtime crash in a component.
+If the backend returns a shape that doesn't match the schema, `useQuery` surfaces a clear validation error instead of a runtime crash in a component.
 
 ### Authentication & Security
 
@@ -314,10 +331,12 @@ Silent refresh      →      iframe silent renew              →   /authorize (
 
 | Endpoint | Method | Purpose | Response |
 |----------|--------|---------|----------|
-| `/api/v1/commands` | POST | Submit command | 202 + `{ correlationId }` + Location header |
+| `/api/v1/commands` | POST | Submit command | 202 + `{ correlationId }` + Location header + `Retry-After: 1` + `X-Correlation-ID` |
 | `/api/v1/commands/status/{id}` | GET | Poll command status | 200 + `{ status, statusCode, timestamp, ... }` |
-| `/api/v1/commands/replay/{id}` | POST | Replay failed command | 202 + `{ correlationId, isReplay, previousStatus }` |
-| `/api/v1/queries` | POST | Query projection data | 200 + `{ correlationId, payload }` |
+| `/api/v1/commands/validate` | POST | Pre-flight command authorization | 200 + `{ isAuthorized, reason? }` |
+| `/api/v1/commands/replay/{id}` | POST | Replay failed command | 202 + `{ correlationId }` (409 if non-replayable) |
+| `/api/v1/queries` | POST | Query projection data | 200 + `{ correlationId, payload }` + `ETag` header (supports `If-None-Match` → 304) |
+| `/api/v1/queries/validate` | POST | Pre-flight query authorization | 200 + `{ isAuthorized, reason? }` |
 
 **Actual Backend Payload Types:**
 
@@ -359,6 +378,31 @@ interface SubmitQueryRequest {
   aggregateId: string;
   queryType: string;
   payload?: unknown;
+  entityId?: string;          // Entity-scoped query routing
+}
+
+// Pre-flight validation
+interface ValidateCommandRequest {
+  tenant: string;
+  domain: string;
+  commandType: string;
+  aggregateId?: string;
+}
+
+interface PreflightValidationResult {
+  isAuthorized: boolean;
+  reason?: string;
+}
+
+// RFC 9457 Problem Details (error response format)
+interface ProblemDetails {
+  type: string;
+  title: string;
+  status: number;
+  detail: string;
+  instance: string;
+  correlationId?: string;
+  tenantId?: string;
 }
 
 // Query response
@@ -432,11 +476,39 @@ class RateLimitError extends HexalithError {
 Shell ErrorBoundary (catches catastrophic shell failures)
   └─ Module ErrorBoundary (per module, catches module failures)
        └─ Component renders normally
-            └─ useCommand/useProjection surface errors via hook return value
+            └─ useCommandPipeline/useQuery surface errors via hook return value
                  └─ Module handles expected errors inline (rejected commands, empty results)
 ```
 
 Unexpected errors bubble to module error boundary → fallback UI with retry button. Shell continues running. Other modules unaffected.
+
+**Backend Error Response Format (RFC 9457 Problem Details):**
+
+All error responses (4xx, 5xx) from the CommandApi follow RFC 9457:
+
+```json
+{
+  "type": "https://tools.ietf.org/html/rfc9457#section-3",
+  "title": "Forbidden",
+  "status": 403,
+  "detail": "No tenant authorization claims found. Access denied.",
+  "instance": "/api/v1/commands",
+  "correlationId": "...",
+  "tenantId": "my-tenant"
+}
+```
+
+The `@hexalith/cqrs-client` HTTP client parses ProblemDetails responses and maps them to the typed error hierarchy:
+
+| HTTP Status | ProblemDetails `title` | Maps To |
+|-------------|----------------------|---------|
+| 400 | Bad Request | `ValidationError` |
+| 401 | Unauthorized | `AuthError` |
+| 403 | Forbidden | `ForbiddenError` |
+| 404 | Not Found | `ApiError` |
+| 409 | Conflict | `ApiError` |
+| 429 | Too Many Requests | `RateLimitError` |
+| 503 | Service Unavailable | `ApiError` |
 
 ### Frontend Architecture
 
@@ -445,8 +517,9 @@ Unexpected errors bubble to module error boundary → fallback UI with retry but
 | State Type | Solution | Scope |
 |-----------|---------|-------|
 | Shell infrastructure (auth, tenant, theme, locale) | React Context via `@hexalith/shell-api` providers | Global, shell-owned |
-| Server/projection data | TanStack Query via `useProjection` in `@hexalith/cqrs-client` | Per-query, cached |
-| Command lifecycle | `useCommand` hook state (pending, polling, completed, failed) | Per-command invocation |
+| Server/projection data | ETag-cached queries via `useQuery` in `@hexalith/cqrs-client`, invalidated by SignalR push + command completion + optional polling | Per-query, cached in-memory |
+| Command lifecycle | `useCommandPipeline` hook state (idle, sending, polling, completed, rejected, failed, timedOut) | Per-command invocation |
+| Real-time notifications | SignalR connection via `useSignalR`, projection subscriptions via `useProjectionSubscription` | Global, shell-owned |
 | Module UI state (forms) | React Hook Form (internal to `@hexalith/ui` `<Form>`) | Per-form instance |
 | Module UI state (tables) | TanStack Table state (sort, filter, page) via `@hexalith/ui` `<Table>` | Per-table instance |
 | Ephemeral UI (modals, dropdowns) | Component-local `useState` | Per-component |
@@ -481,7 +554,7 @@ const routes = modules.flatMap(m =>
 |----------|---------------|--------|
 | Per-module code splitting | `React.lazy()` + dynamic import per module | Only active module's code loaded |
 | Foundation package tree-shaking | tsup produces ESM with preserved modules. Vite tree-shakes unused exports. | Modules pay only for hooks/components they use |
-| Vendor chunk splitting | Vite `manualChunks` — React, react-router, TanStack Query, Radix primitives as separate cached chunks | Vendor code cached across deploys |
+| Vendor chunk splitting | Vite `manualChunks` — React, react-router, @microsoft/signalr, Radix primitives as separate cached chunks | Vendor code cached across deploys |
 | Asset hashing | Vite content-hash filenames | Long-term browser caching with cache-busting on change |
 
 ### Infrastructure & Deployment
@@ -543,7 +616,7 @@ The shell SPA is a static build served by a lightweight HTTP server. Runtime con
 1. **Platform monorepo scaffold** (Turborepo + pnpm) → establishes project structure for packages/, apps/, tools/
 2. **Design tokens + token compliance scanner** → foundation for all UI work
 3. **@hexalith/shell-api** (AuthProvider, TenantProvider, ThemeProvider, LocaleProvider, manifest types) → shell contract
-4. **@hexalith/cqrs-client** (ICommandBus, IQueryBus, useCommand, useProjection, ky instance, Zod validation, error types) → backend integration
+4. **@hexalith/cqrs-client** (ICommandBus, IQueryBus, useCommandPipeline, useQuery, useSignalR, fetch client, Zod validation, ETag cache, error types) → backend integration
 5. **@hexalith/ui** (layout primitives → content components → feedback → overlay) → component library
 6. **Shell application** (Vite + react-router v7 + OIDC + module registry + error boundaries + status bar) → running shell
 7. **create-hexalith-module CLI** → developer tooling (scaffolds standalone module repos)
@@ -559,12 +632,12 @@ The shell SPA is a static build served by a lightweight HTTP server. Runtime con
                     ←─── All modules (consume context via hooks)
 
 @hexalith/cqrs-client ←── Shell app (configures ky instance with auth hooks)
-                       ←── All modules (useCommand, useProjection)
+                       ←── All modules (useCommandPipeline, useQuery)
 
 @hexalith/ui ←──────────── Shell app (layout, sidebar, status bar)
              ←──────────── All modules (Table, Form, DetailView, etc.)
 
-TanStack Query ←────────── @hexalith/cqrs-client (QueryClientProvider in shell)
+@microsoft/signalr ←────── @hexalith/cqrs-client (SignalR connection in shell)
 oidc-client-ts ←────────── @hexalith/shell-api (AuthProvider wraps react-oidc-context)
 ky ←────────────────────── @hexalith/cqrs-client (HTTP client, configured by shell)
 Zod ←───────────────────── @hexalith/cqrs-client (projection validation)
@@ -584,7 +657,7 @@ Zod ←───────────────────── @hexalith
 | File Type | Convention | Example |
 |-----------|-----------|---------|
 | React components | PascalCase.tsx | `OrderCard.tsx`, `ModuleErrorBoundary.tsx` |
-| Hooks | camelCase.ts | `useCommand.ts`, `useProjection.ts` |
+| Hooks | camelCase.ts | `useCommandPipeline.ts`, `useQuery.ts` |
 | Utilities / helpers | camelCase.ts | `createKyInstance.ts`, `formatCurrency.ts` |
 | Types-only files | camelCase.ts | `types.ts`, `manifest.ts` |
 | Zod schemas | camelCase.ts | `schemas.ts`, `orderSchemas.ts` |
@@ -610,7 +683,7 @@ Each runner's config (`vitest.config.ts`, `playwright.config.ts`) must include/e
 | Element | Convention | Example | Anti-Pattern |
 |---------|-----------|---------|-------------|
 | React components | PascalCase | `OrderCard`, `TenantSwitcher` | `orderCard`, `order_card` |
-| Hooks | camelCase with `use` prefix | `useCommand`, `useProjection` | `UseCommand`, `use_command` |
+| Hooks | camelCase with `use` prefix | `useCommandPipeline`, `useQuery` | `UseCommand`, `use_command` |
 | Interfaces (contracts) | `I` prefix + PascalCase | `ICommandBus`, `IQueryBus` | `CommandBusInterface`, `CommandBus` (for interfaces) |
 | Implementations | Descriptive prefix + PascalCase | `DaprCommandBus`, `MockCommandBus` | `CommandBusImpl`, `CommandBusDefault` |
 | Types (data shapes) | PascalCase, no prefix | `OrderView`, `TenantInfo`, `ModuleManifest` | `IOrderView`, `TOrderView` |
@@ -1781,7 +1854,7 @@ Complete directory structure with every file listed and annotated. Package bound
 **✅ Architectural Decisions**
 
 - [x] Critical decisions documented with specific library versions
-- [x] Technology stack fully specified (React + Vite + Turborepo + pnpm + tsup + ky + Zod + oidc-client-ts + Radix + TanStack Query)
+- [x] Technology stack fully specified (React + Vite + Turborepo + pnpm + tsup + Zod + oidc-client-ts + Radix + @microsoft/signalr + ulidx)
 - [x] Integration patterns defined (CQRS command lifecycle, projection caching, auth flow)
 - [x] Performance considerations addressed (code splitting, Turborepo caching, vendor chunks)
 - [x] Deferred decisions documented with rationale and target phase

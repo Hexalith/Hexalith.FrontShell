@@ -218,7 +218,7 @@ The following journeys trace how each persona interacts with FrontShell across r
 
 **Rising Action:** For the Gantt chart, Lucas installs a third-party React charting library inside his module boundary. The manifest doesn't care — it only constrains the shell interface, not module internals. He wraps the chart in a `@hexalith/ui` PageLayout to maintain visual consistency. Freedom within boundaries.
 
-For projection freshness, he discovers `useProjection` accepts an `options` parameter with a `refreshInterval`. He sets it to 2 seconds for the order list. For the detail view, he uses on-demand refresh triggered by his command success callback. The hook exposes connection state (`connected`, `reconnecting`, `disconnected`), so he can show a subtle indicator when polling encounters errors. *(Phase 2: the same `useProjection` hook upgrades to SignalR push — Lucas's code won't change.)*
+For projection freshness, he discovers `useQuery` supports SignalR push notifications out of the box — when any client changes a projection, his view updates automatically via the `ProjectionChanged` signal. He also sets a `refetchInterval` of 2 seconds as a fallback for the order list. For the detail view, he uses on-demand refresh triggered by his command success callback. The hook exposes connection state (`connected`, `reconnecting`, `disconnected`), so he can show a subtle indicator when the SignalR connection drops or polling encounters errors.
 
 **Climax:** Lucas accidentally imports a utility function from the Tenants module — it's convenient, it's right there. The CI pipeline fails: "Cross-module import detected: @hexalith/tenants. Modules must only depend on @hexalith/shell-api and @hexalith/cqrs-client." The bounded context boundary holds. He duplicates the 3-line utility in his own module. It's the right architectural choice, even though it felt wrong for a moment.
 
@@ -716,7 +716,7 @@ The build sequence is designed so Weeks 1-6 require **zero backend infrastructur
 | `useProjection` polling | Configurable refresh interval, error retry, stale detection | Polling is well-understood; main risk is excessive server load with aggressive intervals. Default to conservative interval (5s), allow per-hook override. |
 | Token injection | Keycloak access token must be injected into HTTP headers | Shell's `ShellProvider` manages token; hooks read from context. Single source of truth. |
 | Testing mocks | `MockCommandBus` and `MockQueryBus` must simulate sync responses and polling cycles | Define mock interface early — this shapes the entire test story |
-| *Phase 2: SignalR push* | *SignalR connection lifecycle (connect, reconnect, auth token injection, connection loss)* | *Deferred to Phase 2. Use `@microsoft/signalr` — mature library. Same `useProjection` hook API upgrades transparently. Dedicated Keycloak + SignalR token integration test required.* |
+| SignalR push notifications | SignalR connection lifecycle (connect, reconnect, auth token injection, connection loss) | Use `@microsoft/signalr` — mature library (~30KB gzipped). Single multiplexed connection to `/hubs/projection-changes`. Auto-reconnect with exponential backoff. Dedicated Keycloak + SignalR token integration test required. |
 
 **Risk #2: Keycloak Authentication (High)**
 
@@ -725,7 +725,7 @@ The build sequence is designed so Weeks 1-6 require **zero backend infrastructur
 | Keycloak JS integration | Library maturity is good, but React lifecycle integration requires care | Use `keycloak-js` directly with custom React provider in `ShellProvider` |
 | Token refresh | Silent token refresh must work without disrupting user session | `keycloak-js` handles this natively with `onTokenExpired` callback |
 | Tenant context | Multi-tenant auth — tenant from token claims | Extract tenant from Keycloak token claims; shell-managed tenant selector as fallback |
-| SignalR + Keycloak *(Phase 2)* | SignalR needs access token for hub authentication | *Deferred to Phase 2.* Pass token via `accessTokenFactory`; refresh token before reconnect |
+| SignalR + Keycloak | SignalR needs access token for hub authentication | Pass token via `accessTokenFactory`; refresh token before reconnect |
 | Dev realm setup | CORS, redirect URIs, token claim mapping — historically the biggest unexpected time sink | Budget extra time in Weeks 7-8; document every debugging step (becomes Getting Started content) |
 | Keycloak unreachable | Auth failure = total platform failure | Auth-level error boundary: diagnostic message, not infinite spinner |
 
@@ -788,13 +788,13 @@ Each functional requirement traces to capabilities revealed in the [User Journey
 
 - **FR9:** Module developer can send commands to the backend without writing transport, serialization, or authentication code
 - **FR10:** Module developer can query projection data without writing transport code
-- **FR11:** Module developer can receive fresh projection data via configurable polling interval without managing refresh lifecycle *(MVP: polling; Phase 2: SignalR push upgrade — same hook API, no module code changes)*
+- **FR11:** Module developer can receive fresh projection data via SignalR push notifications and configurable polling without managing refresh lifecycle — SignalR provides real-time invalidation signals, polling serves as fallback and periodic refresh; same hook API regardless of transport
 - **FR12:** Module developer can observe projection data connection state (connected, reconnecting, disconnected)
-- **FR13:** Module developer can rely on automatic polling as the primary data freshness mechanism, with the same `useProjection` hook API extending to SignalR push in Phase 2 without module code changes
+- **FR13:** Module developer can rely on SignalR push notifications as the primary data freshness mechanism, with automatic polling as fallback — the query hook API is transport-agnostic
 - **FR14:** Module developer can test command and projection interactions using provided mock implementations
 - **FR15:** Module developer can simulate projection update events in tests using mock implementations
 - **FR16:** Module developer can access command execution results (success, validation errors, failures) to provide user feedback
-- **FR17:** Module developer can configure projection refresh behavior (interval, on-demand) *(Phase 2 adds event-triggered via SignalR)*
+- **FR17:** Module developer can configure projection refresh behavior (interval, on-demand, or event-triggered via SignalR)
 
 ### Shell Composition
 
@@ -898,7 +898,7 @@ Each functional requirement traces to capabilities revealed in the [User Journey
 | **Module isolation** | Typed manifest boundary (MVP) | Modules interact with shell through `@hexalith/shell-api` only. No direct cross-module imports. Runtime sandboxing deferred to Phase 2 |
 | **Tenant isolation** | Shell-enforced tenant context | All CQRS operations scoped to active tenant. Modules cannot override or access other tenants' data. Tenant switch clears all module state |
 | **Token propagation** | Automatic, module-transparent | CQRS client injects auth headers automatically. Module code never sees tokens |
-| **Data in transit** | TLS 1.2+ required | All API calls (CommandApi, projection queries) over HTTPS. *(Phase 2: SignalR connections also over HTTPS/WSS)* |
+| **Data in transit** | TLS 1.2+ required | All API calls (CommandApi, projection queries) over HTTPS. SignalR connections over HTTPS/WSS. |
 | **GDPR awareness** | Data minimization in frontend | Shell stores no PII in localStorage/sessionStorage beyond session token. Modules must follow same policy (enforced by code review for MVP, lint rule Phase 2) |
 
 ### Scalability (Module Count)
@@ -925,7 +925,7 @@ Each functional requirement traces to capabilities revealed in the [User Journey
 |-------------|--------|-------------|
 | **CommandApi compatibility** | Hexalith.EventStore REST API (`POST /api/v1/commands`) | `@hexalith/cqrs-client` DaprCommandBus wraps this endpoint. Contract validated by integration tests |
 | **Projection queries** | Per-microservice REST endpoints | Each module's manifest declares its projection API base URL. `useProjection` calls through the configured endpoint |
-| **Projection freshness** | Configurable polling (MVP); SignalR push (Phase 2) | MVP: per-hook polling with configurable interval and error retry. Phase 2: SignalR push upgrade — same `useProjection` hook API, no module code changes |
+| **Projection freshness** | SignalR push notifications + ETag-optimized re-query + configurable polling fallback | SignalR hub broadcasts projection change signals; client re-queries with `If-None-Match` ETag for cache-optimized refresh. Polling remains as fallback and for periodic refresh. |
 | **Infrastructure abstraction** | DAPR-agnostic at module level | Modules never reference DAPR directly. The ports-and-adapters layer in `@hexalith/cqrs-client` isolates transport |
 | **Backend contract types** | Manual TypeScript definitions (MVP) | Modules define their own command/projection types. OpenAPI codegen deferred to Phase 2 |
 | **Consumer-driven contract testing** | Frontend-backend API compatibility verified independently | Consumer contract tests define expected CommandApi and projection API interactions. Provider verification runs on backend PR. `can-i-deploy` gate blocks incompatible deployments |

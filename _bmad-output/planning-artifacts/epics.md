@@ -33,9 +33,9 @@ This document provides the complete epic and story breakdown for Hexalith.FrontS
 **CQRS Integration (FR9-FR17)**
 - FR9: Module developer can send commands to the backend without writing transport, serialization, or authentication code
 - FR10: Module developer can query projection data without writing transport code
-- FR11: Module developer can receive fresh projection data via configurable polling interval without managing refresh lifecycle *(MVP: polling; Phase 2: SignalR push upgrade — same hook API, no module code changes)*
+- FR11: Module developer can receive fresh projection data via SignalR push notifications and configurable polling without managing refresh lifecycle — SignalR provides real-time invalidation signals, polling serves as fallback and periodic refresh; same hook API regardless of transport
 - FR12: Module developer can observe projection data connection state (connected, reconnecting, disconnected)
-- FR13: Module developer can rely on automatic polling as the primary data freshness mechanism, with the same useProjection hook API extending to SignalR push in Phase 2 without module code changes
+- FR13: Module developer can rely on SignalR push notifications as the primary data freshness mechanism, with automatic polling as fallback — the query hook API is transport-agnostic
 - FR14: Module developer can test command and projection interactions using provided mock implementations
 - FR15: Module developer can simulate projection update events in tests using mock implementations
 - FR16: Module developer can access command execution results (success, validation errors, failures) to provide user feedback
@@ -51,7 +51,7 @@ This document provides the complete epic and story breakdown for Hexalith.FrontS
 - FR24: CI detects and rejects cross-module dependencies — zero imports between modules allowed
 - FR25: End user can retry a failed module operation without leaving the current page
 - FR26: End user can switch between modules without losing navigation and filter state
-- FR27: End user can see an indicator when projection data freshness is degraded (polling failures or elevated latency)
+- FR27: End user can see an indicator when projection data freshness is degraded (SignalR disconnection, polling failures, or elevated latency)
 - FR28: Shell validates that registered modules render successfully at runtime, with fallback to error boundary if loading fails
 - FR29: Shell team can add a new module to the shell by adding its repository reference — module routes and navigation are automatically registered from the manifest
 
@@ -148,7 +148,7 @@ This document provides the complete epic and story breakdown for Hexalith.FrontS
 **Integration**
 - NFR21: CommandApi compatibility with Hexalith.EventStore REST API
 - NFR22: Projection queries via per-microservice REST endpoints
-- NFR23: Projection freshness via configurable polling (MVP); SignalR push (Phase 2)
+- NFR23: Projection freshness via SignalR push notifications with ETag-optimized re-query + configurable polling fallback
 - NFR24: DAPR-agnostic at module level
 - NFR25: Manual TypeScript type definitions (MVP), OpenAPI codegen Phase 2
 - NFR26: Consumer-driven contract testing — frontend-backend API compatibility verified independently. Consumer contract tests define expected CommandApi and projection API interactions. Provider verification runs on backend PR. can-i-deploy gate blocks incompatible deployments.
@@ -186,12 +186,12 @@ This document provides the complete epic and story breakdown for Hexalith.FrontS
 **From Architecture:**
 - Starter template: Turborepo + pnpm workspaces (design-system example) — initialization command is first implementation story
 - Implementation sequence: (1) Platform monorepo scaffold, (2) Design tokens + compliance scanner, (3) @hexalith/shell-api, (4) @hexalith/cqrs-client, (5) @hexalith/ui, (6) Shell application, (7) create-hexalith-module CLI, (8) Reference module (Tenants), (9) CI pipeline
-- Client-side state: React Context (shell) + TanStack Query (projections)
+- Client-side state: React Context (shell) + ETag-based projection caching with in-memory store
 - Authentication: oidc-client-ts + react-oidc-context (provider-agnostic OIDC)
-- REST client: ky (~3KB) with auth/tenant injection hooks
+- REST client: native fetch API with auth/tenant injection via wrapper function
 - Runtime validation: Zod for projection data validation
 - Command lifecycle: status polling (GET /api/v1/commands/status/{correlationId}) with Retry-After: 1
-- Projection freshness: TanStack Query refetch-on-command-complete + configurable background refetchInterval
+- Projection freshness: SignalR push notifications triggering ETag-optimized re-query + command-complete invalidation + configurable background polling fallback
 - Error hierarchy: typed HexalithError subclasses (ApiError, ValidationError, CommandRejectedError, CommandTimeoutError, AuthError, ForbiddenError, RateLimitError)
 - Module loading: React.lazy() + Suspense + per-module error boundaries
 - CI/CD: GitHub Actions + Turborepo Remote Cache, single pipeline with build-lint-test-coverage-manifest gates
@@ -240,16 +240,16 @@ This document provides the complete epic and story breakdown for Hexalith.FrontS
 - FR49: Shell build produces a static deployment artifact (HTML/CSS/JS)
 - FR50: Shell can be configured for different environments without code changes
 
-**Epic 2: Backend Integration — Commands & Projections**
-- FR9: Module developer can send commands without writing transport, serialization, or auth code
-- FR10: Module developer can query projection data without writing transport code
-- FR11: Module developer can receive fresh projection data via configurable polling interval without managing refresh lifecycle
-- FR12: Module developer can observe projection data connection state
-- FR13: Module developer can rely on automatic polling as the primary data freshness mechanism
-- FR14: Module developer can test command and projection interactions using provided mock implementations
-- FR15: Module developer can simulate projection update events in tests using mock implementations
-- FR16: Module developer can access command execution results to provide user feedback
-- FR17: Module developer can configure projection refresh behavior
+**Epic 2: Backend Integration — Commands, Projections & Real-Time**
+- FR9: Module developer can send commands without writing transport, serialization, or auth code *(Stories 2.2, 2.3)*
+- FR10: Module developer can query projection data without writing transport code *(Stories 2.2, 2.4, 2.8)*
+- FR11: Module developer can receive fresh projection data via SignalR push notifications and configurable polling *(Stories 2.5, 2.7)*
+- FR12: Module developer can observe projection data connection state — HTTP + SignalR composite *(Stories 2.5, 2.7)*
+- FR13: Module developer can rely on SignalR push as primary data freshness mechanism with polling fallback *(Stories 2.5, 2.7)*
+- FR14: Module developer can test command, query, and SignalR interactions using provided mock implementations *(Story 2.6)*
+- FR15: Module developer can simulate projection update events in tests using MockSignalRHub *(Story 2.6)*
+- FR16: Module developer can access command execution results and pre-flight authorization status *(Stories 2.3, 2.9)*
+- FR17: Module developer can configure projection refresh behavior — SignalR push, polling interval, on-demand *(Stories 2.4, 2.7)*
 
 **Epic 3: Component Library — Beautiful by Default**
 - FR39: Module developer can build standard UI patterns using provided opinionated components — shell-facing surfaces use shared component library exclusively; module-internal visualizations may use any React library wrapped in shell layout components
@@ -276,7 +276,7 @@ This document provides the complete epic and story breakdown for Hexalith.FrontS
 - FR24: CI detects and rejects cross-module dependencies
 - FR25: End user can retry a failed module operation without leaving the current page
 - FR26: End user can switch between modules without losing navigation and filter state
-- FR27: End user can see an indicator when projection data freshness is degraded (polling failures or elevated latency)
+- FR27: End user can see an indicator when projection data freshness is degraded (SignalR disconnection, polling failures, or elevated latency)
 - FR28: Shell validates that registered modules render successfully at runtime
 - FR29: Shell team can add a new module by adding its repository reference
 
@@ -309,12 +309,13 @@ A developer sets up the monorepo and runs a shell application with full OIDC aut
 **Internal parallelism:** Stories 1.1-1.2 (scaffold + tokens) and Stories 1.3-1.4 (shell-api providers) are independent work streams that can execute in parallel within Epic 1. Story 1.2 unblocks Epic 3; Stories 1.3-1.4 unblock Epic 2. Plan sprints accordingly to avoid either parallel track becoming a bottleneck.
 **ATDD practice:** Starting from Story 1.3, every story follows the pattern: write failing acceptance tests from ACs → implement → tests pass. This establishes the test-first discipline (FR52) as team habit before CI enforcement arrives in Epic 6.
 
-### Epic 2: Backend Integration — Commands & Projections
-Module developers can send CQRS commands, query projection data, observe connection state, handle results, and test with faithful mocks — zero infrastructure code. [Recommended before Epic 3 if team is small; can parallel with Epic 3 if team is sized for it]
+### Epic 2: Backend Integration — Commands, Projections & Real-Time
+Module developers can send CQRS commands, query projection data with ETag-optimized caching, receive real-time projection updates via SignalR, check authorization pre-flight, observe connection state, handle structured errors, and test with faithful mocks — zero infrastructure code. [Recommended before Epic 3 if team is small; can parallel with Epic 3 if team is sized for it]
 **FRs covered:** FR9-FR17
 **NFRs addressed:** NFR2, NFR3, NFR21-NFR25, NFR31
-**Key deliverables:** @hexalith/cqrs-client, ICommandBus/IQueryBus interfaces, DaprCommandBus/DaprQueryBus implementations, MockCommandBus/MockQueryBus (async fidelity), useCommand hook (three-phase feedback + status polling), useProjection hook (TanStack Query), ky instance with auth/tenant hooks, Zod validation, typed error hierarchy, contract tests
-**Sequencing note:** If team cannot staff two parallel tracks, execute Epic 2 before Epic 3. Rationale: `useCommand` and `useProjection` hooks must exist before the scaffold (Epic 4) can wire them up. UI components can use placeholder layouts initially and be enriched when Epic 3 delivers.
+**Key deliverables:** @hexalith/cqrs-client package with `core/` (types, fetchClient, ProblemDetails parser, ULID correlationId), `commands/` (useSubmitCommand, useCommandStatus, useCommandPipeline), `queries/` (useQuery, etagCache), `notifications/` (useSignalR, useProjectionSubscription), `validation/` (useCanExecuteCommand, useCanExecuteQuery), mock implementations (MockCommandBus, MockQueryBus, MockSignalRHub), contract tests, Zod runtime validation, typed error hierarchy
+**Dependencies:** `@microsoft/signalr` (~30KB gzipped), `ulidx` (ULID generation)
+**Sequencing note:** Stories 2.1-2.6 deliver the polling-first MVP. Stories 2.7-2.8 layer SignalR and ETag caching on top. Story 2.9 adds pre-flight authorization. Each phase is independently shippable. If team cannot staff two parallel tracks, execute Epic 2 before Epic 3.
 
 ### Epic 3: Component Library — Beautiful by Default
 Module developers build production-quality pages using @hexalith/ui. Layout, feedback, navigation, data, and overlay components work beautifully in light and dark themes with WCAG AA accessibility. [Recommended after Epic 2 if team is small; can parallel with Epic 2 if team is sized for it]
@@ -328,7 +329,7 @@ Module developers build production-quality pages using @hexalith/ui. Layout, fee
 A developer runs one CLI command and has a complete, premium-looking module with example code using CQRS hooks and @hexalith/ui components, passing tests, and a dev host — productive within 30 minutes. Documentation guides the full lifecycle.
 **FRs covered:** FR1-FR7, FR58-FR59
 **NFRs addressed:** NFR4, NFR42-NFR48
-**Key deliverables:** create-hexalith-module CLI, dev host (MockShellProvider + mock auth/tenant), scaffold showcase (Table + DetailView + Form + command feedback), Getting Started guide, module development lifecycle guide
+**Key deliverables:** create-hexalith-module CLI, dev host (MockShellProvider + mock auth/tenant + MockSignalRHub), scaffold showcase (Table + DetailView + Form + command feedback using `useCommandPipeline` and `useQuery`), Getting Started guide, module development lifecycle guide
 **Dependencies:** Epics 1, 2, 3
 
 ### Epic 5: Shell Composition & Multi-Module Experience
@@ -686,56 +687,75 @@ So that all CQRS communication has a consistent contract and error handling foun
 **And** `ApiError` (statusCode, body), `ValidationError` (ZodIssue[]), `CommandRejectedError` (rejectionEventType, correlationId), `CommandTimeoutError` (duration, correlationId), `AuthError`, `ForbiddenError`, and `RateLimitError` subclasses exist
 **And** each error class has a unique `code` string identifier
 
-**Given** the package types are defined in `src/types.ts`
+**Given** the package types are defined in `src/core/types.ts`
 **When** a developer inspects them
-**Then** `SubmitCommandRequest`, `SubmitCommandResponse`, `CommandStatusResponse`, `SubmitQueryRequest`, `SubmitQueryResponse` types match the backend API payload shapes exactly (camelCase, matching field names)
+**Then** `SubmitCommandRequest`, `SubmitCommandResponse`, `CommandStatusResponse`, `SubmitQueryRequest`, `SubmitQueryResponse`, `ValidateCommandRequest`, `PreflightValidationResult`, and `ProblemDetails` types match the backend API payload shapes exactly (camelCase, matching field names)
+**And** `SubmitQueryRequest` includes optional `entityId: string` field for entity-scoped query routing
 **And** `CommandStatus` is a union type: `'Received' | 'Processing' | 'EventsStored' | 'EventsPublished' | 'Completed' | 'Rejected' | 'PublishFailed' | 'TimedOut'`
 **And** no TypeScript `enum` is used — union types only
+
+**Given** the error response parser is defined in `src/core/problemDetails.ts`
+**When** the HTTP client receives a 4xx or 5xx response
+**Then** the response body is parsed as RFC 9457 ProblemDetails
+**And** the parser maps HTTP status codes to the typed error hierarchy: 400→ValidationError, 401→AuthError, 403→ForbiddenError, 429→RateLimitError, others→ApiError
+**And** `correlationId` and `tenantId` from the ProblemDetails body are preserved in the error instance
+
+**Given** the correlation ID utility is defined in `src/core/correlationId.ts`
+**When** the HTTP client sends a request without an existing correlation ID
+**Then** a ULID is generated via `ulidx` and set as the `X-Correlation-ID` header
+**And** ULIDs are lexicographically sortable and timestamp-embedded for debugging
 
 **Given** the package is built with tsup
 **When** the build completes
 **Then** ESM output with `.d.ts` type declarations is produced
 **And** all co-located Vitest tests pass
 
-### Story 2.2: HTTP Client with Auth & Tenant Injection
+### Story 2.2: Authenticated Fetch Client with Correlation ID Propagation
 
 As a module developer,
-I want backend requests to automatically include my authentication token and active tenant,
-So that I never write authentication or tenant-scoping code in my modules.
+I want backend requests to automatically include my authentication token, active tenant, and correlation ID,
+So that I never write authentication, tenant-scoping, or request tracking code in my modules.
 
 **Acceptance Criteria:**
 
-**Given** a `createKyInstance` internal utility is created in `src/internal/`
-**When** the shell configures the ky instance at startup
-**Then** the factory accepts a `tokenGetter: () => Promise<string | null>` and `tenantGetter: () => string | null` — callback functions provided by the shell from `AuthProvider` and `TenantProvider` context
-**And** the instance is configured with the `commandApiBaseUrl` from runtime `/config.json`
-**And** the shell wires the getters during app initialization (outside React render) so the ky instance can access current auth/tenant state without calling React hooks
+**Given** a `createFetchClient` internal utility is created in `src/core/fetchClient.ts`
+**When** the shell configures the fetch client at startup
+**Then** the factory accepts `tokenGetter: () => Promise<string | null>` and `tenantGetter: () => string | null` — callback functions provided by the shell from `AuthProvider` and `TenantProvider` context
+**And** the client is configured with the `commandApiBaseUrl` from runtime `/config.json`
+**And** the shell wires the getters during app initialization (outside React render) so the fetch client can access current auth/tenant state without calling React hooks
 
 **Given** an authenticated user with an active tenant makes a CQRS request
-**When** the ky instance sends an HTTP request
-**Then** a `beforeRequest` hook injects `Authorization: Bearer {token}` from the auth context
-**And** a `beforeRequest` hook injects the `tenant` field from the active tenant context
+**When** the fetch client sends an HTTP request
+**Then** `Authorization: Bearer {token}` header is injected from the auth context
+**And** `X-Correlation-ID` header is set (ULID generated or propagated from caller)
+**And** `Content-Type: application/json` is set for POST requests
 **And** the token is refreshed transparently if expired (via oidc-client-ts silent refresh)
 
+**Given** the backend returns a 4xx or 5xx response
+**When** the fetch client processes it
+**Then** the response body is parsed as RFC 9457 ProblemDetails
+**And** the appropriate typed error is thrown (AuthError for 401, ForbiddenError for 403, RateLimitError for 429, ApiError for others)
+**And** `RateLimitError` preserves the `Retry-After` header value for caller retry logic
+
 **Given** the backend returns a 401 response
-**When** the ky instance receives it
+**When** the fetch client receives it
 **Then** an `AuthError` is thrown (triggering silent refresh or OIDC redirect)
 
 **Given** the backend returns a 403 response
-**When** the ky instance receives it
-**Then** a `ForbiddenError` is thrown with the tenant context
+**When** the fetch client receives it
+**Then** a `ForbiddenError` is thrown with the tenant context from ProblemDetails
 
 **Given** the backend returns a 429 response
-**When** the ky instance receives it
-**Then** a `RateLimitError` is thrown with a user-facing "too many requests" message
+**When** the fetch client receives it
+**Then** a `RateLimitError` is thrown with the `Retry-After` header value and a user-facing "too many requests" message
 
-**Given** the ky instance is an internal utility
+**Given** the fetch client is an internal utility
 **When** inspecting the package's `src/index.ts`
-**Then** `createKyInstance` is NOT exported — it lives in `src/internal/` and is used only by bus implementations
+**Then** `createFetchClient` is NOT exported — it lives in `src/core/` and is used only by hook implementations
 
 *FRs covered: FR9 (partial), FR10 (partial)*
 
-### Story 2.3: Command Bus — Send Commands & Status Polling
+### Story 2.3: Command Hooks — Submit, Status & Pipeline
 
 As a module developer,
 I want to send commands to the backend and receive lifecycle feedback (success, rejection, timeout),
@@ -743,25 +763,25 @@ So that I can provide clear user feedback without writing transport or polling c
 
 **Acceptance Criteria:**
 
-**Given** `DaprCommandBus` implements `ICommandBus` in `src/bus/`
-**When** a command is sent via `bus.send(command)`
-**Then** a `POST /api/v1/commands` request is made with the command payload
-**And** the response `{ correlationId }` is returned
-
-**Given** a `useCommand` hook is created in `src/hooks/`
-**When** a module developer calls `const { send, status, error, correlationId } = useCommand()`
-**Then** the hook returns an object with `send` function, `status` state, `error` state, and `correlationId`
+**Given** `useSubmitCommand` hook is created in `src/commands/useSubmitCommand.ts`
+**When** a module developer calls `const { submit, correlationId, error } = useSubmitCommand()`
+**Then** `submit(command)` sends a `POST /api/v1/commands` request and returns `{ correlationId }`
 **And** the return shape uses object destructuring (never tuples)
 
-**Given** a module developer calls `send(command)` on the useCommand hook
-**When** the command is submitted successfully
-**Then** the hook starts polling `GET /api/v1/commands/status/{correlationId}` every 1 second
-**And** `status` updates through the lifecycle: `'idle'` → `'sending'` → `'polling'` → `'completed'` | `'rejected'` | `'failed'` | `'timedOut'`
+**Given** `useCommandStatus` hook is created in `src/commands/useCommandStatus.ts`
+**When** a module developer calls `const { status, error } = useCommandStatus(correlationId)`
+**Then** the hook polls `GET /api/v1/commands/status/{correlationId}` every 1 second
+**And** polling stops on any terminal status (`Completed`, `Rejected`, `PublishFailed`, `TimedOut`)
+
+**Given** `useCommandPipeline` hook is created in `src/commands/useCommandPipeline.ts`
+**When** a module developer calls `const { send, status, error, correlationId, replay } = useCommandPipeline()`
+**Then** the hook composes `useSubmitCommand` + `useCommandStatus` into a single state machine
+**And** `status` updates through: `'idle'` → `'sending'` → `'polling'` → `'completed'` | `'rejected'` | `'failed'` | `'timedOut'`
 
 **Given** the backend returns `Completed` status
 **When** the polling detects it
 **Then** polling stops
-**And** `queryClient.invalidateQueries` is called for affected projection keys `['projection', tenantId, domain, ...]`
+**And** a `commandCompleted` event is emitted for projection cache invalidation (SignalR handles cross-client invalidation; this handles same-client immediate invalidation)
 **And** `status` becomes `'completed'`
 
 **Given** the backend returns `Rejected` status
@@ -774,49 +794,47 @@ So that I can provide clear user feedback without writing transport or polling c
 **Then** polling stops and the appropriate error (`CommandTimeoutError`) is surfaced
 **And** the hook exposes a `replay` function for retrying via `POST /api/v1/commands/replay/{correlationId}`
 
-**Given** `useCommand` is called outside the shell provider context
+**Given** `useCommandPipeline` is called outside the shell provider context
 **When** the hook attempts to access auth/tenant context
 **Then** a descriptive error is thrown
 
 *FRs covered: FR9, FR16*
 
-### Story 2.4: Query Bus — Projection Data with Zod Validation
+### Story 2.4: Query Hook — Projection Data with Zod Validation
 
 As a module developer,
-I want to query projection data with automatic caching, type safety, and runtime validation,
+I want to query projection data with automatic ETag caching, type safety, and runtime validation,
 So that I get typed, validated data without writing transport or caching code.
 
 **Acceptance Criteria:**
 
-**Given** `DaprQueryBus` implements `IQueryBus` in `src/bus/`
-**When** a query is sent via `bus.query(request, schema)`
+**Given** `useQuery<T>` hook is created in `src/queries/useQuery.ts`
+**When** a module developer calls `const { data, isLoading, error, refetch } = useQuery(schema, queryParams)`
 **Then** a `POST /api/v1/queries` request is made with the query payload
 **And** the response `payload` is validated against the provided Zod schema at runtime
 **And** if validation fails, a `ValidationError` is thrown with the Zod issues
-
-**Given** a `useProjection<T>` hook is created in `src/hooks/`
-**When** a module developer calls `const { data, isLoading, error, refetch } = useProjection(schema, queryParams)`
-**Then** the hook returns a `UseProjectionResult<T>` with own typed return shape (not re-exporting TanStack Query types)
 **And** `data` is typed as `T | undefined` inferred from the Zod schema
-**And** the hook accepts an optional `options` parameter with named, discoverable props: `refetchInterval`, `staleTime`, `enabled`, `refetchOnWindowFocus` — exposing commonly needed TanStack Query options as first-class typed props for IDE autocomplete discoverability
 
-**Given** TanStack Query is configured for projection caching
-**When** a projection is queried
-**Then** the cache key follows the pattern `['projection', tenantId, domain, queryType, aggregateId, params]`
-**And** stale time defaults to 30 seconds (configurable per projection)
-**And** cache time defaults to 5 minutes
-**And** refetch on window focus is enabled
+**Given** ETag caching is implemented in `src/queries/etagCache.ts`
+**When** a query receives a `200` response with an `ETag` header
+**Then** the ETag and response data are stored in an in-memory Map keyed by `{tenantId}:{domain}:{queryType}:{aggregateId}:{entityId?}`
+**And** subsequent requests for the same key send `If-None-Match: "{etag}"` header
+**And** a `304 Not Modified` response returns the cached data without re-downloading
+**And** a `200` response updates both the cached data and ETag
 
-**Given** a module developer provides a `refetchInterval` option
-**When** the projection is active
-**Then** background polling occurs at the specified interval
+**Given** the `useQuery` hook accepts an optional `options` parameter
+**When** a module developer provides options
+**Then** `refetchInterval` enables background polling at the specified interval
+**And** `enabled` controls whether the query is active (default: true)
+**And** `refetchOnWindowFocus` triggers re-query on tab return (default: true)
 
 **Given** the user switches tenants via `TenantProvider`
 **When** the tenant context changes
-**Then** all cached projections are invalidated (tenant-scoped cache keys)
+**Then** the entire ETag cache is cleared (all entries are tenant-scoped)
+**And** active queries re-fetch with no `If-None-Match` (cold start for new tenant)
 
 **Given** the backend returns a payload that doesn't match the Zod schema
-**When** `useProjection` processes the response
+**When** `useQuery` processes the response
 **Then** a clear `ValidationError` is surfaced via the `error` return value (not a runtime crash)
 
 *FRs covered: FR10, FR17*
@@ -836,14 +854,18 @@ So that end users see current data without manual refresh and I can display conn
 
 **Given** the shell manages a connection health state
 **When** a module developer calls `useConnectionState()` from `@hexalith/cqrs-client`
-**Then** the hook returns `{ state: 'connected' | 'reconnecting' | 'disconnected' }`
-**And** the status bar connection health segment reflects this state
-**And** MVP connection state is determined by HTTP request success/failure (not WebSocket/SignalR) — the hook tracks whether recent API calls succeed, transitioning to `'disconnected'` after consecutive failures and back to `'connected'` on recovery
+**Then** the hook returns `{ state: 'connected' | 'reconnecting' | 'disconnected', transport: 'signalr' | 'polling' }`
+**And** connection state reflects both HTTP reachability and SignalR connection status
+**And** SignalR disconnection degrades to polling-only mode (not a fatal error)
 
-**Given** polling is the primary data freshness mechanism for MVP
-**When** a module developer uses `useProjection` with `refetchInterval`
-**Then** the projection data is refreshed at the specified interval via configurable polling
-**And** module code will not need changes when SignalR push is added in Phase 2 (same `useProjection` hook API, architecture supports transparent transport swap)
+**Given** a command completes successfully via `useCommandPipeline`
+**When** the command status reaches `'Completed'`
+**Then** active `useQuery` hooks for the affected domain automatically re-fetch with ETag validation
+
+**Given** polling serves as fallback for data freshness
+**When** a module developer uses `useQuery` with `refetchInterval`
+**Then** the projection data is refreshed at the specified interval
+**And** polling continues independently of SignalR connection state (belt and suspenders)
 
 **Given** the backend becomes temporarily unavailable
 **When** projection queries fail
@@ -866,30 +888,36 @@ So that my tests accurately simulate real backend behavior without requiring a r
 
 **Acceptance Criteria:**
 
-**Given** `MockCommandBus` implements `ICommandBus` in `src/bus/`
+**Given** `MockCommandBus` implements `ICommandBus` in `src/commands/__mocks__/`
 **When** a test calls `mockBus.send(command)`
 **Then** the mock simulates async delay (configurable, not instant)
-**And** the mock supports the full three-phase command lifecycle (Received → Processing → Completed)
-**And** the mock can be configured to simulate rejection (`CommandRejectedError`), timeout (`CommandTimeoutError`), and publish failure scenarios
+**And** the mock supports the full command lifecycle (Received → Processing → Completed)
+**And** the mock can be configured to simulate rejection (`CommandRejectedError`), timeout (`CommandTimeoutError`), publish failure, and replay scenarios
+**And** the mock returns RFC 9457 ProblemDetails error responses matching real backend format
 
-**Given** `MockQueryBus` implements `IQueryBus` in `src/bus/`
+**Given** `MockQueryBus` implements `IQueryBus` in `src/queries/__mocks__/`
 **When** a test calls `mockBus.query(request, schema)`
 **Then** the mock returns configurable response data after simulated async delay
 **And** the mock validates responses against the provided Zod schema (same as real implementation)
+**And** the mock supports ETag behavior: returns `ETag` header on 200, returns 304 when `If-None-Match` matches current ETag
 
-**Given** a module developer uses `useCommand` or `useProjection` in tests
-**When** they configure the test with mock bus implementations
-**Then** the hooks behave identically to production (same status transitions, same error types, same cache invalidation)
+**Given** `MockSignalRHub` is provided in `src/notifications/__mocks__/`
+**When** a test needs to simulate real-time projection changes
+**Then** the mock supports `JoinGroup`, `LeaveGroup`, and emitting `ProjectionChanged` signals
+**And** the mock simulates connection lifecycle (connected, disconnected, reconnecting)
 
-**Given** contract test suites exist in `src/bus/__contracts__/`
+**Given** a module developer uses `useCommandPipeline` or `useQuery` in tests
+**When** they configure the test with mock implementations
+**Then** the hooks behave identically to production (same status transitions, same error types, same ETag caching, same SignalR invalidation)
+
+**Given** contract test suites exist in `src/__contracts__/`
 **When** `commandBus.contract.test.ts` runs
-**Then** the same parameterized test suite executes against both `MockCommandBus` and `DaprCommandBus`
-**And** tests verify: correlationId format, async delay (not instant), rejection error type, timeout error type
+**Then** the same parameterized test suite validates: correlationId format, async delay, rejection error type, timeout error type, ProblemDetails error shape, `X-Correlation-ID` header propagation
 **And** contract test expectations (response shapes, status codes, field names) are derived from the documented backend API specifications (Architecture Decision Document § API & Communication Patterns), not from frontend code assumptions
 
 **Given** `queryBus.contract.test.ts` runs
 **When** executed against both mock and real implementations
-**Then** both produce identical behavior for: valid query response, Zod validation failure, network error
+**Then** both produce identical behavior for: valid query response, Zod validation failure, ETag cache hit (304), network error, `entityId`-scoped queries
 
 **Given** the mock implementation diverges from the real implementation
 **When** the contract tests run in CI
@@ -901,9 +929,136 @@ So that my tests accurately simulate real backend behavior without requiring a r
 
 *FRs covered: FR14, FR15*
 
+### Story 2.7: SignalR Connection & Projection Subscriptions
+
+As a module developer,
+I want projection data to update automatically when any client changes it, without polling,
+So that end users see real-time data across all browser sessions.
+
+**Acceptance Criteria:**
+
+**Given** `useSignalR` hook is created in `src/notifications/useSignalR.ts`
+**When** the shell initializes
+**Then** a single SignalR connection is established to `{commandApiBaseUrl}/hubs/projection-changes`
+**And** the connection uses WebSocket transport with auto-fallback to Server-Sent Events
+**And** the access token is provided via `accessTokenFactory` callback from `useAuth()`
+**And** only one connection exists regardless of how many projections are active (multiplexed)
+
+**Given** the SignalR connection is established
+**When** the connection drops
+**Then** automatic reconnection begins with exponential backoff (1s, 3s, 5s, 10s, 30s max)
+**And** `useConnectionState` transitions to `'reconnecting'`
+**And** on successful reconnect, all previously subscribed groups are automatically rejoined
+**And** `useConnectionState` transitions back to `'connected'`
+
+**Given** `useProjectionSubscription` hook is created in `src/notifications/useProjectionSubscription.ts`
+**When** a `useQuery` hook mounts with `projectionType` and `tenantId`
+**Then** the hook calls `JoinGroup(projectionType, tenantId)` on the SignalR connection
+**And** when the component unmounts, `LeaveGroup(projectionType, tenantId)` is called
+
+**Given** the SignalR hub broadcasts `ProjectionChanged(projectionType, tenantId)`
+**When** the client receives the signal
+**Then** all active `useQuery` hooks matching that `projectionType` and `tenantId` re-fetch with `If-None-Match` ETag header
+**And** if the backend returns `304 Not Modified`, cached data is retained (zero network payload)
+**And** if the backend returns `200`, new data and ETag replace the cache entry
+
+**Given** SignalR connection fails entirely (server unavailable)
+**When** all reconnection attempts are exhausted
+**Then** `useConnectionState` transitions to `'disconnected'`
+**And** polling fallback continues providing data freshness via `refetchInterval`
+**And** no error is surfaced to module developers — degradation is transparent
+
+**Given** the maximum group subscription limit (50 per connection) is reached
+**When** a new `useQuery` attempts to subscribe
+**Then** a warning is logged to console with the projectionType that was not subscribed
+**And** the query still functions via polling — only real-time push is unavailable for that projection
+
+*FRs covered: FR11, FR12, FR13*
+*Dependency: `@microsoft/signalr` npm package (~30KB gzipped)*
+
+### Story 2.8: ETag Query Cache Integration
+
+As a module developer,
+I want query responses cached and validated via ETags so repeat queries avoid re-downloading unchanged data,
+So that the application is fast and bandwidth-efficient without any caching code in my module.
+
+**Acceptance Criteria:**
+
+**Given** `ETagCache` is implemented in `src/queries/etagCache.ts`
+**When** inspecting the implementation
+**Then** it is an in-memory `Map<string, { etag: string; data: unknown }>` keyed by `{tenantId}:{domain}:{queryType}:{aggregateId}:{entityId?}`
+**And** the cache is cleared entirely on tenant switch
+**And** the cache is cleared on page refresh (no persistence — acceptable for projections)
+
+**Given** a `useQuery` hook sends its first request for a projection
+**When** the backend responds with `200` and an `ETag` header
+**Then** the response data and ETag are stored in the cache
+
+**Given** a `useQuery` hook sends a subsequent request for the same projection
+**When** a cached ETag exists for the query key
+**Then** the request includes `If-None-Match: "{etag}"` header
+
+**Given** the backend responds with `304 Not Modified`
+**When** the `useQuery` hook processes the response
+**Then** the previously cached data is returned
+**And** no response body is parsed (zero-payload optimization)
+**And** `isLoading` remains `false` throughout (no loading flicker)
+
+**Given** the backend responds with `200` and a new `ETag`
+**When** the `useQuery` hook processes the response
+**Then** the cache entry is updated with new data and new ETag
+**And** the Zod schema validation runs on the new data
+
+**Given** a SignalR `ProjectionChanged` signal is received for a subscribed projection
+**When** the re-fetch query is sent
+**Then** `If-None-Match` is included — if the projection didn't actually change for this tenant, `304` avoids redundant data transfer
+
+**Given** a module developer inspects the `useQuery` hook API
+**When** reviewing the return type
+**Then** ETag caching is entirely transparent — no ETag-related props or configuration exposed to module developers
+
+*FRs covered: FR10, FR17*
+*Note: ETag caching is an infrastructure concern — module developers never interact with it directly*
+
+### Story 2.9: Pre-flight Authorization Validation
+
+As a module developer,
+I want to check whether the current user is authorized to execute a command or query before showing the UI for it,
+So that I can hide or disable buttons and forms the user cannot use, avoiding unnecessary rate limit consumption.
+
+**Acceptance Criteria:**
+
+**Given** `useCanExecuteCommand` hook is created in `src/validation/useCanExecute.ts`
+**When** a module developer calls `const { isAuthorized, reason, isLoading } = useCanExecuteCommand({ domain, commandType, aggregateId? })`
+**Then** a `POST /api/v1/commands/validate` request is sent with the command metadata
+**And** the hook returns `{ isAuthorized: boolean, reason?: string, isLoading: boolean }`
+
+**Given** `useCanExecuteQuery` hook is created in the same file
+**When** a module developer calls `const { isAuthorized, reason, isLoading } = useCanExecuteQuery({ domain, queryType, aggregateId? })`
+**Then** a `POST /api/v1/queries/validate` request is sent with the query metadata
+**And** the hook returns the same shape as `useCanExecuteCommand`
+
+**Given** the backend returns `{ isAuthorized: false, reason: "Insufficient tenant permissions" }`
+**When** the hook processes the response
+**Then** `isAuthorized` is `false` and `reason` contains the explanation
+**And** the module developer can use this to disable a button with a tooltip showing the reason
+
+**Given** the validation endpoint returns a network error or 503
+**When** the hook processes the failure
+**Then** `isAuthorized` defaults to `false` (fail-closed)
+**And** `reason` is set to a descriptive message: "Authorization service unavailable"
+
+**Given** multiple components check the same authorization
+**When** identical validation requests are made within 30 seconds
+**Then** the result is cached in-memory to avoid redundant API calls
+**And** the cache is cleared on tenant switch
+
+*FRs covered: FR16 (partial — extends command result feedback to include pre-flight authorization)*
+*Note: Pre-flight validation is optional — module developers can skip it and let the command/query fail with a 403 if they prefer*
+
 ---
 
-**Epic 2 Summary:** 6 stories covering 9 FRs (FR9-FR17). Stories 2.1-2.2 establish the package and HTTP foundation, 2.3-2.4 deliver the core hooks, 2.5 adds freshness and connection state, 2.6 provides testing infrastructure.
+**Epic 2 Summary:** 9 stories covering 9 FRs (FR9-FR17). Stories 2.1-2.2 establish the package foundation and authenticated fetch client. Stories 2.3-2.4 deliver command and query hooks. Story 2.5 adds freshness and connection state. Story 2.6 provides mocks, SignalR simulation, and contract tests. Story 2.7 adds SignalR real-time push. Story 2.8 adds ETag query cache integration. Story 2.9 adds pre-flight authorization validation. The epic follows a 5-phase incremental build: foundation → commands → queries → SignalR → validation.
 
 ---
 
