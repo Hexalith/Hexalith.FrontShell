@@ -13,7 +13,7 @@ so that all CQRS communication has a consistent contract and error handling foun
 1. **Given** the `@hexalith/cqrs-client` package is created in `packages/cqrs-client/`
    **When** a developer inspects the public API
    **Then** `ICommandBus` interface exists with `send(command: SubmitCommandRequest): Promise<SubmitCommandResponse>` method
-   **And** `IQueryBus` interface exists with `query<T>(request: SubmitQueryRequest, schema: ZodSchema<T>): Promise<T>` method
+   **And** `IQueryBus` interface exists with `query<T>(request: SubmitQueryRequest, schema: z.ZodType<T>): Promise<T>` method
    **And** interface names use `I` prefix following .NET backend conventions
 
 2. **Given** the error hierarchy is defined in `src/errors.ts`
@@ -21,6 +21,7 @@ so that all CQRS communication has a consistent contract and error handling foun
    **Then** `HexalithError` abstract base class extends `Error` with abstract `code: string`
    **And** `ApiError` (statusCode, body), `ValidationError` (ZodIssue[]), `CommandRejectedError` (rejectionEventType, correlationId), `CommandTimeoutError` (duration, correlationId), `AuthError`, `ForbiddenError`, and `RateLimitError` subclasses exist
    **And** each error class has a unique `code` string identifier
+   **And** `HexalithError` base class implements `toJSON()` returning `{ code, message, ...subclass fields }` for structured logging compatibility
 
 3. **Given** the package types are defined in `src/core/types.ts`
    **When** a developer inspects them
@@ -32,7 +33,7 @@ so that all CQRS communication has a consistent contract and error handling foun
 4. **Given** the error response parser is defined in `src/core/problemDetails.ts`
    **When** the HTTP client receives a 4xx or 5xx response
    **Then** the response body is parsed as RFC 9457 ProblemDetails
-   **And** the parser maps HTTP status codes to the typed error hierarchy: 400->ValidationError, 401->AuthError, 403->ForbiddenError, 429->RateLimitError, others->ApiError
+   **And** the parser maps HTTP status codes to the typed error hierarchy: 400->ApiError, 401->AuthError, 403->ForbiddenError, 429->RateLimitError, others->ApiError (note: `ValidationError` is reserved for Zod schema validation failures only, not backend 400s)
    **And** `correlationId` and `tenantId` from the ProblemDetails body are preserved in the error instance
 
 5. **Given** the correlation ID utility is defined in `src/core/correlationId.ts`
@@ -61,7 +62,7 @@ so that all CQRS communication has a consistent contract and error handling foun
   - [ ] Write `src/core/types.test.ts` -- type assertion tests verifying field existence and types
 
 - [ ] Task 2: Create error hierarchy (AC: #2)
-  - [ ] Create `src/errors.ts` with abstract `HexalithError` base class
+  - [ ] Create `src/errors.ts` with abstract `HexalithError` base class including `toJSON()` method that serializes `code`, `message`, and subclass-specific fields (JS `Error` properties are not enumerable -- `JSON.stringify(new Error('x'))` returns `'{}'` without this)
   - [ ] `ApiError` -- code: 'API_ERROR', constructor(statusCode: number, body?: unknown)
   - [ ] `ValidationError` -- code: 'VALIDATION_ERROR', constructor(issues: ZodIssue[])
   - [ ] `CommandRejectedError` -- code: 'COMMAND_REJECTED', constructor(rejectionEventType: string, correlationId: string)
@@ -69,14 +70,14 @@ so that all CQRS communication has a consistent contract and error handling foun
   - [ ] `AuthError` -- code: 'AUTH_ERROR'
   - [ ] `ForbiddenError` -- code: 'FORBIDDEN'
   - [ ] `RateLimitError` -- code: 'RATE_LIMIT', constructor with retryAfter?: string
-  - [ ] Write `src/errors.test.ts` -- verify inheritance, code values, instanceof checks, serialization
+  - [ ] Write `src/errors.test.ts` -- verify inheritance, code values, instanceof checks, `toJSON()` serialization (ensure `JSON.stringify(error)` includes code + message + subclass fields)
 
 - [ ] Task 3: Create RFC 9457 ProblemDetails parser (AC: #4)
   - [ ] Create `src/core/problemDetails.ts` with `parseProblemDetails(response: Response): Promise<HexalithError>`
-  - [ ] Map HTTP status codes: 400->ValidationError, 401->AuthError, 403->ForbiddenError, 429->RateLimitError, others->ApiError
+  - [ ] Map HTTP status codes: 400->ApiError, 401->AuthError, 403->ForbiddenError, 429->RateLimitError, others->ApiError (ValidationError is Zod-only)
   - [ ] Preserve correlationId and tenantId from ProblemDetails body in error instances
   - [ ] Handle 429 Retry-After header extraction
-  - [ ] Handle non-JSON error responses gracefully (fallback to ApiError)
+  - [ ] Handle non-JSON error responses gracefully: if `response.json()` throws (HTML from nginx 502, empty body, connection reset), fall back to `ApiError(response.status, await response.text().catch(() => null))`
   - [ ] Write `src/core/problemDetails.test.ts` -- test all mappings, edge cases, malformed bodies
 
 - [ ] Task 4: Create correlation ID utility (AC: #5)
@@ -87,8 +88,8 @@ so that all CQRS communication has a consistent contract and error handling foun
 
 - [ ] Task 5: Create bus interfaces (AC: #1)
   - [ ] Create `src/core/ICommandBus.ts` with `send(command: SubmitCommandRequest): Promise<SubmitCommandResponse>`
-  - [ ] Create `src/core/IQueryBus.ts` with `query<T>(request: SubmitQueryRequest, schema: ZodSchema<T>): Promise<T>`
-  - [ ] Write interface assertion tests in `src/core/ICommandBus.test.ts` and `src/core/IQueryBus.test.ts`
+  - [ ] Create `src/core/IQueryBus.ts` with `query<T>(request: SubmitQueryRequest, schema: z.ZodType<T>): Promise<T>`
+  - [ ] Write type-level tests using vitest `expectTypeOf` in `src/core/ICommandBus.test.ts` and `src/core/IQueryBus.test.ts` (interfaces are compile-time only -- use `expectTypeOf<ICommandBus>().toHaveProperty('send')`, NOT runtime assertions)
 
 - [ ] Task 6: Update package barrel export and dependencies (AC: #6)
   - [ ] Update `src/index.ts` with grouped exports (types, errors, interfaces, utilities)
@@ -108,6 +109,8 @@ so that all CQRS communication has a consistent contract and error handling foun
 - **Error hierarchy**: Abstract base `HexalithError extends Error` with abstract `code: string`. Each subclass has a unique code identifier.
 - **RFC 9457 ProblemDetails**: The backend error response format. Parser maps HTTP status to typed error classes.
 - **ULID correlation IDs**: `ulidx` library generates lexicographically sortable, timestamp-embedded IDs for `X-Correlation-ID` header.
+- **Two correlation ID systems coexist**: (1) **Request correlation ID** -- ULID generated by FrontShell, sent as `X-Correlation-ID` header, used for distributed tracing. (2) **Response correlation ID** -- GUID generated by backend, returned in `SubmitCommandResponse.correlationId`, used for command lifecycle tracking. These are NOT the same ID. Do not conflate them.
+- **Error serialization**: `HexalithError` base class MUST implement `toJSON()` because JavaScript `Error` properties are not enumerable -- `JSON.stringify(new Error('x'))` returns `'{}'`. Without `toJSON()`, structured logging and state serialization silently lose error data.
 
 ### Critical Constraints
 
@@ -115,7 +118,8 @@ so that all CQRS communication has a consistent contract and error handling foun
 - **DO NOT create React hooks** (`useCommandPipeline`, `useQuery`, etc.) -- those are Stories 2.3-2.4. This story establishes the contract layer.
 - **DO NOT add `@tanstack/react-query`** -- this dependency was removed per sprint change proposal. ETag-based caching replaces it (Story 2.8).
 - **DO NOT add `ky`** -- this dependency was removed per sprint change proposal. Native fetch replaces it (Story 2.2).
-- **Zod is a dependency** of this package (for `ZodSchema<T>` in `IQueryBus` interface and `ZodIssue[]` in `ValidationError`). Add it to `package.json` dependencies.
+- **Zod is a dependency** of this package (for `z.ZodType<T>` in `IQueryBus` interface and `ZodIssue[]` in `ValidationError`). Add it to `package.json` dependencies. Use `z.ZodType<T>` (not `ZodSchema<T>`) -- it's the stable generic across Zod 3.x versions.
+- **Zod singleton**: Zod MUST be a single instance across the workspace. If multiple Zod versions resolve, `instanceof ZodError` checks fail silently. pnpm strict dependencies help, but verify with `pnpm why zod` that only one version is resolved.
 - **ProblemDetails parser** receives a `Response` object (native fetch) and returns the appropriate `HexalithError` subclass -- it does NOT throw. The caller (Story 2.2's fetch client) decides when to throw.
 
 ### File Structure (Target)
@@ -167,7 +171,7 @@ interface SubmitCommandRequest {
   tenant: string;
   domain: string;
   aggregateId: string;
-  commandType: string;       // Fully qualified .NET type name
+  commandType: string;       // Fully qualified .NET type name, e.g. "Hexalith.Orders.Commands.PlaceOrder, Hexalith.Orders" — module developer provides this as-is
   payload: unknown;          // Domain-specific command data
   extensions?: Record<string, string>;
 }
@@ -246,6 +250,11 @@ type CommandStatus =
 ```typescript
 abstract class HexalithError extends Error {
   abstract readonly code: string;
+
+  toJSON(): Record<string, unknown> {
+    return { code: this.code, message: this.message };
+    // Subclasses override to include their specific fields
+  }
 }
 
 class ApiError extends HexalithError {
@@ -292,7 +301,7 @@ class RateLimitError extends HexalithError {
 
 | HTTP Status | Maps To | Notes |
 |-------------|---------|-------|
-| 400 | `ValidationError` | Zod issues from ProblemDetails detail field |
+| 400 | `ApiError` | Backend bad request -- `ValidationError` is reserved for Zod schema failures only |
 | 401 | `AuthError` | Triggers silent refresh or OIDC redirect |
 | 403 | `ForbiddenError` | Tenant not authorized |
 | 404 | `ApiError` | Resource not found |
@@ -326,7 +335,7 @@ export { parseProblemDetails } from './core/problemDetails';
 ### Testing Strategy
 
 - **Co-located tests**: Every `.ts` file gets a `.test.ts` sibling
-- **Type assertion tests**: Verify type shapes compile correctly (compile-time validation)
+- **Type-level tests**: Use vitest `expectTypeOf` to verify interface shapes at compile time (e.g., `expectTypeOf<ICommandBus>().toHaveProperty('send')`) -- NOT runtime assertions on interfaces
 - **Error class tests**: Verify inheritance chain, `instanceof` checks, unique `code` values, `message` formatting
 - **ProblemDetails tests**: Mock `Response` objects with various status codes and body shapes, verify correct error class instantiation, test edge cases (non-JSON body, missing fields, malformed ProblemDetails)
 - **CorrelationId tests**: Verify ULID format (`/^[0-9A-HJKMNP-TV-Z]{26}$/i`), lexicographic ordering (later IDs sort after earlier IDs), uniqueness across calls
@@ -344,7 +353,7 @@ export { parseProblemDetails } from './core/problemDetails';
 }
 ```
 
-`zod` is needed for `ZodSchema<T>` in `IQueryBus` and `ZodIssue[]` in `ValidationError`.
+`zod` is needed for `z.ZodType<T>` in `IQueryBus` and `ZodIssue[]` in `ValidationError`.
 `ulidx` is needed for ULID correlation ID generation. Zero dependencies, TypeScript-native.
 
 ### Project Structure Notes
