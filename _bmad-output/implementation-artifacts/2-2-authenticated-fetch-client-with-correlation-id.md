@@ -1,6 +1,6 @@
 # Story 2.2: Authenticated Fetch Client with Correlation ID Propagation
 
-Status: review
+Status: done
 
 ## Story
 
@@ -348,10 +348,10 @@ Claude Opus 4.6 (1M context)
 - Senior developer review performed before implementation completion (review outcome: Blocked — implementation was missing).
 - Implemented `createFetchClient` factory in `src/core/fetchClient.ts` with `FetchClientConfig`, `FetchRequestOptions`, and `FetchClient` interfaces.
 - Factory injects `Authorization: Bearer {token}` and `X-Correlation-ID` headers. Custom headers are accepted but cannot override `Authorization` (security).
-- 429 responses handled directly with `RateLimitError(retryAfter)` construction, bypassing `parseProblemDetails`. All other errors delegate to `parseProblemDetails`.
+- All error responses, including 429, now delegate to `parseProblemDetails` so RFC 9457 ProblemDetails parsing and context preservation are consistent across status codes.
 - `tenantGetter` removed from `FetchClientConfig` per elicitation W4 — tenant is a body field populated by hooks in Stories 2.3-2.4 via `useTenant()`.
 - Trailing slash stripped from `baseUrl` to prevent double-slash URLs.
-- 19 comprehensive unit tests covering all ACs: auth header injection, correlation ID propagation, error mapping (401/403/429/400/500), successful responses (200/202), token null/rejection, AbortSignal forwarding, URL construction, trailing slash, and custom header security.
+- 21 comprehensive unit tests covering all ACs: auth header injection, correlation ID propagation, error mapping (401/403/429/400/500), successful responses (200/202), token null/rejection, AbortSignal forwarding, URL construction, trailing slash, and custom header security including `X-Correlation-ID` override protection.
 - No new dependencies added. No React dependency. Pure TypeScript utility.
 - ✅ Resolved review finding [High]: 429 responses now delegate to `parseProblemDetails` — full RFC 9457 body parsing with ProblemDetails context fields (correlationId, tenantId) preserved. Removed the unnecessary 429 special case and unused `RateLimitError` import from fetchClient.ts.
 - ✅ Resolved review finding [Medium]: Added 2 tests asserting `X-Correlation-ID` cannot be overridden by custom headers — one for auto-generated ID, one for `options.correlationId`.
@@ -369,6 +369,7 @@ Claude Opus 4.6 (1M context)
 - 2026-03-16: Advanced elicitation review — removed `tenantGetter` from `FetchClientConfig` (F1), fixed spec wording for custom header override behavior (F2). Test count: 99 (removed tenant null test).
 - 2026-03-16: Senior developer review rerun against the current implementation. Outcome: Changes Requested. Story status → in-progress. Verified `pnpm --filter @hexalith/cqrs-client test`, `lint`, and `build` all pass.
 - 2026-03-16: Addressed all 3 code review findings. (1) High: removed 429 special case — all errors now delegate to `parseProblemDetails` for full RFC 9457 parsing. (2) Medium: added 2 tests for `X-Correlation-ID` override protection. (3) Medium: bookkeeping clarified. Tests: 101 pass, lint clean, build OK.
+- 2026-03-16: Post-fix validation rerun. Story status → done. Verified `pnpm --filter @hexalith/cqrs-client test` (101 passing), `lint`, and `build` all succeed after the review fixes.
 
 ## Senior Developer Review (AI)
 
@@ -376,29 +377,26 @@ Claude Opus 4.6 (1M context)
 
 #### Current Verdict
 
-Changes Requested
+Approved
 
 #### Current Summary
 
-- The Story 2.2 implementation now exists in `packages/cqrs-client/src/core/fetchClient.ts`, and the package is healthy: tests, lint, and build all pass.
-- However, the 429 error path bypasses `parseProblemDetails`, so 429 responses are not actually parsed as RFC 9457 ProblemDetails in the fetch layer even though the shared parser already supports 429 and preserves optional context.
-- The test suite is good overall, but Task 5 is overstated: the story claims coverage for blocking both `Authorization` and `X-Correlation-ID` header overrides, while only the `Authorization` override case is asserted.
-- Story bookkeeping is also out of sync with the current git working tree: the Dev Agent Record lists code files, but the current diff only contains story/sprint metadata and lockfile changes.
+- The Story 2.2 implementation is complete in `packages/cqrs-client/src/core/fetchClient.ts` and verified by passing tests, lint, and build checks.
+- The 429 path now delegates to `parseProblemDetails`, so RFC 9457 parsing is consistent across all error responses and `Retry-After` remains preserved through `RateLimitError`.
+- The test suite now includes explicit coverage for `X-Correlation-ID` override protection, closing the Task 5 gap identified during review.
+- No remaining High or Medium findings from the latest review remain open for this story.
 
 #### Current Findings
 
-1. **High — 429 responses bypass ProblemDetails parsing, so AC3 is only partially implemented**  
-   In `packages/cqrs-client/src/core/fetchClient.ts:68`, the client special-cases `response.status === 429` and throws `new RateLimitError(retryAfter)` directly instead of delegating to `parseProblemDetails(response)` at line 73. That means the 429 path does **not** parse the response body as RFC 9457 ProblemDetails, and any contextual fields already supported by `packages/cqrs-client/src/core/problemDetails.ts:90-92` (for example `correlationId` / `tenantId`) are dropped on rate-limit responses. The current implementation passes tests, but it falls short of the story's acceptance criterion that error bodies are parsed as ProblemDetails.
+No open High or Medium findings remain.
 
-2. **Medium — Task 5 is marked complete, but the claimed `X-Correlation-ID` override test is missing**  
-   The story explicitly claims under Task 5 at `_bmad-output/implementation-artifacts/2-2-authenticated-fetch-client-with-correlation-id.md:105` that custom headers cannot override both `Authorization` **and** `X-Correlation-ID`. In the actual test file, the only override-protection test is `packages/cqrs-client/src/core/fetchClient.test.ts:333` for `Authorization`. There is no corresponding assertion that a caller-supplied `headers["X-Correlation-ID"]` is ignored in favor of `options.correlationId` or the generated ID. This is a coverage gap rather than a proven runtime bug, but the task is currently overstated.
-
-3. **Medium — Story/file-list bookkeeping does not match the current git review surface**  
-   The Dev Agent Record file list names `packages/cqrs-client/src/core/fetchClient.ts` and `packages/cqrs-client/src/core/fetchClient.test.ts`, but the current git working tree for `d:\Hexalith.FrontShell` shows only `_bmad-output/implementation-artifacts/2-1-cqrs-client-package-and-error-hierarchy.md`, `_bmad-output/implementation-artifacts/sprint-status.yaml`, `pnpm-lock.yaml`, and the untracked story file. That mismatch makes the audit trail harder to trust during review even though the source files do exist in the repository.
+- ✅ 429 responses now flow through `parseProblemDetails(response)` for full RFC 9457 parsing.
+- ✅ `fetchClient.test.ts` now covers `X-Correlation-ID` override protection for both generated and caller-provided correlation IDs.
+- ✅ Story bookkeeping has been updated to reflect the verified post-fix state.
 
 #### Verification
 
-- `pnpm --filter @hexalith/cqrs-client test` ✅ (99 tests passing)
+- `pnpm --filter @hexalith/cqrs-client test` ✅ (101 tests passing)
 - `pnpm --filter @hexalith/cqrs-client lint` ✅
 - `pnpm --filter @hexalith/cqrs-client build` ✅
 

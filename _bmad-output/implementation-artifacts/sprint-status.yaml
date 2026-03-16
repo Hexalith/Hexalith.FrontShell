@@ -57,8 +57,8 @@ development_status:
   # Updated 2026-03-15 per Sprint Change Proposal (SignalR, ETag, pre-flight validation)
   epic-2: in-progress
   2-1-cqrs-client-package-and-error-hierarchy: done
-  2-2-authenticated-fetch-client-with-correlation-id: review
-  2-3-command-hooks-submit-status-pipeline: backlog
+  2-2-authenticated-fetch-client-with-correlation-id: done
+  2-3-command-hooks-submit-status-pipeline: ready-for-dev
   2-4-query-hook-with-zod-validation: backlog
   2-5-projection-freshness-and-connection-state: backlog
   2-6-mock-implementations-and-contract-tests: backlog
