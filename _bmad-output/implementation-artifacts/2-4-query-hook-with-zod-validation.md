@@ -1,6 +1,6 @@
 # Story 2.4: Query Hook — Projection Data with Zod Validation
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -41,8 +41,9 @@ so that I get typed, validated data without writing transport or caching code.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Extend `FetchClient` with query-aware method (AC: #2)
-  - [ ] Add `postForQuery<T>` to `FetchClient` interface in `src/core/fetchClient.ts`:
+- [x] Task 1: Extend `FetchClient` with query-aware method (AC: #2)
+  - [x] Add `postForQuery<T>` to `FetchClient` interface in `src/core/fetchClient.ts`:
+
     ```typescript
     // Discriminated union for type safety — no unsafe null casts
     type QueryResponse<T> =
@@ -52,25 +53,30 @@ so that I get typed, validated data without writing transport or caching code.
     interface FetchClient {
       post<T>(path: string, options?: FetchRequestOptions): Promise<T>;
       get<T>(path: string, options?: FetchRequestOptions): Promise<T>;
-      postForQuery<T>(path: string, options?: FetchRequestOptions): Promise<QueryResponse<T>>;
+      postForQuery<T>(
+        path: string,
+        options?: FetchRequestOptions,
+      ): Promise<QueryResponse<T>>;
     }
     ```
-  - [ ] `postForQuery` behavior:
+
+  - [x] `postForQuery` behavior:
     1. Sends POST with same auth/correlation logic as `post`
     2. On `200`: parse body as JSON, extract `ETag` header, return `{ data, status: 200, etag }`
     3. On `304`: return `{ data: null, status: 304, etag: null }` — caller checks `status` before accessing `data`
     4. On any other non-OK status (4xx/5xx): delegate to `parseProblemDetails` (existing behavior)
     5. On unexpected OK status (e.g., 202, 201): throw `ApiError(response.status)` — only 200 and 304 are expected from the query endpoint
-  - [ ] Update `createFetchClient` implementation to include `postForQuery`
-  - [ ] Add tests for `postForQuery` in `src/core/fetchClient.test.ts`:
+  - [x] Update `createFetchClient` implementation to include `postForQuery`
+  - [x] Add tests for `postForQuery` in `src/core/fetchClient.test.ts`:
     - 200 response returns data + etag
     - 304 response returns null data + status 304
     - Error responses still throw via parseProblemDetails
     - Unexpected OK status (e.g., 202) throws ApiError
-  - [ ] Existing `post` and `get` methods remain unchanged — zero regression risk
+  - [x] Existing `post` and `get` methods remain unchanged — zero regression risk
 
-- [ ] Task 2: Create `ETagCache` (AC: #2, #4)
-  - [ ] Create `src/queries/etagCache.ts`:
+- [x] Task 2: Create `ETagCache` (AC: #2, #4)
+  - [x] Create `src/queries/etagCache.ts`:
+
     ```typescript
     interface CacheEntry<T = unknown> {
       data: T;
@@ -86,29 +92,39 @@ so that I get typed, validated data without writing transport or caching code.
     function buildCacheKey(tenantId: string, params: QueryParams): string;
     function createETagCache(): ETagCache;
     ```
-  - [ ] Cache key format: `{tenantId}:{domain}:{queryType}:{aggregateId}:{entityId}` — empty segments produce empty strings between colons (e.g., `tenant-1:Orders:GetOrderList::` for list queries with no aggregateId/entityId)
-  - [ ] `get(key)` returns `CacheEntry | undefined`
-  - [ ] `set(key, entry)` stores/overwrites
-  - [ ] `clear()` removes all entries (used on tenant switch)
-  - [ ] In-memory `Map<string, CacheEntry>` — no persistence (resets on page refresh)
-  - [ ] Export `ETagCache`, `CacheEntry`, `buildCacheKey`, `createETagCache` for internal use
-  - [ ] Create `src/queries/etagCache.test.ts`
 
-- [ ] Task 3: Create `QueryProvider` and `useQueryClient` context hook (AC: #4)
-  - [ ] Create `src/queries/QueryProvider.tsx`:
+  - [x] Cache key format: `{tenantId}:{domain}:{queryType}:{aggregateId}:{entityId}` — empty segments produce empty strings between colons (e.g., `tenant-1:Orders:GetOrderList::` for list queries with no aggregateId/entityId)
+  - [x] `get(key)` returns `CacheEntry | undefined`
+  - [x] `set(key, entry)` stores/overwrites
+  - [x] `clear()` removes all entries (used on tenant switch)
+  - [x] In-memory `Map<string, CacheEntry>` — no persistence (resets on page refresh)
+  - [x] Export `ETagCache`, `CacheEntry`, `buildCacheKey`, `createETagCache` for internal use
+  - [x] Create `src/queries/etagCache.test.ts`
+
+- [x] Task 3: Create `QueryProvider` and `useQueryClient` context hook (AC: #4)
+  - [x] Create `src/queries/QueryProvider.tsx`:
+
     ```typescript
     interface QueryContextValue {
       fetchClient: FetchClient;
       etagCache: ETagCache;
     }
 
-    function QueryProvider({ fetchClient, children }: { fetchClient: FetchClient; children: ReactNode }): JSX.Element;
+    function QueryProvider({
+      fetchClient,
+      children,
+    }: {
+      fetchClient: FetchClient;
+      children: ReactNode;
+    }): JSX.Element;
     function useQueryClient(): QueryContextValue;
     ```
-  - [ ] `QueryProvider` creates `ETagCache` in `useMemo` (stable instance, scoped to provider)
-  - [ ] `QueryProvider` receives `fetchClient` as prop (from CqrsProvider — see Task 7)
-  - [ ] `useQueryClient()` throws descriptive error if context is null: `"useQueryClient must be used within QueryProvider"`
-  - [ ] Subscribe to tenant changes via `useTenant()` — on tenant change, call `etagCache.clear()`:
+
+  - [x] `QueryProvider` creates `ETagCache` in `useMemo` (stable instance, scoped to provider)
+  - [x] `QueryProvider` receives `fetchClient` as prop (from CqrsProvider — see Task 7)
+  - [x] `useQueryClient()` throws descriptive error if context is null: `"useQueryClient must be used within QueryProvider"`
+  - [x] Subscribe to tenant changes via `useTenant()` — on tenant change, call `etagCache.clear()`:
+
     ```typescript
     const { activeTenant } = useTenant();
     const prevTenantRef = useRef(activeTenant);
@@ -120,11 +136,13 @@ so that I get typed, validated data without writing transport or caching code.
       prevTenantRef.current = activeTenant;
     }, [activeTenant, etagCache]);
     ```
-  - [ ] Export `QueryProvider` and `useQueryClient` from `src/index.ts`
-  - [ ] Create `src/queries/QueryProvider.test.tsx`
 
-- [ ] Task 4: Create `useQuery<T>` hook (AC: #1, #2, #3, #5)
-  - [ ] Create `src/queries/useQuery.ts`:
+  - [x] Export `QueryProvider` and `useQueryClient` from `src/index.ts`
+  - [x] Create `src/queries/QueryProvider.test.tsx`
+
+- [x] Task 4: Create `useQuery<T>` hook (AC: #1, #2, #3, #5)
+  - [x] Create `src/queries/useQuery.ts`:
+
     ```typescript
     interface QueryParams {
       domain: string;
@@ -134,8 +152,8 @@ so that I get typed, validated data without writing transport or caching code.
     }
 
     interface QueryOptions {
-      enabled?: boolean;           // default: true
-      refetchInterval?: number;    // ms, undefined = no polling
+      enabled?: boolean; // default: true
+      refetchInterval?: number; // ms, undefined = no polling
       refetchOnWindowFocus?: boolean; // default: true
     }
 
@@ -152,7 +170,8 @@ so that I get typed, validated data without writing transport or caching code.
       options?: QueryOptions,
     ): UseQueryResult<T>;
     ```
-  - [ ] Core fetch logic:
+
+  - [x] Core fetch logic:
     1. Get `fetchClient` and `etagCache` from `useQueryClient()`
     2. Get `activeTenant` from `useTenant()` — it's `string | null`. Abort if null (set error: "No active tenant")
     3. Build cache key: `buildCacheKey(activeTenant, queryParams)`
@@ -164,22 +183,25 @@ so that I get typed, validated data without writing transport or caching code.
        - success → store in ETag cache, set `data`
        - failure → set `error` to `new ValidationError(result.error.issues)`
     9. On fetch error → set `error` (infrastructure errors propagate to error boundary)
-  - [ ] State management: `useState` for `data`, `isLoading`, `error`
-  - [ ] Initial fetch on mount (when `enabled !== false` and `activeTenant` exists)
-  - [ ] `refetch()` function: manually trigger a re-fetch (exposed to consumer)
-  - [ ] `refetchInterval` option: `setInterval` that calls internal fetch, cleaned up on unmount
-  - [ ] `refetchOnWindowFocus` option: `window.addEventListener('visibilitychange', ...)` → refetch when `document.visibilityState === 'visible'`; cleaned up on unmount
-  - [ ] `enabled` option: when `false`, skip initial fetch and polling; when toggled to `true`, trigger fetch. **Interaction with `refetchInterval`:** when `enabled` transitions from `false` to `true` and `refetchInterval` is set, the interval starts immediately (effect re-runs due to `enabled` dependency change).
-  - [ ] `isLoading` is `true` during initial fetch only (not during refetches — `data` stays stale during refetch)
-  - [ ] Use `useRef` for interval IDs and abort controllers to avoid stale closures
-  - [ ] Use `AbortController` to cancel in-flight requests on unmount or param change. **Add request timeout:** combine the controller's signal with a timeout signal to prevent hanging requests on slow backends:
+  - [x] State management: `useState` for `data`, `isLoading`, `error`
+  - [x] Initial fetch on mount (when `enabled !== false` and `activeTenant` exists)
+  - [x] `refetch()` function: manually trigger a re-fetch (exposed to consumer)
+  - [x] `refetchInterval` option: `setInterval` that calls internal fetch, cleaned up on unmount
+  - [x] `refetchOnWindowFocus` option: `window.addEventListener('visibilitychange', ...)` → refetch when `document.visibilityState === 'visible'`; cleaned up on unmount
+  - [x] `enabled` option: when `false`, skip initial fetch and polling; when toggled to `true`, trigger fetch. **Interaction with `refetchInterval`:** when `enabled` transitions from `false` to `true` and `refetchInterval` is set, the interval starts immediately (effect re-runs due to `enabled` dependency change).
+  - [x] `isLoading` is `true` during initial fetch only (not during refetches — `data` stays stale during refetch)
+  - [x] Use `useRef` for interval IDs and abort controllers to avoid stale closures
+  - [x] Use `AbortController` to cancel in-flight requests on unmount or param change. **Add request timeout:** combine the controller's signal with a timeout signal to prevent hanging requests on slow backends:
     ```typescript
     const controller = new AbortController();
-    const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(30_000)]);
+    const signal = AbortSignal.any([
+      controller.signal,
+      AbortSignal.timeout(30_000),
+    ]);
     // Pass signal to fetchClient.postForQuery options
     ```
     On timeout, `AbortSignal.timeout` throws a `TimeoutError` (DOMException with name `'TimeoutError'`). Catch it alongside `AbortError` — set a user-facing error: `"Query timed out after 30 seconds"`.
-  - [ ] **Stabilize `queryParams` reference** — `queryParams` is an object, so a new literal on every render creates a new reference, which re-creates `fetchData` via `useCallback`, which re-fires every `useEffect`. Fix: serialize params into the dependency array instead of using the object reference:
+  - [x] **Stabilize `queryParams` reference** — `queryParams` is an object, so a new literal on every render creates a new reference, which re-creates `fetchData` via `useCallback`, which re-fires every `useEffect`. Fix: serialize params into the dependency array instead of using the object reference:
     ```typescript
     const paramsKey = `${queryParams.domain}:${queryParams.queryType}:${queryParams.aggregateId ?? ''}:${queryParams.entityId ?? ''}`;
     // Use paramsKey (string) in useCallback deps instead of queryParams (object)
@@ -193,11 +215,12 @@ so that I get typed, validated data without writing transport or caching code.
      * Passing an inline object literal will cause unnecessary re-fetches on every render.
      */
     ```
-  - [ ] Create `src/queries/useQuery.test.ts`
+  - [x] Create `src/queries/useQuery.test.ts`
 
-- [ ] Task 5: Wire `QueryProvider` into `CqrsProvider` (AC: all)
-  - [ ] **BLOCKER: Story 2.3 must be completed first** — `src/commands/CqrsProvider.tsx` does not exist yet (created by Story 2.3). Tasks 1-4 and 7-8 can proceed without 2.3, but this task requires CqrsProvider to exist.
-  - [ ] Update `src/commands/CqrsProvider.tsx` (created in Story 2.3):
+- [x] Task 5: Wire `QueryProvider` into `CqrsProvider` (AC: all)
+  - [x] **BLOCKER: Story 2.3 must be completed first** — `src/commands/CqrsProvider.tsx` does not exist yet (created by Story 2.3). Tasks 1-4 and 7-8 can proceed without 2.3, but this task requires CqrsProvider to exist.
+  - [x] Update `src/commands/CqrsProvider.tsx` (created in Story 2.3):
+
     ```tsx
     import { QueryProvider } from '../queries/QueryProvider';
 
@@ -214,37 +237,42 @@ so that I get typed, validated data without writing transport or caching code.
       );
     }
     ```
-  - [ ] This keeps a single `CqrsProvider` in the shell's provider tree — no extra provider needed
-  - [ ] Module developers get both command and query hooks from the same provider
-  - [ ] Update CqrsProvider tests to verify QueryProvider is nested
 
-- [ ] Task 6: Export public API from `src/index.ts` (AC: all)
-  - [ ] Add to `packages/cqrs-client/src/index.ts`:
+  - [x] This keeps a single `CqrsProvider` in the shell's provider tree — no extra provider needed
+  - [x] Module developers get both command and query hooks from the same provider
+  - [x] Update CqrsProvider tests to verify QueryProvider is nested
+
+- [x] Task 6: Export public API from `src/index.ts` (AC: all)
+  - [x] Add to `packages/cqrs-client/src/index.ts`:
     ```typescript
     // Queries
-    export { useQuery } from './queries/useQuery';
-    export { QueryProvider } from './queries/QueryProvider';
-    export type { QueryParams, QueryOptions, UseQueryResult } from './queries/useQuery';
+    export { useQuery } from "./queries/useQuery";
+    export { QueryProvider } from "./queries/QueryProvider";
+    export type {
+      QueryParams,
+      QueryOptions,
+      UseQueryResult,
+    } from "./queries/useQuery";
     ```
-  - [ ] Do NOT export `ETagCache`, `createETagCache`, `buildCacheKey` — internal implementation
-  - [ ] Do NOT export `useQueryClient` — internal hook for query infrastructure
-  - [ ] Export `QueryProvider` for shell integration (nested inside CqrsProvider)
-  - [ ] Verify `pnpm build` succeeds
+  - [x] Do NOT export `ETagCache`, `createETagCache`, `buildCacheKey` — internal implementation
+  - [x] Do NOT export `useQueryClient` — internal hook for query infrastructure
+  - [x] Export `QueryProvider` for shell integration (nested inside CqrsProvider)
+  - [x] Verify `pnpm build` succeeds
 
-- [ ] Task 7: Write comprehensive tests (AC: all)
-  - [ ] **etagCache.test.ts**:
+- [x] Task 7: Write comprehensive tests (AC: all)
+  - [x] **etagCache.test.ts**:
     - set + get returns entry
     - get missing key returns undefined
     - set overwrites existing entry
     - clear removes all entries
     - buildCacheKey with entityId
     - buildCacheKey without entityId
-  - [ ] **QueryProvider.test.tsx**:
+  - [x] **QueryProvider.test.tsx**:
     - Context guard throws outside provider
     - Children render with valid context
     - Cache clears on tenant change (mock useTenant to change activeTenant)
     - Cache does NOT clear on initial mount
-  - [ ] **useQuery.test.ts**:
+  - [x] **useQuery.test.ts**:
     - Successful query returns validated data
     - Zod validation failure sets ValidationError in error
     - ETag cache stores on 200 response
@@ -263,16 +291,16 @@ so that I get typed, validated data without writing transport or caching code.
     - Unmount clears interval
     - Param change mid-flight aborts old request and starts new fetch
     - Return shape is object (not tuple)
-  - [ ] **fetchClient.test.ts** (additions):
+  - [x] **fetchClient.test.ts** (additions):
     - `postForQuery` returns data + etag on 200
     - `postForQuery` handles 304 (null data, status 304)
     - `postForQuery` throws on 4xx/5xx via parseProblemDetails
-  - [ ] All hook tests use `@testing-library/react` `renderHook` + `act`
-  - [ ] All tests mock `fetchClient` and `useTenant` — do NOT call real APIs
-  - [ ] Vitest environment: `jsdom` for hook tests (React hooks need DOM)
-  - [ ] Polling tests: `vi.useFakeTimers()` + `vi.advanceTimersByTime()`
-  - [ ] Window focus tests: spy on `addEventListener`/`removeEventListener` + dispatch `visibilitychange`
-  - [ ] Wrapper pattern for hook tests:
+  - [x] All hook tests use `@testing-library/react` `renderHook` + `act`
+  - [x] All tests mock `fetchClient` and `useTenant` — do NOT call real APIs
+  - [x] Vitest environment: `jsdom` for hook tests (React hooks need DOM)
+  - [x] Polling tests: `vi.useFakeTimers()` + `vi.advanceTimersByTime()`
+  - [x] Window focus tests: spy on `addEventListener`/`removeEventListener` + dispatch `visibilitychange`
+  - [x] Wrapper pattern for hook tests:
     ```typescript
     const wrapper = ({ children }) => (
       <QueryProvider fetchClient={mockFetchClient}>
@@ -282,9 +310,10 @@ so that I get typed, validated data without writing transport or caching code.
     ```
     Note: must also mock `useTenant()` via `vi.mock('@hexalith/shell-api')`
 
-- [ ] Task 8: Add test infrastructure (prerequisite for Task 7)
-  - [ ] Run `pnpm --filter @hexalith/cqrs-client add -D @testing-library/react` (if not already added by Story 2.3)
-  - [ ] Update `packages/cqrs-client/vitest.config.ts` to add `environment: 'jsdom'`:
+- [x] Task 8: Add test infrastructure (prerequisite for Task 7)
+  - [x] Run `pnpm --filter @hexalith/cqrs-client add -D @testing-library/react` (if not already added by Story 2.3)
+  - [x] Update `packages/cqrs-client/vitest.config.ts` to add `environment: 'jsdom'`:
+
     ```typescript
     import { defineConfig } from "vitest/config";
 
@@ -296,14 +325,15 @@ so that I get typed, validated data without writing transport or caching code.
       },
     });
     ```
-  - [ ] Verify: `pnpm --filter @hexalith/cqrs-client test` runs without environment errors
 
-- [ ] Task 9: Verify package integrity
-  - [ ] `pnpm --filter @hexalith/cqrs-client build` succeeds (ESM + .d.ts)
-  - [ ] `pnpm --filter @hexalith/cqrs-client test` passes all tests
-  - [ ] `pnpm --filter @hexalith/cqrs-client lint` passes
-  - [ ] `pnpm build` (full monorepo) succeeds
-  - [ ] Verify useQuery returns typed data when Zod schema is provided (TS compile check)
+  - [x] Verify: `pnpm --filter @hexalith/cqrs-client test` runs without environment errors
+
+- [x] Task 9: Verify package integrity
+  - [x] `pnpm --filter @hexalith/cqrs-client build` succeeds (ESM + .d.ts)
+  - [x] `pnpm --filter @hexalith/cqrs-client test` passes all tests (182 total)
+  - [x] `pnpm --filter @hexalith/cqrs-client lint` passes
+  - [x] `pnpm build` (full monorepo) succeeds
+  - [x] Verify useQuery returns typed data when Zod schema is provided (TS compile check)
 
 ## Dev Notes
 
@@ -337,6 +367,7 @@ so that I get typed, validated data without writing transport or caching code.
 ### Critical: fetchClient Extension for ETag Support
 
 The current `FetchClient` interface (from Story 2.2) only returns parsed JSON (`Promise<T>`). It cannot:
+
 1. Return response headers (needed to read `ETag`)
 2. Handle `304 Not Modified` responses (treated as errors by `!response.ok`)
 
@@ -349,16 +380,20 @@ type QueryResponse<T> =
   | { status: 304; data: null; etag: null };
 
 // In createFetchClient, add:
-async function postForQuery<T>(path: string, options?: FetchRequestOptions): Promise<QueryResponse<T>> {
+async function postForQuery<T>(
+  path: string,
+  options?: FetchRequestOptions,
+): Promise<QueryResponse<T>> {
   // Same header setup as existing request()
   const headers = { ...options?.headers };
-  headers['Content-Type'] = 'application/json';
-  headers['X-Correlation-ID'] = options?.correlationId ?? generateCorrelationId();
+  headers["Content-Type"] = "application/json";
+  headers["X-Correlation-ID"] =
+    options?.correlationId ?? generateCorrelationId();
   const token = await tokenGetter();
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (token) headers["Authorization"] = `Bearer ${token}`;
 
   const response = await fetch(`${normalizedBaseUrl}${path}`, {
-    method: 'POST',
+    method: "POST",
     headers,
     body: options?.body != null ? JSON.stringify(options.body) : undefined,
     signal: options?.signal,
@@ -376,12 +411,15 @@ async function postForQuery<T>(path: string, options?: FetchRequestOptions): Pro
 
   // Only 200 is expected — guard against unexpected OK statuses (202, 201, etc.)
   if (response.status !== 200) {
-    throw new ApiError(response.status, `Unexpected status from query endpoint: ${response.status}`);
+    throw new ApiError(
+      response.status,
+      `Unexpected status from query endpoint: ${response.status}`,
+    );
   }
 
   // 200 — parse body, extract ETag
-  const data = await response.json() as T;
-  const etag = response.headers.get('ETag');
+  const data = (await response.json()) as T;
+  const etag = response.headers.get("ETag");
   return { status: 200, data, etag };
 }
 ```
@@ -405,6 +443,7 @@ Lifecycle: created per QueryProvider instance, cleared on tenant switch, garbage
 The cache is intentionally simple — no TTL, no LRU eviction, no persistence. Projections are small and the cache resets on page refresh. Story 2.7 (SignalR) and Story 2.5 (command-complete invalidation) will add more sophisticated invalidation triggers.
 
 **Known MVP limitations:**
+
 - **No eviction policy** — a power user navigating many projections accumulates entries until page refresh. Acceptable for MVP; add LRU/TTL eviction in Story 2.8 if needed.
 - **Stale tenant entries after switch** — if a request is in-flight when tenant changes, the response may store an entry keyed to the old tenant after `clear()`. These entries are harmless (cache key includes tenant ID, so they never match new-tenant queries) and are garbage-collected on page refresh.
 - **No in-flight request deduplication** — two components mounting simultaneously with the same `queryParams` make two independent requests. After the first caches its ETag, the second's refetch gets a 304. Acceptable for MVP; true deduplication would require a pending-request registry.
@@ -439,6 +478,7 @@ Mount (enabled=true)
 ### Design Decision: `safeParse` over `parse`
 
 Use `schema.safeParse(payload)` — NOT `schema.parse(payload)`:
+
 - `parse` throws `ZodError` which would need try/catch
 - `safeParse` returns `{ success: boolean, data?, error? }` — no throw
 - On failure: `new ValidationError(result.error.issues)` set on `error` return value
@@ -447,6 +487,7 @@ Use `schema.safeParse(payload)` — NOT `schema.parse(payload)`:
 ### Design Decision: QueryProvider Nested Inside CqrsProvider
 
 `QueryProvider` is nested inside `CqrsProvider` (not a sibling in the shell provider tree) because:
+
 1. It needs `fetchClient` from CqrsProvider
 2. Module developers only add one provider (`CqrsProvider`) — simpler DX
 3. Future Story 2.5 will wire `commandEventBus` → query re-fetch inside this nesting
@@ -486,20 +527,21 @@ packages/cqrs-client/
 
 ### Naming Conventions
 
-| Element             | Convention          | Example                                                |
-| ------------------- | ------------------- | ------------------------------------------------------ |
-| Hook                | camelCase with `use` | `useQuery`                                            |
-| Provider component  | PascalCase           | `QueryProvider`                                        |
-| Context hook        | camelCase with `use` | `useQueryClient`                                      |
-| Type params         | PascalCase           | `QueryParams`, `QueryOptions`, `UseQueryResult<T>`     |
-| Cache key builder   | camelCase            | `buildCacheKey`                                        |
-| Cache type          | PascalCase           | `ETagCache`, `CacheEntry`                              |
-| Zod schemas         | PascalCase + Schema  | `OrderViewSchema` (defined by module dev, not us)      |
-| Inferred types      | PascalCase           | `type OrderView = z.infer<typeof OrderViewSchema>`     |
+| Element            | Convention           | Example                                            |
+| ------------------ | -------------------- | -------------------------------------------------- |
+| Hook               | camelCase with `use` | `useQuery`                                         |
+| Provider component | PascalCase           | `QueryProvider`                                    |
+| Context hook       | camelCase with `use` | `useQueryClient`                                   |
+| Type params        | PascalCase           | `QueryParams`, `QueryOptions`, `UseQueryResult<T>` |
+| Cache key builder  | camelCase            | `buildCacheKey`                                    |
+| Cache type         | PascalCase           | `ETagCache`, `CacheEntry`                          |
+| Zod schemas        | PascalCase + Schema  | `OrderViewSchema` (defined by module dev, not us)  |
+| Inferred types     | PascalCase           | `type OrderView = z.infer<typeof OrderViewSchema>` |
 
 ### Implementation Sketches
 
 **etagCache.ts:**
+
 ```typescript
 export interface CacheEntry<T = unknown> {
   data: T;
@@ -512,8 +554,16 @@ export interface ETagCache {
   clear(): void;
 }
 
-export function buildCacheKey(tenantId: string, params: { domain: string; queryType: string; aggregateId?: string; entityId?: string }): string {
-  return `${tenantId}:${params.domain}:${params.queryType}:${params.aggregateId ?? ''}:${params.entityId ?? ''}`;
+export function buildCacheKey(
+  tenantId: string,
+  params: {
+    domain: string;
+    queryType: string;
+    aggregateId?: string;
+    entityId?: string;
+  },
+): string {
+  return `${tenantId}:${params.domain}:${params.queryType}:${params.aggregateId ?? ""}:${params.entityId ?? ""}`;
 }
 
 export function createETagCache(): ETagCache {
@@ -527,15 +577,16 @@ export function createETagCache(): ETagCache {
 ```
 
 **useQuery.ts (core fetch logic):**
+
 ```typescript
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { useTenant } from '@hexalith/shell-api';
-import type { z } from 'zod';
-import { useQueryClient } from './QueryProvider';
-import { buildCacheKey } from './etagCache';
-import { ValidationError } from '../errors';
-import type { SubmitQueryResponse } from '../core/types';
-import type { HexalithError } from '../errors';
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useTenant } from "@hexalith/shell-api";
+import type { z } from "zod";
+import { useQueryClient } from "./QueryProvider";
+import { buildCacheKey } from "./etagCache";
+import { ValidationError } from "../errors";
+import type { SubmitQueryResponse } from "../core/types";
+import type { HexalithError } from "../errors";
 
 export interface QueryParams {
   domain: string;
@@ -578,84 +629,95 @@ export function useQuery<T>(
 
   // Stabilize queryParams into a string key to avoid infinite useCallback re-creation
   // (object literals create new references every render)
-  const paramsKey = `${queryParams.domain}:${queryParams.queryType}:${queryParams.aggregateId ?? ''}:${queryParams.entityId ?? ''}`;
+  const paramsKey = `${queryParams.domain}:${queryParams.queryType}:${queryParams.aggregateId ?? ""}:${queryParams.entityId ?? ""}`;
 
-  const fetchData = useCallback(async (isInitial: boolean) => {
-    if (!activeTenant) {
-      setError(new Error('No active tenant') as unknown as HexalithError);
-      return;
-    }
-
-    // Only set isLoading on initial fetch
-    if (isInitial) setIsLoading(true);
-
-    // Abort previous request
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-    // Combine manual abort with 30s timeout to prevent hanging on slow backends
-    const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(30_000)]);
-
-    // activeTenant IS the tenant ID string — no .id needed
-    const cacheKey = buildCacheKey(activeTenant, queryParams);
-    const cached = etagCache.get(cacheKey);
-    const headers: Record<string, string> = {};
-    if (cached) {
-      headers['If-None-Match'] = `"${cached.etag}"`;
-    }
-
-    const body = {
-      tenant: activeTenant,  // string, not activeTenant.id
-      domain: queryParams.domain,
-      queryType: queryParams.queryType,
-      aggregateId: queryParams.aggregateId ?? '',  // required in SubmitQueryRequest, default empty
-      entityId: queryParams.entityId,
-    };
-
-    try {
-      const response = await fetchClient.postForQuery<SubmitQueryResponse>(
-        '/api/v1/queries',
-        { body, headers, signal },
-      );
-
-      // Ignore response if this request was aborted (stale)
-      if (controller.signal.aborted) return;
-
-      if (response.status === 304 && cached) {
-        // Data unchanged — use cache
-        setData(cached.data as T);
-      } else if (response.status === 200) {
-        // Validate payload with Zod
-        const result = schema.safeParse(response.data.payload);
-        if (!result.success) {
-          setError(new ValidationError(result.error.issues));
-          if (isInitial) setIsLoading(false);
-          return;
-        }
-
-        // Update cache
-        if (response.etag) {
-          etagCache.set(cacheKey, { data: result.data, etag: response.etag });
-        }
-        setData(result.data);
-      }
-
-      setError(null);
-    } catch (err) {
-      // AbortError means we cancelled — ignore
-      if (err instanceof DOMException && err.name === 'AbortError') return;
-      // TimeoutError from AbortSignal.timeout — surface as user-facing error
-      if (err instanceof DOMException && err.name === 'TimeoutError') {
-        setError(new ApiError(0, 'Query timed out after 30 seconds') as unknown as HexalithError);
+  const fetchData = useCallback(
+    async (isInitial: boolean) => {
+      if (!activeTenant) {
+        setError(new Error("No active tenant") as unknown as HexalithError);
         return;
       }
-      // Infrastructure errors (AuthError, ForbiddenError, etc.) — set error
-      // They will propagate to ModuleErrorBoundary via the error return value
-      setError(err as HexalithError);
-    } finally {
-      if (isInitial) setIsLoading(false);
-    }
-  }, [activeTenant, paramsKey, fetchClient, etagCache, schema]);
+
+      // Only set isLoading on initial fetch
+      if (isInitial) setIsLoading(true);
+
+      // Abort previous request
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      // Combine manual abort with 30s timeout to prevent hanging on slow backends
+      const signal = AbortSignal.any([
+        controller.signal,
+        AbortSignal.timeout(30_000),
+      ]);
+
+      // activeTenant IS the tenant ID string — no .id needed
+      const cacheKey = buildCacheKey(activeTenant, queryParams);
+      const cached = etagCache.get(cacheKey);
+      const headers: Record<string, string> = {};
+      if (cached) {
+        headers["If-None-Match"] = `"${cached.etag}"`;
+      }
+
+      const body = {
+        tenant: activeTenant, // string, not activeTenant.id
+        domain: queryParams.domain,
+        queryType: queryParams.queryType,
+        aggregateId: queryParams.aggregateId ?? "", // required in SubmitQueryRequest, default empty
+        entityId: queryParams.entityId,
+      };
+
+      try {
+        const response = await fetchClient.postForQuery<SubmitQueryResponse>(
+          "/api/v1/queries",
+          { body, headers, signal },
+        );
+
+        // Ignore response if this request was aborted (stale)
+        if (controller.signal.aborted) return;
+
+        if (response.status === 304 && cached) {
+          // Data unchanged — use cache
+          setData(cached.data as T);
+        } else if (response.status === 200) {
+          // Validate payload with Zod
+          const result = schema.safeParse(response.data.payload);
+          if (!result.success) {
+            setError(new ValidationError(result.error.issues));
+            if (isInitial) setIsLoading(false);
+            return;
+          }
+
+          // Update cache
+          if (response.etag) {
+            etagCache.set(cacheKey, { data: result.data, etag: response.etag });
+          }
+          setData(result.data);
+        }
+
+        setError(null);
+      } catch (err) {
+        // AbortError means we cancelled — ignore
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        // TimeoutError from AbortSignal.timeout — surface as user-facing error
+        if (err instanceof DOMException && err.name === "TimeoutError") {
+          setError(
+            new ApiError(
+              0,
+              "Query timed out after 30 seconds",
+            ) as unknown as HexalithError,
+          );
+          return;
+        }
+        // Infrastructure errors (AuthError, ForbiddenError, etc.) — set error
+        // They will propagate to ModuleErrorBoundary via the error return value
+        setError(err as HexalithError);
+      } finally {
+        if (isInitial) setIsLoading(false);
+      }
+    },
+    [activeTenant, paramsKey, fetchClient, etagCache, schema],
+  );
   // NOTE: paramsKey (string) instead of queryParams (object) prevents infinite re-renders
 
   // Effect: initial fetch + refetch on param change
@@ -683,13 +745,16 @@ export function useQuery<T>(
   useEffect(() => {
     if (!enabled || !refetchOnWindowFocus) return;
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') fetchData(false);
+      if (document.visibilityState === "visible") fetchData(false);
     };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [enabled, refetchOnWindowFocus, fetchData]);
 
-  const refetch = useCallback(() => { fetchData(false); }, [fetchData]);
+  const refetch = useCallback(() => {
+    fetchData(false);
+  }, [fetchData]);
 
   return { data, isLoading, error, refetch };
 }
@@ -697,27 +762,29 @@ export function useQuery<T>(
 
 ### Backend API Endpoint (Reference)
 
-| Endpoint | Method | Request Body | Response |
-|----------|--------|-------------|----------|
-| `/api/v1/queries` | POST | `SubmitQueryRequest` (tenant auto-injected) | 200 + `{ correlationId, payload }` + `ETag` header, or 304 (with `If-None-Match`) |
+| Endpoint          | Method | Request Body                                | Response                                                                          |
+| ----------------- | ------ | ------------------------------------------- | --------------------------------------------------------------------------------- |
+| `/api/v1/queries` | POST   | `SubmitQueryRequest` (tenant auto-injected) | 200 + `{ correlationId, payload }` + `ETag` header, or 304 (with `If-None-Match`) |
 
 **Request body shape** (from `src/core/types.ts`):
+
 ```typescript
 interface SubmitQueryRequest {
-  tenant: string;       // auto-injected from useTenant()
-  domain: string;       // from queryParams
-  aggregateId: string;  // from queryParams
-  queryType: string;    // from queryParams
-  payload?: unknown;    // not used by useQuery (reserved for future)
-  entityId?: string;    // from queryParams (optional)
+  tenant: string; // auto-injected from useTenant()
+  domain: string; // from queryParams
+  aggregateId: string; // from queryParams
+  queryType: string; // from queryParams
+  payload?: unknown; // not used by useQuery (reserved for future)
+  entityId?: string; // from queryParams (optional)
 }
 ```
 
 **Response body shape** (from `src/core/types.ts`):
+
 ```typescript
 interface SubmitQueryResponse {
   correlationId: string;
-  payload: unknown;      // validated by Zod schema
+  payload: unknown; // validated by Zod schema
 }
 ```
 
@@ -789,11 +856,11 @@ function OrderListPage() {
 
 The `useQuery` hook enables the data loading pattern:
 
-| State | Hook Return | Visual (Story 3+) |
-|-------|-----------|-------------------|
-| Loading | `isLoading: true, data: undefined` | Content-aware skeleton |
-| Data | `isLoading: false, data: T` | Rendered content |
-| Error | `error: HexalithError` | ErrorDisplay with retry |
+| State           | Hook Return                            | Visual (Story 3+)            |
+| --------------- | -------------------------------------- | ---------------------------- |
+| Loading         | `isLoading: true, data: undefined`     | Content-aware skeleton       |
+| Data            | `isLoading: false, data: T`            | Rendered content             |
+| Error           | `error: HexalithError`                 | ErrorDisplay with retry      |
 | Stale (refetch) | `isLoading: false, data: T (previous)` | Content visible, no skeleton |
 
 Module developers use `useQuery().data` / `useQuery().isLoading` / `useQuery().error` to drive this UI pattern. The hooks provide the state; `@hexalith/ui` components (Story 3+) provide the visual treatment.
@@ -822,10 +889,70 @@ Module developers use `useQuery().data` / `useQuery().isLoading` / `useQuery().e
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.6 (1M context)
 
 ### Debug Log References
 
+- Fixed `AbortSignal.any` incompatibility with jsdom — replaced with `setTimeout`-based abort + reason check
+- Fixed ETag double-quoting — `If-None-Match` header now sends the raw ETag value from cache (already includes HTTP quotes)
+- CqrsProvider is at `src/CqrsProvider.tsx` (not `src/commands/CqrsProvider.tsx` as story file assumed)
+- Task 8 (test infrastructure) was already satisfied by Story 2.3 — `@testing-library/react`, `jsdom`, and `vitest.config.ts` with `environment: 'jsdom'` were already configured
+- Senior developer review follow-up added explicit coverage for query timeout handling and param-change mid-flight abort/restart behavior
+
 ### Completion Notes List
 
+- Task 1: Extended `FetchClient` interface with `postForQuery<T>` returning `QueryResponse<T>` discriminated union (200|304). Added 7 tests.
+- Task 2: Created `ETagCache` with in-memory `Map` storage, `buildCacheKey` function with 5-segment format. Added 8 tests.
+- Task 3: Created `QueryProvider` with context pattern matching existing providers, tenant-change cache clearing via `useRef`+`useEffect`. Added 5 tests.
+- Task 4: Created `useQuery<T>` hook with full lifecycle: initial fetch, ETag caching, `If-None-Match` headers, Zod validation via `safeParse`, polling, window-focus refetch, enabled toggle, AbortController cleanup, 30s timeout. Added 21 tests.
+- Task 5: Nested `QueryProvider` inside `CqrsProvider` — module developers get query + command hooks from single provider. Added 1 test.
+- Task 6: Exported `useQuery`, `QueryProvider`, `QueryParams`, `QueryOptions`, `UseQueryResult` from `src/index.ts`. Internal types (`ETagCache`, `buildCacheKey`, `useQueryClient`) kept private.
+- Task 7: All test scenarios from story covered across 4 test files. Total 42 new tests added.
+- Task 8: Already satisfied by Story 2.3.
+- Task 9: Verified build (ESM + .d.ts), all 184 tests pass, lint clean, full monorepo build succeeds.
+
 ### File List
+
+**New files:**
+
+- `packages/cqrs-client/src/queries/etagCache.ts` — ETagCache factory, CacheEntry type, buildCacheKey
+- `packages/cqrs-client/src/queries/etagCache.test.ts` — 8 tests
+- `packages/cqrs-client/src/queries/QueryProvider.tsx` — QueryProvider context + useQueryClient hook
+- `packages/cqrs-client/src/queries/QueryProvider.test.tsx` — 5 tests
+- `packages/cqrs-client/src/queries/useQuery.ts` — useQuery hook with Zod validation + ETag caching
+- `packages/cqrs-client/src/queries/useQuery.test.ts` — 19 tests
+
+**Modified files:**
+
+- `packages/cqrs-client/src/core/fetchClient.ts` — Added `QueryResponse<T>` type, `postForQuery` method
+- `packages/cqrs-client/src/core/fetchClient.test.ts` — Added 7 postForQuery tests
+- `packages/cqrs-client/src/CqrsProvider.tsx` — Nested QueryProvider inside CqrsContext.Provider
+- `packages/cqrs-client/src/CqrsProvider.test.tsx` — Added QueryProvider nesting test, mocked useTenant
+- `packages/cqrs-client/src/index.ts` — Added query hook exports
+- `packages/cqrs-client/src/queries/useQuery.test.ts` — Added review follow-up coverage for timeout handling and param-change abort/restart behavior (21 tests total)
+
+## Senior Developer Review (AI)
+
+### Reviewer
+
+Jerome — 2026-03-16
+
+### Outcome
+
+Approved after review follow-up fixes.
+
+### Findings addressed
+
+- Added missing test coverage for parameter changes while a previous query request is still in flight.
+- Added explicit timeout-path coverage for the 30-second query timeout behavior.
+- Updated story notes to reflect the final test counts and review-driven follow-up.
+
+### Validation
+
+- `pnpm --filter @hexalith/cqrs-client test -- --run` ✅ (184/184 tests passing)
+- Review executed against the committed implementation already present in the workspace; the current git diff for this review contains only review follow-up changes and tracking updates.
+
+## Change Log
+
+- 2026-03-16: Implemented Story 2.4 — useQuery hook with Zod validation, ETag caching, QueryProvider, postForQuery extension. 182 tests total (40 new). All ACs satisfied.
+- 2026-03-16: Senior developer review follow-up — added missing `useQuery` coverage for timeout handling and param-change mid-flight abort/restart behavior. Story status updated to `done`. 184 tests total (42 new).
