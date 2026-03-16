@@ -21,7 +21,7 @@ const TEST_OIDC_CONFIG = {
   scope: "openid profile email",
 };
 
-const TEST_BACKEND_URL = "http://localhost:5000";
+const TEST_BACKEND_URL = "https://localhost:5000";
 
 // Helper to capture context values from within the provider tree
 function ContextProbe({
