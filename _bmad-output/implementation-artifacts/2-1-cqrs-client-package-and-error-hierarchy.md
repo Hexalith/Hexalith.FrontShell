@@ -1,6 +1,6 @@
 # Story 2.1: CQRS Client Package & Error Hierarchy
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -48,55 +48,55 @@ so that all CQRS communication has a consistent contract and error handling foun
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create type definitions (AC: #3)
-  - [ ] Create `src/core/types.ts` with all backend API payload types
-  - [ ] `SubmitCommandRequest` with fields: tenant, domain, aggregateId, commandType, payload, extensions?
-  - [ ] `SubmitCommandResponse` with correlationId
-  - [ ] `CommandStatusResponse` with status, statusCode, timestamp, aggregateId?, eventCount?, rejectionEventType?, failureReason?, timeoutDuration?
-  - [ ] `SubmitQueryRequest` with tenant, domain, aggregateId, queryType, payload?, entityId?
-  - [ ] `SubmitQueryResponse` with correlationId, payload
-  - [ ] `ValidateCommandRequest` with tenant, domain, commandType, aggregateId?
-  - [ ] `PreflightValidationResult` with isAuthorized, reason?
-  - [ ] `ProblemDetails` with type, title, status, detail, instance, correlationId?, tenantId?
-  - [ ] `CommandStatus` union type (8 states)
-  - [ ] Write `src/core/types.test.ts` -- type assertion tests verifying field existence and types
+- [x] Task 1: Create type definitions (AC: #3)
+  - [x] Create `src/core/types.ts` with all backend API payload types
+  - [x] `SubmitCommandRequest` with fields: tenant, domain, aggregateId, commandType, payload, extensions?
+  - [x] `SubmitCommandResponse` with correlationId
+  - [x] `CommandStatusResponse` with status, statusCode, timestamp, aggregateId?, eventCount?, rejectionEventType?, failureReason?, timeoutDuration?
+  - [x] `SubmitQueryRequest` with tenant, domain, aggregateId, queryType, payload?, entityId?
+  - [x] `SubmitQueryResponse` with correlationId, payload
+  - [x] `ValidateCommandRequest` with tenant, domain, commandType, aggregateId?
+  - [x] `PreflightValidationResult` with isAuthorized, reason?
+  - [x] `ProblemDetails` with type, title, status, detail, instance, correlationId?, tenantId?
+  - [x] `CommandStatus` union type (8 states)
+  - [x] Write `src/core/types.test.ts` -- type assertion tests verifying field existence and types
 
-- [ ] Task 2: Create error hierarchy (AC: #2)
-  - [ ] Create `src/errors.ts` with abstract `HexalithError` base class including `toJSON()` method that serializes `code`, `message`, and subclass-specific fields (JS `Error` properties are not enumerable -- `JSON.stringify(new Error('x'))` returns `'{}'` without this)
-  - [ ] `ApiError` -- code: 'API_ERROR', constructor(statusCode: number, body?: unknown)
-  - [ ] `ValidationError` -- code: 'VALIDATION_ERROR', constructor(issues: ZodIssue[])
-  - [ ] `CommandRejectedError` -- code: 'COMMAND_REJECTED', constructor(rejectionEventType: string, correlationId: string)
-  - [ ] `CommandTimeoutError` -- code: 'COMMAND_TIMEOUT', constructor(duration: string, correlationId: string)
-  - [ ] `AuthError` -- code: 'AUTH_ERROR'
-  - [ ] `ForbiddenError` -- code: 'FORBIDDEN'
-  - [ ] `RateLimitError` -- code: 'RATE_LIMIT', constructor with retryAfter?: string
-  - [ ] Write `src/errors.test.ts` -- verify inheritance, code values, instanceof checks, `toJSON()` serialization (ensure `JSON.stringify(error)` includes code + message + subclass fields)
+- [x] Task 2: Create error hierarchy (AC: #2)
+  - [x] Create `src/errors.ts` with abstract `HexalithError` base class including `toJSON()` method that serializes `code`, `message`, and subclass-specific fields (JS `Error` properties are not enumerable -- `JSON.stringify(new Error('x'))` returns `'{}'` without this)
+  - [x] `ApiError` -- code: 'API_ERROR', constructor(statusCode: number, body?: unknown)
+  - [x] `ValidationError` -- code: 'VALIDATION_ERROR', constructor(issues: ZodIssue[])
+  - [x] `CommandRejectedError` -- code: 'COMMAND_REJECTED', constructor(rejectionEventType: string, correlationId: string)
+  - [x] `CommandTimeoutError` -- code: 'COMMAND_TIMEOUT', constructor(duration: string, correlationId: string)
+  - [x] `AuthError` -- code: 'AUTH_ERROR'
+  - [x] `ForbiddenError` -- code: 'FORBIDDEN'
+  - [x] `RateLimitError` -- code: 'RATE_LIMIT', constructor with retryAfter?: string
+  - [x] Write `src/errors.test.ts` -- verify inheritance, code values, instanceof checks, `toJSON()` serialization (ensure `JSON.stringify(error)` includes code + message + subclass fields)
 
-- [ ] Task 3: Create RFC 9457 ProblemDetails parser (AC: #4)
-  - [ ] Create `src/core/problemDetails.ts` with `parseProblemDetails(response: Response): Promise<HexalithError>`
-  - [ ] Map HTTP status codes: 400->ApiError, 401->AuthError, 403->ForbiddenError, 429->RateLimitError, others->ApiError (ValidationError is Zod-only)
-  - [ ] Preserve correlationId and tenantId from ProblemDetails body in error instances
-  - [ ] Handle 429 Retry-After header extraction
-  - [ ] Handle non-JSON error responses gracefully: if `response.json()` throws (HTML from nginx 502, empty body, connection reset), fall back to `ApiError(response.status, await response.text().catch(() => null))`
-  - [ ] Write `src/core/problemDetails.test.ts` -- test all mappings, edge cases, malformed bodies
+- [x] Task 3: Create RFC 9457 ProblemDetails parser (AC: #4)
+  - [x] Create `src/core/problemDetails.ts` with `parseProblemDetails(response: Response): Promise<HexalithError>`
+  - [x] Map HTTP status codes: 400->ApiError, 401->AuthError, 403->ForbiddenError, 429->RateLimitError, others->ApiError (ValidationError is Zod-only)
+  - [x] Preserve correlationId and tenantId from ProblemDetails body in error instances
+  - [x] Handle 429 Retry-After header extraction
+  - [x] Handle non-JSON error responses gracefully: if `response.json()` throws (HTML from nginx 502, empty body, connection reset), fall back to `ApiError(response.status, await response.text().catch(() => null))`
+  - [x] Write `src/core/problemDetails.test.ts` -- test all mappings, edge cases, malformed bodies
 
-- [ ] Task 4: Create correlation ID utility (AC: #5)
-  - [ ] Create `src/core/correlationId.ts` with `generateCorrelationId(): string`
-  - [ ] Use `ulidx` library for ULID generation
-  - [ ] Add `ulidx` to package.json dependencies
-  - [ ] Write `src/core/correlationId.test.ts` -- verify ULID format, lexicographic ordering, uniqueness
+- [x] Task 4: Create correlation ID utility (AC: #5)
+  - [x] Create `src/core/correlationId.ts` with `generateCorrelationId(): string`
+  - [x] Use `ulidx` library for ULID generation
+  - [x] Add `ulidx` to package.json dependencies
+  - [x] Write `src/core/correlationId.test.ts` -- verify ULID format, lexicographic ordering, uniqueness
 
-- [ ] Task 5: Create bus interfaces (AC: #1)
-  - [ ] Create `src/core/ICommandBus.ts` with `send(command: SubmitCommandRequest): Promise<SubmitCommandResponse>`
-  - [ ] Create `src/core/IQueryBus.ts` with `query<T>(request: SubmitQueryRequest, schema: z.ZodType<T>): Promise<T>`
-  - [ ] Write type-level tests using vitest `expectTypeOf` in `src/core/ICommandBus.test.ts` and `src/core/IQueryBus.test.ts` (interfaces are compile-time only -- use `expectTypeOf<ICommandBus>().toHaveProperty('send')`, NOT runtime assertions)
+- [x] Task 5: Create bus interfaces (AC: #1)
+  - [x] Create `src/core/ICommandBus.ts` with `send(command: SubmitCommandRequest): Promise<SubmitCommandResponse>`
+  - [x] Create `src/core/IQueryBus.ts` with `query<T>(request: SubmitQueryRequest, schema: z.ZodType<T>): Promise<T>`
+  - [x] Write type-level tests using vitest `expectTypeOf` in `src/core/ICommandBus.test.ts` and `src/core/IQueryBus.test.ts` (interfaces are compile-time only -- use `expectTypeOf<ICommandBus>().toHaveProperty('send')`, NOT runtime assertions)
 
-- [ ] Task 6: Update package barrel export and dependencies (AC: #6)
-  - [ ] Update `src/index.ts` with grouped exports (types, errors, interfaces, utilities)
-  - [ ] Add `zod` and `ulidx` to package.json dependencies
-  - [ ] Verify `pnpm build` produces ESM + .d.ts
-  - [ ] Verify `pnpm test` passes all tests
-  - [ ] Verify `pnpm lint` passes
+- [x] Task 6: Update package barrel export and dependencies (AC: #6)
+  - [x] Update `src/index.ts` with grouped exports (types, errors, interfaces, utilities)
+  - [x] Add `zod` and `ulidx` to package.json dependencies
+  - [x] Verify `pnpm build` produces ESM + .d.ts
+  - [x] Verify `pnpm test` passes all tests
+  - [x] Verify `pnpm lint` passes
 
 ## Dev Notes
 
@@ -150,16 +150,16 @@ packages/cqrs-client/
 
 ### Naming Conventions
 
-| Element | Convention | Example |
-|---------|-----------|---------|
-| Interfaces | I-prefix + PascalCase | `ICommandBus`, `IQueryBus` |
-| Types (data shapes) | PascalCase, no prefix | `SubmitCommandRequest`, `ProblemDetails` |
-| Error classes | PascalCase | `CommandRejectedError`, `RateLimitError` |
-| Union types | PascalCase type, literal string values | `type CommandStatus = 'Received' \| ...` |
-| Utility functions | camelCase | `generateCorrelationId`, `parseProblemDetails` |
-| Files | camelCase.ts | `problemDetails.ts`, `correlationId.ts` |
-| Tests | co-located .test.ts | `errors.test.ts`, `problemDetails.test.ts` |
-| Constants | UPPER_SNAKE_CASE | `CORRELATION_ID_HEADER` |
+| Element             | Convention                             | Example                                        |
+| ------------------- | -------------------------------------- | ---------------------------------------------- |
+| Interfaces          | I-prefix + PascalCase                  | `ICommandBus`, `IQueryBus`                     |
+| Types (data shapes) | PascalCase, no prefix                  | `SubmitCommandRequest`, `ProblemDetails`       |
+| Error classes       | PascalCase                             | `CommandRejectedError`, `RateLimitError`       |
+| Union types         | PascalCase type, literal string values | `type CommandStatus = 'Received' \| ...`       |
+| Utility functions   | camelCase                              | `generateCorrelationId`, `parseProblemDetails` |
+| Files               | camelCase.ts                           | `problemDetails.ts`, `correlationId.ts`        |
+| Tests               | co-located .test.ts                    | `errors.test.ts`, `problemDetails.test.ts`     |
+| Constants           | UPPER_SNAKE_CASE                       | `CORRELATION_ID_HEADER`                        |
 
 ### Backend API Type Reference
 
@@ -171,14 +171,14 @@ interface SubmitCommandRequest {
   tenant: string;
   domain: string;
   aggregateId: string;
-  commandType: string;       // Fully qualified .NET type name, e.g. "Hexalith.Orders.Commands.PlaceOrder, Hexalith.Orders" — module developer provides this as-is
-  payload: unknown;          // Domain-specific command data
+  commandType: string; // Fully qualified .NET type name, e.g. "Hexalith.Orders.Commands.PlaceOrder, Hexalith.Orders" — module developer provides this as-is
+  payload: unknown; // Domain-specific command data
   extensions?: Record<string, string>;
 }
 
 // Command response (202 Accepted)
 interface SubmitCommandResponse {
-  correlationId: string;     // GUID from backend
+  correlationId: string; // GUID from backend
 }
 
 // Command status polling
@@ -186,12 +186,12 @@ interface CommandStatusResponse {
   correlationId: string;
   status: CommandStatus;
   statusCode: number;
-  timestamp: string;         // ISO 8601
+  timestamp: string; // ISO 8601
   aggregateId?: string;
-  eventCount?: number;       // Only on Completed
-  rejectionEventType?: string;  // Only on Rejected
-  failureReason?: string;    // Only on PublishFailed
-  timeoutDuration?: string;  // Only on TimedOut, ISO 8601 duration
+  eventCount?: number; // Only on Completed
+  rejectionEventType?: string; // Only on Rejected
+  failureReason?: string; // Only on PublishFailed
+  timeoutDuration?: string; // Only on TimedOut, ISO 8601 duration
 }
 
 // Query submission
@@ -201,7 +201,7 @@ interface SubmitQueryRequest {
   aggregateId: string;
   queryType: string;
   payload?: unknown;
-  entityId?: string;          // Entity-scoped query routing
+  entityId?: string; // Entity-scoped query routing
 }
 
 // Pre-flight validation
@@ -231,18 +231,18 @@ interface ProblemDetails {
 // Query response
 interface SubmitQueryResponse {
   correlationId: string;
-  payload: unknown;          // Projection data
+  payload: unknown; // Projection data
 }
 
 type CommandStatus =
-  | 'Received'
-  | 'Processing'
-  | 'EventsStored'
-  | 'EventsPublished'
-  | 'Completed'
-  | 'Rejected'
-  | 'PublishFailed'
-  | 'TimedOut';
+  | "Received"
+  | "Processing"
+  | "EventsStored"
+  | "EventsPublished"
+  | "Completed"
+  | "Rejected"
+  | "PublishFailed"
+  | "TimedOut";
 ```
 
 ### Error Hierarchy Reference
@@ -299,16 +299,16 @@ class RateLimitError extends HexalithError {
 
 ### ProblemDetails HTTP Status Mapping
 
-| HTTP Status | Maps To | Notes |
-|-------------|---------|-------|
-| 400 | `ApiError` | Backend bad request -- `ValidationError` is reserved for Zod schema failures only |
-| 401 | `AuthError` | Triggers silent refresh or OIDC redirect |
-| 403 | `ForbiddenError` | Tenant not authorized |
-| 404 | `ApiError` | Resource not found |
-| 409 | `ApiError` | Conflict (non-replayable command replay) |
-| 429 | `RateLimitError` | Preserve Retry-After header value |
-| 503 | `ApiError` | Service unavailable |
-| Other 4xx/5xx | `ApiError` | Fallback |
+| HTTP Status   | Maps To          | Notes                                                                             |
+| ------------- | ---------------- | --------------------------------------------------------------------------------- |
+| 400           | `ApiError`       | Backend bad request -- `ValidationError` is reserved for Zod schema failures only |
+| 401           | `AuthError`      | Triggers silent refresh or OIDC redirect                                          |
+| 403           | `ForbiddenError` | Tenant not authorized                                                             |
+| 404           | `ApiError`       | Resource not found                                                                |
+| 409           | `ApiError`       | Conflict (non-replayable command replay)                                          |
+| 429           | `RateLimitError` | Preserve Retry-After header value                                                 |
+| 503           | `ApiError`       | Service unavailable                                                               |
+| Other 4xx/5xx | `ApiError`       | Fallback                                                                          |
 
 ### Barrel Export Pattern (src/index.ts)
 
@@ -377,8 +377,69 @@ export { parseProblemDetails } from './core/problemDetails';
 
 ### Agent Model Used
 
+Claude Opus 4.6 (1M context)
+
 ### Debug Log References
+
+- All 80 tests pass (6 test files)
+- ESM build produces dist/index.js (4.50 KB) and dist/index.d.ts (4.16 KB)
+- Lint passes with zero errors after auto-fix of import ordering
+- Full monorepo regression suite: 324 tests pass across 27 test files
 
 ### Completion Notes List
 
+- Task 1: Created `src/core/types.ts` with all 9 backend API types + CommandStatus union. 21 type assertion tests verify field existence and types.
+- Task 2: Created `src/errors.ts` with HexalithError abstract base class and 7 subclasses. Base `toJSON()` now serializes subclass fields and dynamically attached metadata for structured logging. 24 tests verify inheritance, unique codes, instanceof checks, and JSON serialization.
+- Task 3: Created `src/core/problemDetails.ts` with RFC 9457 parser. It now reads the response body once as text, parses JSON from that buffer when possible, preserves correlationId/tenantId, extracts Retry-After, and handles non-JSON responses without losing body text. 24 tests cover mappings, structured metadata serialization, and real Response body-stream fallback.
+- Task 4: Created `src/core/correlationId.ts` using ulidx for ULID generation. Exports CORRELATION_ID_HEADER constant. 5 tests verify format, ordering, and uniqueness.
+- Task 5: Created ICommandBus and IQueryBus interfaces with I-prefix convention. 6 type-level tests using expectTypeOf.
+- Task 6: Updated barrel export with grouped categories (Types, Interfaces, Errors, Utilities). Added zod and ulidx dependencies. Build, test, and lint all pass.
+
+### Change Log
+
+- 2026-03-16: Implemented Story 2.1 — created @hexalith/cqrs-client package with typed CQRS interfaces, 7-class error hierarchy, RFC 9457 ProblemDetails parser, and ULID correlation ID utility. 77 tests, 0 regressions.
+- 2026-03-16: Fixed code review findings — preserved dynamic error metadata during serialization and changed ProblemDetails parsing to read response bodies once, eliminating real Fetch text-fallback loss. 80 tests, lint, and build pass.
+
 ### File List
+
+- packages/cqrs-client/src/index.ts (modified — barrel exports)
+- packages/cqrs-client/src/errors.ts (new — error hierarchy)
+- packages/cqrs-client/src/errors.test.ts (new — 24 tests)
+- packages/cqrs-client/src/core/types.ts (new — backend API types)
+- packages/cqrs-client/src/core/types.test.ts (new — 21 type tests)
+- packages/cqrs-client/src/core/problemDetails.ts (new — RFC 9457 parser)
+- packages/cqrs-client/src/core/problemDetails.test.ts (new — 24 tests)
+- packages/cqrs-client/src/core/correlationId.ts (new — ULID generation)
+- packages/cqrs-client/src/core/correlationId.test.ts (new — 5 tests)
+- packages/cqrs-client/src/core/ICommandBus.ts (new — interface)
+- packages/cqrs-client/src/core/ICommandBus.test.ts (new — 3 type tests)
+- packages/cqrs-client/src/core/IQueryBus.ts (new — interface)
+- packages/cqrs-client/src/core/IQueryBus.test.ts (new — 3 type tests)
+- packages/cqrs-client/package.json (modified — added zod, ulidx deps)
+
+## Senior Developer Review (AI)
+
+### Outcome
+
+Approved after fixes
+
+### Summary
+
+- All acceptance criteria are implemented and verified.
+- The two medium-severity review findings were fixed in `src/errors.ts` and `src/core/problemDetails.ts`.
+- Package validation succeeded after the fixes: `pnpm --filter @hexalith/cqrs-client lint`, `test`, and `build` all passed locally with 80 tests green.
+
+### Findings
+
+1. **Resolved — ProblemDetails non-JSON fallback now preserves real Fetch response bodies**  
+   `parseProblemDetails()` now reads the response body once as text and parses JSON from that buffered text when possible, so HTML/plain-text error bodies are preserved even with real body-stream semantics.
+
+2. **Resolved — Structured serialization now preserves dynamic metadata fields**  
+   `HexalithError.toJSON()` now serializes all enumerable subclass fields and dynamically attached metadata such as `correlationId` and `tenantId`, so `JSON.stringify(error)` matches the structured-logging contract.
+
+3. **Low — Git working tree note remains informational only**  
+   The current working tree still primarily reflects story/sprint metadata plus lockfile changes, which is consistent with the implementation already existing on `main` before this fix pass.
+
+### Recommended Next Step
+
+- Story 2.1 is complete. Proceed to Story 2.2.
