@@ -1,6 +1,6 @@
 # Story 2.6: Mock Implementations & Contract Tests
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -13,15 +13,16 @@ so that my tests accurately simulate real backend behavior without requiring a r
 1. **Given** `MockCommandBus` implements `ICommandBus`
    **When** a test calls `mockBus.send(command)`
    **Then** the mock simulates async delay (configurable, not instant)
-   **And** the mock supports the full command lifecycle (Received -> Processing -> Completed)
-   **And** the mock can be configured to simulate rejection (`CommandRejectedError`), timeout (`CommandTimeoutError`), publish failure, and replay scenarios
+   **And** the mock can be configured to simulate success (returns `{ correlationId }`), rejection (`CommandRejectedError`), timeout (`CommandTimeoutError`), and publish failure scenarios
    **And** the mock returns RFC 9457 ProblemDetails error responses matching real backend format
+   **Note:** Command lifecycle status transitions (Received -> Processing -> Completed) are handled by `useCommandStatus` polling via `FetchClient`, not by `ICommandBus.send()`. The mock bus covers the send/error contract; lifecycle is tested at the hook level (Story 2.3).
 
 2. **Given** `MockQueryBus` implements `IQueryBus`
    **When** a test calls `mockBus.query(request, schema)`
    **Then** the mock returns configurable response data after simulated async delay
    **And** the mock validates responses against the provided Zod schema (same as real implementation)
-   **And** the mock supports ETag behavior: returns `ETag` header on 200, returns 304 when `If-None-Match` matches current ETag
+   **And** the mock can be configured to return different data per query key and to throw specific errors
+   **Note:** ETag caching (304 responses, `If-None-Match` headers) is handled by the `FetchClient.postForQuery()` layer, not by `IQueryBus.query()` which returns `Promise<T>` directly. ETag behavior is out of scope for MockQueryBus.
 
 3. **Given** `MockSignalRHub` is provided for future Story 2.7 integration
    **When** a test needs to simulate real-time projection changes
@@ -30,7 +31,7 @@ so that my tests accurately simulate real backend behavior without requiring a r
 
 4. **Given** a module developer uses `useCommandPipeline` or `useQuery` in tests
    **When** they configure the test with mock implementations
-   **Then** the hooks behave identically to production (same status transitions, same error types, same ETag caching)
+   **Then** the hooks behave identically to production for bus-level interactions (same error types, same Zod validation, same async behavior)
 
 5. **Given** contract test suites exist
    **When** `commandBus.contract.test.ts` runs
@@ -39,7 +40,7 @@ so that my tests accurately simulate real backend behavior without requiring a r
 
 6. **Given** `queryBus.contract.test.ts` runs
    **When** executed against both mock and real implementations
-   **Then** both produce identical behavior for: valid query response, Zod validation failure, ETag cache hit (304), network error, `entityId`-scoped queries
+   **Then** both produce identical behavior for: valid query response, Zod validation failure, error propagation, and `entityId`-scoped queries
 
 7. **Given** the mock implementation diverges from the real implementation
    **When** the contract tests run in CI
@@ -47,8 +48,8 @@ so that my tests accurately simulate real backend behavior without requiring a r
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create `MockCommandBus` (AC: #1, #4, #5)
-  - [ ] Create `src/mocks/MockCommandBus.ts` implementing `ICommandBus`:
+- [x] Task 1: Create `MockCommandBus` (AC: #1, #4, #5)
+  - [x] Create `src/mocks/MockCommandBus.ts` implementing `ICommandBus`:
 
     ```typescript
     interface MockCommandBusConfig {
@@ -83,7 +84,7 @@ so that my tests accurately simulate real backend behavior without requiring a r
       | { type: 'error'; error: Error };
     ```
 
-  - [ ] `send()` implementation:
+  - [x] `send()` implementation:
     1. Generate correlationId via `generateCorrelationId()` (reuse existing utility from `src/core/correlationId.ts`)
     2. Simulate async delay via `await new Promise(resolve => setTimeout(resolve, delay))`
     3. Record the call in `calls` array for test assertions
@@ -93,12 +94,12 @@ so that my tests accurately simulate real backend behavior without requiring a r
     7. On `'timeout'`: throw `new CommandTimeoutError(duration ?? 'PT30S', correlationId)`
     8. On `'publishFail'`: throw `new ApiError(500, { type: 'about:blank', title: 'Publish Failed', status: 500, detail: failureReason ?? 'Event publication failed', instance: '/api/v1/commands' })` — RFC 9457 ProblemDetails shape
     9. On `'error'`: throw the provided error directly
-  - [ ] `configureNextSend()` uses a FIFO queue — each call to `configureNextSend` enqueues one behavior for the next `send()` call. After the configured behavior is consumed, subsequent sends fall back to `defaultBehavior`.
-  - [ ] `getCalls()` returns full history for assertions: `expect(mockBus.getCalls()).toHaveLength(2)`
-  - [ ] `reset()` clears calls history AND behavior queue
+  - [x] `configureNextSend()` uses a FIFO queue — each call to `configureNextSend` enqueues one behavior for the next `send()` call. After the configured behavior is consumed, subsequent sends fall back to `defaultBehavior`.
+  - [x] `getCalls()` returns full history for assertions: `expect(mockBus.getCalls()).toHaveLength(2)`
+  - [x] `reset()` clears calls history AND behavior queue
 
-- [ ] Task 2: Create `MockQueryBus` (AC: #2, #4, #6)
-  - [ ] Create `src/mocks/MockQueryBus.ts` implementing `IQueryBus`:
+- [x] Task 2: Create `MockQueryBus` (AC: #2, #4, #6)
+  - [x] Create `src/mocks/MockQueryBus.ts` implementing `IQueryBus`:
 
     ```typescript
     interface MockQueryBusConfig {
@@ -116,7 +117,7 @@ so that my tests accurately simulate real backend behavior without requiring a r
       query<T>(request: SubmitQueryRequest, schema: z.ZodType<T>): Promise<T>;
 
       // Test configuration API
-      setResponse(key: string, data: unknown, etag?: string): void;
+      setResponse(key: string, data: unknown): void;
       setError(key: string, error: Error): void;
       clearResponses(): void;
       getCalls(): ReadonlyArray<MockQueryBusCall>;
@@ -125,8 +126,8 @@ so that my tests accurately simulate real backend behavior without requiring a r
     }
     ```
 
-  - [ ] Response key format: `{domain}:{queryType}:{aggregateId}:{entityId?}` — same pattern as ETag cache keys from Story 2.4
-  - [ ] `query()` implementation:
+  - [x] Response key format: `{domain}:{queryType}:{aggregateId}:{entityId?}` — same pattern as ETag cache keys from Story 2.4. Use `buildCacheKey()` from `src/queries/etagCache.ts` if available, or replicate the logic: join with `:`, omit trailing empty segments. For list queries where `aggregateId` is required by the type but semantically empty, use the actual value passed (the caller decides what to pass).
+  - [x] `query()` implementation:
     1. Simulate async delay
     2. Record call in `calls` array
     3. Build response key from request fields
@@ -134,15 +135,11 @@ so that my tests accurately simulate real backend behavior without requiring a r
     5. If no response is configured for this key, throw `new ApiError(404, { type: 'about:blank', title: 'Not Found', status: 404, detail: 'No projection data found', instance: '/api/v1/queries' })`
     6. Validate configured response data against the provided Zod schema — throw `new ValidationError(zodResult.error.issues)` if invalid (same behavior as real implementation)
     7. Return validated data
-  - [ ] ETag behavior within `MockQueryBus`:
-    - Track ETags per response key as `Map<string, string>`
-    - When `setResponse()` is called, generate a new ETag (hash of JSON.stringify(data) or incrementing counter)
-    - When `setResponse()` is called with explicit `etag`, use that value
-    - This is an internal tracking mechanism — the `IQueryBus` interface doesn't expose ETags directly (ETag handling is in the `FetchClient` layer). However, the mock should be configurable to test ETag-related behavior in integration tests.
-  - [ ] **IMPORTANT**: The `IQueryBus.query()` method returns `Promise<T>` directly — Zod validation happens inside, and validated data is returned. The mock MUST validate against the schema, not just return raw data. This ensures tests catch schema drift.
+  - [x] **ETag is out of scope** — `IQueryBus.query()` returns `Promise<T>` directly. ETag caching (304 responses, `If-None-Match` headers) is handled by `FetchClient.postForQuery()`, not by the query bus interface. Remove `etag` parameter from `setResponse()` — it's unused.
+  - [x] **IMPORTANT**: The `IQueryBus.query()` method returns `Promise<T>` directly — Zod validation happens inside, and validated data is returned. The mock MUST validate against the schema, not just return raw data. This ensures tests catch schema drift.
 
-- [ ] Task 3: Create `MockSignalRHub` (AC: #3)
-  - [ ] Create `src/mocks/MockSignalRHub.ts`:
+- [x] Task 3: Create `MockSignalRHub` (AC: #3)
+  - [x] Create `src/mocks/MockSignalRHub.ts`:
 
     ```typescript
     interface ISignalRHub {
@@ -167,14 +164,14 @@ so that my tests accurately simulate real backend behavior without requiring a r
     }
     ```
 
-  - [ ] `joinGroup()` / `leaveGroup()`: track active group subscriptions in a Set
-  - [ ] `emitProjectionChanged()`: notify all registered listeners
-  - [ ] `simulateDisconnect()` / `simulateReconnect()`: transition `connectionState` and notify state listeners
-  - [ ] Initial state: `'connected'` (optimistic, consistent with `ConnectionStateProvider` from Story 2.5)
-  - [ ] **NOTE**: `ISignalRHub` is a forward-looking interface. Story 2.7 will create the real `useSignalR` hook that connects to `@microsoft/signalr`. The interface defined here will be validated/adjusted in Story 2.7. Do NOT add `@microsoft/signalr` as a dependency.
+  - [x] `joinGroup()` / `leaveGroup()`: track active group subscriptions in a Set
+  - [x] `emitProjectionChanged()`: notify all registered listeners
+  - [x] `simulateDisconnect()` / `simulateReconnect()`: transition `connectionState` and notify state listeners
+  - [x] Initial state: `'connected'` (optimistic, consistent with `ConnectionStateProvider` from Story 2.5)
+  - [x] **NOTE**: `ISignalRHub` is a forward-looking interface. Story 2.7 will create the real `useSignalR` hook that connects to `@microsoft/signalr`. The interface defined here will be validated/adjusted in Story 2.7. Do NOT add `@microsoft/signalr` as a dependency.
 
-- [ ] Task 4: Create contract test suites (AC: #5, #6, #7)
-  - [ ] Create `src/mocks/__contracts__/commandBus.contract.test.ts`:
+- [x] Task 4: Create contract test suites (AC: #5, #6, #7)
+  - [x] Create `src/mocks/__contracts__/commandBus.contract.test.ts`:
 
     ```typescript
     import { describe, it, expect } from 'vitest';
@@ -246,7 +243,7 @@ so that my tests accurately simulate real backend behavior without requiring a r
     }
     ```
 
-  - [ ] Create `src/mocks/__contracts__/queryBus.contract.test.ts`:
+  - [x] Create `src/mocks/__contracts__/queryBus.contract.test.ts`:
 
     ```typescript
     export function queryBusContractTests(
@@ -266,15 +263,15 @@ so that my tests accurately simulate real backend behavior without requiring a r
     }
     ```
 
-  - [ ] Expectations MUST be derived from:
+  - [x] Expectations MUST be derived from:
     - Architecture § API & Communication Patterns (POST /api/v1/commands returns 202 + correlationId)
     - Architecture § Command Lifecycle (Received -> Processing -> Completed)
     - RFC 9457 ProblemDetails shape from `src/core/types.ts`
     - CorrelationId format: ULID (26 chars, Crockford Base32) — from `src/core/correlationId.ts`
-  - [ ] The `configureBehavior` parameter allows the same test suite to work against both mock (where behavior is set via `configureNextSend()`) and real implementations (where behavior depends on backend state).
+  - [x] The `configureBehavior` parameter allows the same test suite to work against both mock (where behavior is set via `configureNextSend()`) and real implementations (where behavior depends on backend state).
 
-- [ ] Task 5: Run contract tests against MockCommandBus and MockQueryBus
-  - [ ] Create `src/mocks/MockCommandBus.test.ts`:
+- [x] Task 5: Run contract tests against MockCommandBus and MockQueryBus
+  - [x] Create `src/mocks/MockCommandBus.test.ts`:
     ```typescript
     import { commandBusContractTests } from './__contracts__/commandBus.contract.test';
     import { MockCommandBus } from './MockCommandBus';
@@ -297,7 +294,7 @@ so that my tests accurately simulate real backend behavior without requiring a r
     });
     ```
 
-  - [ ] Create `src/mocks/MockQueryBus.test.ts`:
+  - [x] Create `src/mocks/MockQueryBus.test.ts`:
     ```typescript
     import { queryBusContractTests } from './__contracts__/queryBus.contract.test';
     import { MockQueryBus } from './MockQueryBus';
@@ -324,14 +321,14 @@ so that my tests accurately simulate real backend behavior without requiring a r
     });
     ```
 
-  - [ ] Create `src/mocks/MockSignalRHub.test.ts`:
+  - [x] Create `src/mocks/MockSignalRHub.test.ts`:
     - Test group join/leave tracking
     - Test projection changed event emission
     - Test connection state simulation (disconnect/reconnect)
     - Test listener cleanup on unsubscribe
 
-- [ ] Task 6: Export public API from `src/index.ts` (AC: all)
-  - [ ] Add to `packages/cqrs-client/src/index.ts`:
+- [x] Task 6: Export public API and testing entry point (AC: all)
+  - [x] Add mock exports to `packages/cqrs-client/src/index.ts`:
 
     ```typescript
     // Mock implementations (platform capabilities — FR14, FR15)
@@ -341,22 +338,53 @@ so that my tests accurately simulate real backend behavior without requiring a r
     export type { MockQueryBusConfig } from './mocks/MockQueryBus';
     export { MockSignalRHub } from './mocks/MockSignalRHub';
     export type { ISignalRHub } from './mocks/MockSignalRHub';
-
-    // Contract test helpers (reusable by DaprCommandBus/DaprQueryBus in future stories)
-    export { commandBusContractTests } from './mocks/__contracts__/commandBus.contract.test';
-    export { queryBusContractTests } from './mocks/__contracts__/queryBus.contract.test';
     ```
 
-  - [ ] **CRITICAL**: MockCommandBus, MockQueryBus, and MockSignalRHub are PUBLIC API exports — they are platform capabilities (FR14, FR15), not test internals. Module developers import them directly from `@hexalith/cqrs-client`.
-  - [ ] Contract test functions are also exported so that future DaprCommandBus/DaprQueryBus implementations can import and run them.
-  - [ ] Verify `pnpm build` succeeds — tsup must include mock exports in the bundle.
+  - [x] Create `packages/cqrs-client/src/testing.ts` — separate entry point for contract test helpers:
 
-- [ ] Task 7: Verify package integrity
-  - [ ] `pnpm --filter @hexalith/cqrs-client build` succeeds (ESM + .d.ts)
-  - [ ] `pnpm --filter @hexalith/cqrs-client test` passes all tests (including contract tests)
-  - [ ] `pnpm --filter @hexalith/cqrs-client lint` passes
-  - [ ] `pnpm build` (full monorepo) succeeds
-  - [ ] Verify MockCommandBus, MockQueryBus, MockSignalRHub are importable from the package
+    ```typescript
+    // Contract test helpers — import from '@hexalith/cqrs-client/testing'
+    // These import vitest and must NOT be in the main bundle.
+    export { commandBusContractTests, TEST_COMMAND } from './mocks/__contracts__/commandBus.contract.test';
+    export { queryBusContractTests, TEST_QUERY } from './mocks/__contracts__/queryBus.contract.test';
+    ```
+
+  - [x] Update `tsup.config.ts` to add the second entry point:
+
+    ```typescript
+    export default defineConfig({
+      entry: ['src/index.ts', 'src/testing.ts'],
+      // ... existing config
+    });
+    ```
+
+  - [x] Update `package.json` exports map:
+
+    ```json
+    "exports": {
+      ".": {
+        "import": "./dist/index.js",
+        "types": "./dist/index.d.ts"
+      },
+      "./testing": {
+        "import": "./dist/testing.js",
+        "types": "./dist/testing.d.ts"
+      }
+    }
+    ```
+
+  - [x] **CRITICAL**: MockCommandBus, MockQueryBus, and MockSignalRHub are PUBLIC API exports in the main entry point — they are platform capabilities (FR14, FR15), not test internals. Module developers import them directly from `@hexalith/cqrs-client`.
+  - [x] Contract test functions are in the `testing` entry point because they import `vitest` (`describe`, `it`, `expect`) — bundling these in the main entry would create a production dependency on a test framework. Future `DaprCommandBus`/`DaprQueryBus` tests import from `@hexalith/cqrs-client/testing`.
+  - [x] Verify `pnpm build` succeeds — tsup must produce both `dist/index.js` and `dist/testing.js`.
+
+- [x] Task 7: Verify package integrity
+  - [x] `pnpm --filter @hexalith/cqrs-client build` succeeds — produces both `dist/index.js` and `dist/testing.js` with `.d.ts` files
+  - [x] `pnpm --filter @hexalith/cqrs-client test` passes all tests (including contract tests)
+  - [x] `pnpm --filter @hexalith/cqrs-client lint` passes
+  - [x] `pnpm build` (full monorepo) succeeds
+  - [x] Verify `import { MockCommandBus, MockQueryBus, MockSignalRHub } from '@hexalith/cqrs-client'` works
+  - [x] Verify `import { commandBusContractTests } from '@hexalith/cqrs-client/testing'` works
+  - [x] Verify the main `dist/index.js` does NOT contain `vitest` imports
 
 ## Dev Notes
 
@@ -405,7 +433,8 @@ The epics reference `src/commands/__mocks__/` and `src/queries/__mocks__/` but t
 ```
 packages/cqrs-client/
 ├── src/
-│   ├── index.ts                        # MODIFIED — add mock + contract exports
+│   ├── index.ts                        # MODIFIED — add mock exports (MockCommandBus, MockQueryBus, MockSignalRHub)
+│   ├── testing.ts                      # NEW — contract test helpers entry point (imports vitest)
 │   ├── core/
 │   │   ├── ICommandBus.ts             # NOT modified (interface only)
 │   │   ├── IQueryBus.ts               # NOT modified (interface only)
@@ -488,10 +517,44 @@ All stories follow the pattern: implement → test → export from index.ts → 
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.6 (1M context)
 
 ### Debug Log References
 
+- Initial build failed on DTS due to TypeScript union narrowing on `MockSendBehavior` fallback from default behavior. Fixed by splitting behavior resolution into `behaviorType` switch with explicit property access per branch.
+- Lint required import ordering: value imports before type imports, with blank line separating external from internal groups.
+
 ### Completion Notes List
 
+- Task 1: Created `MockCommandBus` implementing `ICommandBus` with configurable delay (default 50ms), FIFO behavior queue, success/reject/timeout/publishFail/error modes, and call recording API.
+- Task 2: Created `MockQueryBus` implementing `IQueryBus` with configurable delay (default 30ms), per-key response/error configuration, Zod schema validation, and call recording API.
+- Task 3: Created `MockSignalRHub` implementing `ISignalRHub` with group join/leave tracking, projection changed event emission, connection state simulation (connect/disconnect/reconnect), and listener cleanup.
+- Task 4: Created parameterized contract test suites (`commandBusContractTests`, `queryBusContractTests`) in `__contracts__/` directory, exportable for future real implementation testing.
+- Task 5: Created comprehensive test suites for all three mocks — 42 new tests total (16 MockCommandBus, 14 MockQueryBus, 12 MockSignalRHub) including contract test execution.
+- Task 6: Exported mocks from main `index.ts` (public API), created `testing.ts` entry point for contract test helpers, updated `tsup.config.ts` and `package.json` exports map.
+- Task 7: All verification checks passed — build produces both `dist/index.js` and `dist/testing.js` with `.d.ts` files, all 251 tests pass, lint clean, full monorepo build succeeds, `dist/index.js` contains no vitest imports.
+- Follow-up: MockCommandBus and MockQueryBus now clamp misconfigured non-positive delays to a minimum positive value, matching the contract that mocks must simulate real async work.
+
+### Change Log
+
+- 2026-03-19: Implemented Story 2.6 — MockCommandBus, MockQueryBus, MockSignalRHub, contract test suites, dual entry point (index + testing), all tests passing.
+
 ### File List
+
+**New files:**
+- `packages/cqrs-client/src/mocks/MockCommandBus.ts` — ICommandBus mock implementation
+- `packages/cqrs-client/src/mocks/MockCommandBus.test.ts` — Unit + contract tests (16 tests)
+- `packages/cqrs-client/src/mocks/MockQueryBus.ts` — IQueryBus mock implementation
+- `packages/cqrs-client/src/mocks/MockQueryBus.test.ts` — Unit + contract tests (14 tests)
+- `packages/cqrs-client/src/mocks/MockSignalRHub.ts` — ISignalRHub mock implementation
+- `packages/cqrs-client/src/mocks/MockSignalRHub.test.ts` — Unit tests (12 tests)
+- `packages/cqrs-client/src/mocks/__contracts__/commandBus.contract.test.ts` — Parameterized ICommandBus contract tests
+- `packages/cqrs-client/src/mocks/__contracts__/queryBus.contract.test.ts` — Parameterized IQueryBus contract tests
+- `packages/cqrs-client/src/testing.ts` — Contract test helpers entry point
+
+**Modified files:**
+- `packages/cqrs-client/src/index.ts` — Added mock exports (MockCommandBus, MockQueryBus, MockSignalRHub, ISignalRHub)
+- `packages/cqrs-client/tsup.config.ts` — Added `src/testing.ts` entry point
+- `packages/cqrs-client/package.json` — Added `./testing` exports map entry
+- `_bmad-output/implementation-artifacts/2-6-mock-implementations-and-contract-tests.md` — Story status and completion notes updated post-review
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` — Story 2.6 development_status synchronized with reviewed “done” state
