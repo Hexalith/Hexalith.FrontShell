@@ -60,7 +60,7 @@ development_status:
   2-2-authenticated-fetch-client-with-correlation-id: done
   2-3-command-hooks-submit-status-pipeline: done
   2-4-query-hook-with-zod-validation: done
-  2-5-projection-freshness-and-connection-state: backlog
+  2-5-projection-freshness-and-connection-state: ready-for-dev
   2-6-mock-implementations-and-contract-tests: backlog
   2-7-signalr-connection-and-projection-subscriptions: backlog
   2-8-etag-query-cache-integration: backlog
