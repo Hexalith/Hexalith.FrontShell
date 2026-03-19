@@ -9,6 +9,7 @@ export type {
   SubmitQueryRequest,
   SubmitQueryResponse,
   ValidateCommandRequest,
+  ValidateQueryRequest,
 } from "./core/types";
 
 // Interfaces
@@ -73,6 +74,10 @@ export { SignalRHub } from "./notifications/SignalRHub";
 export { SignalRProvider, useSignalRHub } from "./notifications/SignalRProvider";
 export { useProjectionSubscription } from "./notifications/useProjectionSubscription";
 export type { SignalRProviderProps } from "./notifications/SignalRProvider";
+
+// Validation (pre-flight authorization)
+export { useCanExecuteCommand, useCanExecuteQuery } from "./validation/useCanExecute";
+export type { CanExecuteCommandParams, CanExecuteQueryParams, UseCanExecuteResult } from "./validation/useCanExecute";
 
 // Mock implementations (platform capabilities — FR14, FR15)
 export { MockCommandBus } from "./mocks/MockCommandBus";

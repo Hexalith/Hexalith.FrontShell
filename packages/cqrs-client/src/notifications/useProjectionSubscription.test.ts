@@ -88,15 +88,12 @@ function createWrapper(mockHub: MockSignalRHub) {
     return createElement(
       ConnectionStateProvider,
       null,
-      createElement(
-        SignalRProvider,
-        {
-          hubUrl: "http://localhost/hubs/projection-changes",
-          accessTokenFactory: vi.fn().mockResolvedValue("token"),
-          hub: mockHub,
-        },
-        createElement(QueryProvider, { fetchClient }, children),
-      ),
+      createElement(SignalRProvider, {
+        hubUrl: "http://localhost/hubs/projection-changes",
+        accessTokenFactory: vi.fn().mockResolvedValue("token"),
+        hub: mockHub,
+        children: createElement(QueryProvider, { fetchClient, children }),
+      }),
     );
   };
 }
@@ -147,17 +144,13 @@ describe("useProjectionSubscription", () => {
       createElement(
         ConnectionStateProvider,
         null,
-        createElement(
-          SignalRProvider,
-          {
-            hubUrl: "http://localhost/hubs",
-            accessTokenFactory: vi.fn().mockResolvedValue("token"),
-            hub: mockHub,
-          },
-          createElement(
-            QueryProvider,
-            { fetchClient },
-            createElement(
+        createElement(SignalRProvider, {
+          hubUrl: "http://localhost/hubs",
+          accessTokenFactory: vi.fn().mockResolvedValue("token"),
+          hub: mockHub,
+          children: createElement(QueryProvider, {
+            fetchClient,
+            children: createElement(
               Fragment,
               null,
               createElement(InvalidationSpy, {
@@ -165,8 +158,8 @@ describe("useProjectionSubscription", () => {
               }),
               children,
             ),
-          ),
-        ),
+          }),
+        }),
       );
 
     renderHook(
@@ -330,7 +323,7 @@ describe("useProjectionSubscription", () => {
       createElement(
         ConnectionStateProvider,
         null,
-        createElement(QueryProvider, { fetchClient }, children),
+        createElement(QueryProvider, { fetchClient, children }),
       );
 
     // Should not throw

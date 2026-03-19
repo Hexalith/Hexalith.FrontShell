@@ -1,6 +1,6 @@
 # Story 2.9: Pre-flight Authorization Validation
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -37,29 +37,29 @@ So that I can hide or disable buttons and forms the user cannot use, avoiding un
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Add `ValidateQueryRequest` type to `src/core/types.ts` (AC: #2)
-  - [ ] 1.1 Add `ValidateQueryRequest` interface: `{ tenant: string; domain: string; queryType: string; aggregateId?: string; }` directly below the existing `ValidateCommandRequest` type
-  - [ ] 1.2 Export `ValidateQueryRequest` from `src/index.ts` alongside `ValidateCommandRequest`
+- [x] Task 1: Add `ValidateQueryRequest` type to `src/core/types.ts` (AC: #2)
+  - [x] 1.1 Add `ValidateQueryRequest` interface: `{ tenant: string; domain: string; queryType: string; aggregateId?: string; }` directly below the existing `ValidateCommandRequest` type
+  - [x] 1.2 Export `ValidateQueryRequest` from `src/index.ts` alongside `ValidateCommandRequest`
 
-- [ ] Task 2: Create pre-flight validation cache in `src/validation/preflightCache.ts` (AC: #5)
-  - [ ] 2.1 Create `src/validation/preflightCache.ts` with an in-memory `Map<string, { result: PreflightValidationResult; timestamp: number }>` keyed by `{tenant}:{endpoint}:{domain}:{type}:{aggregateId?}`
-  - [ ] 2.2 Implement `IPreflightCache` interface with `get(key: string): PreflightValidationResult | undefined` (returns undefined if entry expired beyond `TTL_MS = 30_000`), `set(key: string, result: PreflightValidationResult): void`, and `clear(): void`
-  - [ ] 2.3 Implement `createPreflightCache(): IPreflightCache` factory function (same factory pattern as `createETagCache()`)
-  - [ ] 2.4 Implement `buildPreflightCacheKey(tenant: string, endpoint: string, params: { domain: string; type: string; aggregateId?: string }): string` — key format: `{tenant}:{endpoint}:{domain}:{type}:{aggregateId?}`
-  - [ ] 2.5 Create `src/validation/preflightCache.test.ts` with unit tests: cache hit within TTL, cache miss after TTL, clear empties all entries, buildPreflightCacheKey format correctness
+- [x] Task 2: Create pre-flight validation cache in `src/validation/preflightCache.ts` (AC: #5)
+  - [x] 2.1 Create `src/validation/preflightCache.ts` with an in-memory `Map<string, { result: PreflightValidationResult; timestamp: number }>` keyed by `{tenant}:{endpoint}:{domain}:{type}:{aggregateId?}`
+  - [x] 2.2 Implement `IPreflightCache` interface with `get(key: string): PreflightValidationResult | undefined` (returns undefined if entry expired beyond `TTL_MS = 30_000`), `set(key: string, result: PreflightValidationResult): void`, and `clear(): void`
+  - [x] 2.3 Implement `createPreflightCache(): IPreflightCache` factory function (same factory pattern as `createETagCache()`)
+  - [x] 2.4 Implement `buildPreflightCacheKey(tenant: string, endpoint: string, params: { domain: string; type: string; aggregateId?: string }): string` — key format: `{tenant}:{endpoint}:{domain}:{type}:{aggregateId?}`
+  - [x] 2.5 Create `src/validation/preflightCache.test.ts` with unit tests: cache hit within TTL, cache miss after TTL, clear empties all entries, buildPreflightCacheKey format correctness
 
-- [ ] Task 3: Inject `preflightCache` into `CqrsProvider` context (AC: #5)
-  - [ ] 3.1 Add `preflightCache: IPreflightCache` to `CqrsContextValue` interface in `src/CqrsProvider.tsx`
-  - [ ] 3.2 Create the cache in `CqrsProvider` via `useMemo(() => createPreflightCache(), [])`
-  - [ ] 3.3 Include `preflightCache` in the context `value` memo alongside `fetchClient` and `commandEventBus`
-  - [ ] 3.4 Update `CqrsProvider.test.tsx` to verify `preflightCache` is provided in context
+- [x] Task 3: Inject `preflightCache` into `CqrsProvider` context (AC: #5)
+  - [x] 3.1 Add `preflightCache: IPreflightCache` to `CqrsContextValue` interface in `src/CqrsProvider.tsx`
+  - [x] 3.2 Create the cache in `CqrsProvider` via `useMemo(() => createPreflightCache(), [])`
+  - [x] 3.3 Include `preflightCache` in the context `value` memo alongside `fetchClient` and `commandEventBus`
+  - [x] 3.4 Update `CqrsProvider.test.tsx` to verify `preflightCache` is provided in context
   - **Note**: No explicit tenant-switch cache clearing needed. Cache keys are tenant-scoped (`{tenant}:endpoint:...`), so tenant switch naturally produces different keys. Old entries expire via 30s TTL. This avoids adding `useTenant()` to `CqrsProvider` (which is currently tenant-agnostic).
 
-- [ ] Task 4: Create `useCanExecuteCommand` hook in `src/validation/useCanExecute.ts` (AC: #1, #3, #4, #5)
-  - [ ] 4.1 Create `src/validation/useCanExecute.ts`
-  - [ ] 4.2 Define input types: `CanExecuteCommandParams = { domain: string; commandType: string; aggregateId?: string }` and `CanExecuteQueryParams = { domain: string; queryType: string; aggregateId?: string }`
-  - [ ] 4.3 Define return type: `UseCanExecuteResult = { isAuthorized: boolean; reason: string | undefined; isLoading: boolean; error: HexalithError | null }` — the `error` field follows the convention of `useQuery` and `useSubmitCommand`. It is `null` on success, set to the caught error on 5xx/network failures (alongside `isAuthorized: false`). It allows module developers to distinguish "unauthorized by policy" (`error: null, isAuthorized: false`) from "service unavailable" (`error: ApiError, isAuthorized: false`).
-  - [ ] 4.4 Implement `useCanExecuteCommand(params: CanExecuteCommandParams): UseCanExecuteResult`:
+- [x] Task 4: Create `useCanExecuteCommand` hook in `src/validation/useCanExecute.ts` (AC: #1, #3, #4, #5)
+  - [x] 4.1 Create `src/validation/useCanExecute.ts`
+  - [x] 4.2 Define input types: `CanExecuteCommandParams = { domain: string; commandType: string; aggregateId?: string }` and `CanExecuteQueryParams = { domain: string; queryType: string; aggregateId?: string }`
+  - [x] 4.3 Define return type: `UseCanExecuteResult = { isAuthorized: boolean; reason: string | undefined; isLoading: boolean; error: HexalithError | null }` — the `error` field follows the convention of `useQuery` and `useSubmitCommand`. It is `null` on success, set to an `ApiError` on 5xx/network failures (for network errors the original error is wrapped into `ApiError(503)`, alongside `isAuthorized: false`). It allows module developers to distinguish "unauthorized by policy" (`error: null, isAuthorized: false`) from "service unavailable" (`error: ApiError, isAuthorized: false`).
+  - [x] 4.4 Implement `useCanExecuteCommand(params: CanExecuteCommandParams): UseCanExecuteResult`:
     - Get `fetchClient` and `preflightCache` from `useCqrs()`, and `activeTenant` from `useTenant()`
     - Create an `AbortController` on mount; abort on unmount or param change to prevent state updates after unmount
     - On mount / param change: check cache first. If hit, return cached result immediately (no fetch)
@@ -72,41 +72,41 @@ So that I can hide or disable buttons and forms the user cannot use, avoiding un
     - On `AbortError`: silently ignore (component unmounted or params changed)
     - `isLoading = true` only during the network request
 
-- [ ] Task 5: Create `useCanExecuteQuery` hook in the same file (AC: #2, #3, #4, #5)
-  - [ ] 5.1 Implement `useCanExecuteQuery(params: CanExecuteQueryParams): UseCanExecuteResult` following the exact same pattern as `useCanExecuteCommand` but posting to `/api/v1/queries/validate` with `{ tenant, domain, queryType, aggregateId? }`
-  - [ ] 5.2 Both hooks share the same `preflightCache` from `useCqrs()` context and the same `UseCanExecuteResult` return type
+- [x] Task 5: Create `useCanExecuteQuery` hook in the same file (AC: #2, #3, #4, #5)
+  - [x] 5.1 Implement `useCanExecuteQuery(params: CanExecuteQueryParams): UseCanExecuteResult` following the exact same pattern as `useCanExecuteCommand` but posting to `/api/v1/queries/validate` with `{ tenant, domain, queryType, aggregateId? }`
+  - [x] 5.2 Both hooks share the same `preflightCache` from `useCqrs()` context and the same `UseCanExecuteResult` return type
 
-- [ ] Task 6: Export new hooks and types from `src/index.ts` (AC: #1, #2)
-  - [ ] 6.1 Add exports to `src/index.ts`:
+- [x] Task 6: Export new hooks and types from `src/index.ts` (AC: #1, #2)
+  - [x] 6.1 Add exports to `src/index.ts`:
     ```typescript
     // Validation (pre-flight authorization)
     export { useCanExecuteCommand, useCanExecuteQuery } from "./validation/useCanExecute";
     export type { CanExecuteCommandParams, CanExecuteQueryParams, UseCanExecuteResult } from "./validation/useCanExecute";
     ```
-  - [ ] 6.2 Add `ValidateQueryRequest` to the existing type exports from `./core/types`
+  - [x] 6.2 Add `ValidateQueryRequest` to the existing type exports from `./core/types`
 
-- [ ] Task 7: Create comprehensive tests in `src/validation/useCanExecute.test.ts` (AC: all)
-  - [ ] 7.1 Test: `"useCanExecuteCommand returns isAuthorized=true when backend authorizes"` -- mock fetchClient.post to return `{ isAuthorized: true }`, verify hook returns `{ isAuthorized: true, reason: undefined, isLoading: false, error: null }`
-  - [ ] 7.2 Test: `"useCanExecuteCommand returns isAuthorized=false with reason when backend denies"` -- mock returns `{ isAuthorized: false, reason: "Insufficient tenant permissions" }`, verify hook returns `{ isAuthorized: false, reason: "Insufficient tenant permissions", isLoading: false }`
-  - [ ] 7.3 Test: `"useCanExecuteCommand returns isLoading=true during fetch"` -- use deferred promise for fetchClient.post, verify `isLoading: true` while in-flight, then `false` after resolution
-  - [ ] 7.4 Test: `"useCanExecuteCommand fails closed on network error"` -- mock fetchClient.post to reject with TypeError, verify `{ isAuthorized: false, reason: "Authorization service unavailable", isLoading: false, error: <the TypeError wrapped or as-is> }`. The `error` field lets module developers distinguish "service down" from "unauthorized by policy" (which has `error: null`).
-  - [ ] 7.5 Test: `"useCanExecuteCommand fails closed on 503"` -- mock fetchClient.post to throw ApiError(503), verify same fail-closed behavior with `error` set to the ApiError instance
-  - [ ] 7.6 Test: `"useCanExecuteCommand propagates AuthError on 401"` -- mock fetchClient.post to throw AuthError, verify the error is NOT caught (propagates to error boundary / auth layer). Hook should NOT set `isAuthorized: false` for auth errors — the user's session needs refresh, not UI disabling.
-  - [ ] 7.7 Test: `"useCanExecuteCommand propagates RateLimitError on 429"` -- mock fetchClient.post to throw RateLimitError, verify the error propagates. The user IS authorized, just throttled — do not disable UI.
-  - [ ] 7.8 Test: `"useCanExecuteCommand caches result within 30 seconds"` -- first call hits API, second identical call within TTL returns cached result without API call. Verify fetchClient.post called exactly once
-  - [ ] 7.9 Test: `"useCanExecuteCommand re-fetches after cache TTL expires"` -- use vi.useFakeTimers(), advance past 30 seconds, verify second call makes a new API request. Call `vi.useRealTimers()` in cleanup
-  - [ ] 7.10 Test: `"useCanExecuteCommand re-fetches after tenant switch (different cache key)"` -- cache a result for tenant A, switch to tenant B, verify next call makes a new API request (different tenant produces different cache key, so no cache hit)
-  - [ ] 7.11 Test: `"useCanExecuteCommand sends correct request body"` -- verify fetchClient.post receives `/api/v1/commands/validate` with `{ tenant, domain, commandType, aggregateId }`
-  - [ ] 7.12 Test: `"useCanExecuteQuery posts to /api/v1/queries/validate"` -- verify fetchClient.post receives the query validation endpoint with `{ tenant, domain, queryType, aggregateId }`
-  - [ ] 7.13 Test: `"useCanExecuteQuery shares cache with separate cache keys"` -- verify command and query validations use different cache keys (different endpoints), ensuring no cross-contamination
-  - [ ] 7.14 Test: `"hooks do not fetch when no active tenant"` -- verify that when activeTenant is null, the hooks return `{ isAuthorized: false, reason: "No active tenant", isLoading: false }` without making API calls
-  - [ ] 7.15 Test: `"useCanExecuteCommand re-fetches when params change"` -- render with domain="Orders", verify fetch, then rerender with domain="Inventory", verify a new fetch is made to the correct endpoint with updated params
-  - [ ] 7.16 Test: `"useCanExecuteCommand does not update state after unmount"` -- start a fetch with deferred promise, unmount the hook, resolve the promise, verify no React "state update on unmounted component" warning. This validates the AbortController cleanup.
+- [x] Task 7: Create comprehensive tests in `src/validation/useCanExecute.test.ts` (AC: all)
+  - [x] 7.1 Test: `"useCanExecuteCommand returns isAuthorized=true when backend authorizes"` -- mock fetchClient.post to return `{ isAuthorized: true }`, verify hook returns `{ isAuthorized: true, reason: undefined, isLoading: false, error: null }`
+  - [x] 7.2 Test: `"useCanExecuteCommand returns isAuthorized=false with reason when backend denies"` -- mock returns `{ isAuthorized: false, reason: "Insufficient tenant permissions" }`, verify hook returns `{ isAuthorized: false, reason: "Insufficient tenant permissions", isLoading: false }`
+  - [x] 7.3 Test: `"useCanExecuteCommand returns isLoading=true during fetch"` -- use deferred promise for fetchClient.post, verify `isLoading: true` while in-flight, then `false` after resolution
+  - [x] 7.4 Test: `"useCanExecuteCommand fails closed on network error"` -- mock fetchClient.post to reject with TypeError, verify `{ isAuthorized: false, reason: "Authorization service unavailable", isLoading: false, error: ApiError(503) wrapping the TypeError }`. The `error` field lets module developers distinguish "service down" from "unauthorized by policy" (which has `error: null`).
+  - [x] 7.5 Test: `"useCanExecuteCommand fails closed on 503"` -- mock fetchClient.post to throw ApiError(503), verify same fail-closed behavior with `error` set to the ApiError instance
+  - [x] 7.6 Test: `"useCanExecuteCommand propagates AuthError on 401"` -- mock fetchClient.post to throw AuthError, verify the error is NOT caught (propagates to error boundary / auth layer). Hook should NOT set `isAuthorized: false` for auth errors — the user's session needs refresh, not UI disabling.
+  - [x] 7.7 Test: `"useCanExecuteCommand propagates RateLimitError on 429"` -- mock fetchClient.post to throw RateLimitError, verify the error propagates. The user IS authorized, just throttled — do not disable UI.
+  - [x] 7.8 Test: `"useCanExecuteCommand caches result within 30 seconds"` -- first call hits API, second identical call within TTL returns cached result without API call. Verify fetchClient.post called exactly once
+  - [x] 7.9 Test: `"useCanExecuteCommand re-fetches after cache TTL expires"` -- use vi.useFakeTimers(), advance past 30 seconds, verify second call makes a new API request. Call `vi.useRealTimers()` in cleanup
+  - [x] 7.10 Test: `"useCanExecuteCommand re-fetches after tenant switch (different cache key)"` -- cache a result for tenant A, switch to tenant B, verify next call makes a new API request (different tenant produces different cache key, so no cache hit)
+  - [x] 7.11 Test: `"useCanExecuteCommand sends correct request body"` -- verify fetchClient.post receives `/api/v1/commands/validate` with `{ tenant, domain, commandType, aggregateId }`
+  - [x] 7.12 Test: `"useCanExecuteQuery posts to /api/v1/queries/validate"` -- verify fetchClient.post receives the query validation endpoint with `{ tenant, domain, queryType, aggregateId }`
+  - [x] 7.13 Test: `"useCanExecuteQuery shares cache with separate cache keys"` -- verify command and query validations use different cache keys (different endpoints), ensuring no cross-contamination
+  - [x] 7.14 Test: `"hooks do not fetch when no active tenant"` -- verify that when activeTenant is null, the hooks return `{ isAuthorized: false, reason: "No active tenant", isLoading: false }` without making API calls
+  - [x] 7.15 Test: `"useCanExecuteCommand re-fetches when params change"` -- render with domain="Orders", verify fetch, then rerender with domain="Inventory", verify a new fetch is made to the correct endpoint with updated params
+  - [x] 7.16 Test: `"useCanExecuteCommand does not update state after unmount"` -- start a fetch with deferred promise, unmount the hook, resolve the promise, verify no React "state update on unmounted component" warning. This validates the AbortController cleanup.
 
-- [ ] Task 8: Run all tests and lint (AC: all)
-  - [ ] 8.1 Run full test suite: `pnpm test` -- all existing tests + new tests pass
-  - [ ] 8.2 Run lint: `pnpm lint` clean
-  - [ ] 8.3 Run full monorepo build: `pnpm build` succeeds
+- [x] Task 8: Run all tests and lint (AC: all)
+  - [x] 8.1 Run full test suite: `pnpm test` -- all existing tests + new tests pass (326 total)
+  - [x] 8.2 Run lint: `pnpm lint` clean (only pre-existing import-order warnings in untouched files)
+  - [x] 8.3 Run full monorepo build: `pnpm build` succeeds
 
 ## Dev Notes
 
@@ -325,8 +325,38 @@ Recent commits: sequential story completion (2-4 through 2-7 done, 2-8 in progre
 
 ### Agent Model Used
 
+Claude Opus 4.6 (1M context)
+
 ### Debug Log References
+
+- AuthError/RateLimitError propagation: Used throw-during-render pattern (ref stored in useRef, thrown on next render) to propagate to React error boundaries. Tests use process-level uncaughtException handler to suppress React 19 dev-mode concurrent rendering recovery diagnostics.
 
 ### Completion Notes List
 
+- Task 1: Added `ValidateQueryRequest` interface to `src/core/types.ts` and exported from `src/index.ts`
+- Task 2: Created `src/validation/preflightCache.ts` with `IPreflightCache`, `createPreflightCache()` factory, and `buildPreflightCacheKey()`. 8 unit tests covering TTL behavior, cache key format, and clear functionality.
+- Task 3: Added `preflightCache: IPreflightCache` to `CqrsContextValue`, created via `useMemo` in `CqrsProvider`, included in context value. Added test verifying cache is provided.
+- Task 4: Created `useCanExecuteCommand` hook using shared internal `useCanExecute()` function. Implements cache-first fetching, AbortController cleanup, fail-closed on 5xx/network, AuthError/RateLimitError propagation via throw-during-render.
+- Task 5: Created `useCanExecuteQuery` hook sharing the same internal implementation, posting to `/api/v1/queries/validate`.
+- Task 6: Exported `useCanExecuteCommand`, `useCanExecuteQuery`, `CanExecuteCommandParams`, `CanExecuteQueryParams`, `UseCanExecuteResult`, and `ValidateQueryRequest` from `src/index.ts`.
+- Task 7: Created 27 comprehensive tests covering all ACs: authorization success/deny, loading state, fail-closed (network error, 503), error propagation (401 AuthError, 429 RateLimitError), cache hit/miss/TTL expiry, tenant-scoped cache keys, request body validation, no-tenant guard, param change re-fetch, unmount safety, and full parity coverage for both command and query hooks.
+- Task 8: Full test suite passes (326 tests, 26 files). Lint clean for new files. Monorepo build succeeds.
+
+### Change Log
+
+- 2026-03-19: Story 2.9 code review fixes applied — corrected `isLoading` semantics on cache-hit/no-tenant, wrapped non-Hexalith network errors into `ApiError(503)`, and expanded `useCanExecuteQuery` AC coverage (tenant switch + TTL expiry). Story marked done.
+
 ### File List
+
+New files:
+- `packages/cqrs-client/src/validation/preflightCache.ts`
+- `packages/cqrs-client/src/validation/preflightCache.test.ts`
+- `packages/cqrs-client/src/validation/useCanExecute.ts`
+- `packages/cqrs-client/src/validation/useCanExecute.test.ts`
+
+Modified files:
+- `packages/cqrs-client/src/core/types.ts` (added `ValidateQueryRequest`)
+- `packages/cqrs-client/src/index.ts` (added exports for new hooks, types)
+- `packages/cqrs-client/src/CqrsProvider.tsx` (added `preflightCache` to context)
+- `packages/cqrs-client/src/CqrsProvider.test.tsx` (added context verification test)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (status: in-progress → done)

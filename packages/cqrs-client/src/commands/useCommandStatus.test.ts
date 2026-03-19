@@ -4,8 +4,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 import { CqrsProvider } from "../CqrsProvider";
 import { CommandRejectedError, CommandTimeoutError } from "../errors";
-import { MockSignalRHub } from "../mocks/MockSignalRHub";
 import { mapTerminalStatus, useCommandStatus } from "./useCommandStatus";
+import { MockSignalRHub } from "../mocks/MockSignalRHub";
 
 import type { CommandStatusResponse } from "../core/types";
 
@@ -31,15 +31,12 @@ const mockSignalRHub = new MockSignalRHub();
 
 function createWrapper() {
   return function Wrapper({ children }: { children: React.ReactNode }) {
-    return React.createElement(
-      CqrsProvider,
-      {
-        commandApiBaseUrl: "https://test",
-        tokenGetter: () => Promise.resolve("token"),
-        signalRHub: mockSignalRHub,
-      },
+    return React.createElement(CqrsProvider, {
+      commandApiBaseUrl: "https://test",
+      tokenGetter: () => Promise.resolve("token"),
+      signalRHub: mockSignalRHub,
       children,
-    );
+    });
   };
 }
 

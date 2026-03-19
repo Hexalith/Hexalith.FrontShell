@@ -73,7 +73,7 @@ function createWrapper(fetchClient: FetchClient) {
     return createElement(
       ConnectionStateProvider,
       null,
-      createElement(QueryProvider, { fetchClient }, children),
+      createElement(QueryProvider, { fetchClient, children }),
     );
   };
 }
@@ -1203,15 +1203,12 @@ describe("useQuery SignalR integration", () => {
       return createElement(
         ConnectionStateProvider,
         null,
-        createElement(
-          SignalRProvider,
-          {
-            hubUrl: "http://localhost/hubs/projection-changes",
-            accessTokenFactory: vi.fn().mockResolvedValue("token"),
-            hub: mockHub,
-          },
-          createElement(QueryProvider, { fetchClient }, children),
-        ),
+        createElement(SignalRProvider, {
+          hubUrl: "http://localhost/hubs/projection-changes",
+          accessTokenFactory: vi.fn().mockResolvedValue("token"),
+          hub: mockHub,
+          children: createElement(QueryProvider, { fetchClient, children }),
+        }),
       );
     };
   }

@@ -66,6 +66,13 @@ export interface ValidateCommandRequest {
   aggregateId?: string;
 }
 
+export interface ValidateQueryRequest {
+  tenant: string;
+  domain: string;
+  queryType: string;
+  aggregateId?: string;
+}
+
 export interface PreflightValidationResult {
   isAuthorized: boolean;
   reason?: string;

@@ -11,15 +11,12 @@ function createWrapper(mockHub: MockSignalRHub) {
     return createElement(
       ConnectionStateProvider,
       null,
-      createElement(
-        SignalRProvider,
-        {
-          hubUrl: "http://localhost/hubs/projection-changes",
-          accessTokenFactory: vi.fn().mockResolvedValue("token"),
-          hub: mockHub,
-        },
+      createElement(SignalRProvider, {
+        hubUrl: "http://localhost/hubs/projection-changes",
+        accessTokenFactory: vi.fn().mockResolvedValue("token"),
+        hub: mockHub,
         children,
-      ),
+      }),
     );
   };
 }

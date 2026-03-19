@@ -8,12 +8,15 @@ import { ConnectionStateProvider } from "./connection/ConnectionStateProvider";
 import { createFetchClient, type FetchClient } from "./core/fetchClient";
 import { SignalRProvider } from "./notifications/SignalRProvider";
 import { QueryProvider } from "./queries/QueryProvider";
+import { createPreflightCache } from "./validation/preflightCache";
 
 import type { ISignalRHub } from "./mocks/MockSignalRHub";
+import type { IPreflightCache } from "./validation/preflightCache";
 
 export interface CqrsContextValue {
   fetchClient: FetchClient;
   commandEventBus: CommandEventBus;
+  preflightCache: IPreflightCache;
 }
 
 const CqrsContext = createContext<CqrsContextValue | null>(null);
@@ -40,6 +43,7 @@ export function CqrsProvider({
     [commandApiBaseUrl, tokenGetter],
   );
   const commandEventBus = useMemo(() => createCommandEventBus(), []);
+  const preflightCache = useMemo(() => createPreflightCache(), []);
 
   const hubUrl = useMemo(
     () => `${commandApiBaseUrl.replace(/\/+$/, "")}/hubs/projection-changes`,
@@ -55,8 +59,8 @@ export function CqrsProvider({
   );
 
   const value = useMemo(
-    () => ({ fetchClient, commandEventBus }),
-    [fetchClient, commandEventBus],
+    () => ({ fetchClient, commandEventBus, preflightCache }),
+    [fetchClient, commandEventBus, preflightCache],
   );
 
   return (

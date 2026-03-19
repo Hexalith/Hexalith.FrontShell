@@ -12,8 +12,10 @@ vi.mock("@hexalith/shell-api", () => ({
   }),
 }));
 
+let capturedCtx: ReturnType<typeof useCqrs> | null = null;
+
 function CqrsConsumer() {
-  useCqrs();
+  capturedCtx = useCqrs();
   return null;
 }
 
@@ -32,5 +34,26 @@ describe("CqrsProvider", () => {
         </CqrsProvider>,
       ),
     ).not.toThrow();
+  });
+
+  it("provides preflightCache in context", () => {
+    const hub = new MockSignalRHub();
+    capturedCtx = null;
+
+    render(
+      <CqrsProvider
+        commandApiBaseUrl="https://example.test"
+        tokenGetter={() => Promise.resolve("token")}
+        signalRHub={hub}
+      >
+        <CqrsConsumer />
+      </CqrsProvider>,
+    );
+
+    expect(capturedCtx).not.toBeNull();
+    expect(capturedCtx!.preflightCache).toBeDefined();
+    expect(typeof capturedCtx!.preflightCache.get).toBe("function");
+    expect(typeof capturedCtx!.preflightCache.set).toBe("function");
+    expect(typeof capturedCtx!.preflightCache.clear).toBe("function");
   });
 });

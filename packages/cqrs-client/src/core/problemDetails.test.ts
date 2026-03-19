@@ -271,8 +271,8 @@ describe("parseProblemDetails — RFC 9457 Parser Tests", () => {
       });
 
       const error = await parseProblemDetails(response);
-      expect((error as Record<string, unknown>).correlationId).toBeUndefined();
-      expect((error as Record<string, unknown>).tenantId).toBeUndefined();
+      expect((error as unknown as Record<string, unknown>).correlationId).toBeUndefined();
+      expect((error as unknown as Record<string, unknown>).tenantId).toBeUndefined();
     });
   });
 
