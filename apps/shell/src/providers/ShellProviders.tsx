@@ -2,7 +2,7 @@ import React, { useCallback } from "react";
 import type { ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
 
-import { CqrsProvider } from "@hexalith/cqrs-client";
+import { CqrsProvider, type ISignalRHub } from "@hexalith/cqrs-client";
 import {
   AuthProvider,
   ConnectionHealthProvider,
@@ -23,13 +23,20 @@ export interface ShellProvidersProps {
   backendUrl: string;
   tenantClaimName?: string;
   children: ReactNode;
+  /**
+   * When set (e.g. `MockSignalRHub` in tests), skips starting a real SignalR connection.
+   * Omit in production so the live hub is used.
+   */
+  signalRHub?: ISignalRHub;
 }
 
 function InnerProviders({
   backendUrl,
+  signalRHub,
   children,
 }: {
   backendUrl: string;
+  signalRHub?: ISignalRHub;
   children: ReactNode;
 }) {
   const auth = useAuth();
@@ -39,7 +46,11 @@ function InnerProviders({
   );
 
   return (
-    <CqrsProvider commandApiBaseUrl={backendUrl} tokenGetter={tokenGetter}>
+    <CqrsProvider
+      commandApiBaseUrl={backendUrl}
+      tokenGetter={tokenGetter}
+      signalRHub={signalRHub}
+    >
       <ConnectionHealthProvider backendUrl={backendUrl}>
         <FormDirtyProvider>
           <ThemeProvider>
@@ -55,12 +66,15 @@ export function ShellProviders({
   oidcConfig,
   backendUrl,
   tenantClaimName,
+  signalRHub,
   children,
 }: ShellProvidersProps): React.JSX.Element {
   return (
     <AuthProvider {...oidcConfig} tenantClaimName={tenantClaimName}>
       <TenantProvider>
-        <InnerProviders backendUrl={backendUrl}>{children}</InnerProviders>
+        <InnerProviders backendUrl={backendUrl} signalRHub={signalRHub}>
+          {children}
+        </InnerProviders>
       </TenantProvider>
     </AuthProvider>
   );

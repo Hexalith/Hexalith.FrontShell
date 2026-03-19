@@ -1,0 +1,131 @@
+/* Token count: 53/150 */
+/* Tier 1 (primitive) + Tier 2 (semantic) color tokens */
+/* Accent: Indigo — trustworthy, modern, premium; complements warm neutral base */
+
+@layer tokens {
+  /* ─── Tier 1: Primitive color palette (theme-independent) ─── */
+  :root {
+    /* Warm neutral grays (amber undertone) */
+    --primitive-color-gray-50: #FAF9F7;
+    --primitive-color-gray-100: #F3F2EE;
+    --primitive-color-gray-200: #E8E6E1;
+    --primitive-color-gray-300: #D5D3CB;
+    --primitive-color-gray-400: #B0ADA3;
+    --primitive-color-gray-500: #8C897E;
+    --primitive-color-gray-600: #6B685E;
+    --primitive-color-gray-700: #4D4A42;
+    --primitive-color-gray-800: #33312B;
+    --primitive-color-gray-900: #1E1D19;
+
+    /* Indigo accent */
+    --primitive-color-indigo-50: #ECEEFF;
+    --primitive-color-indigo-200: #B3BAFF;
+    --primitive-color-indigo-300: #8D96F0;
+    --primitive-color-indigo-400: #7B85E8;
+    --primitive-color-indigo-500: #5B6AD0;
+    --primitive-color-indigo-600: #4A57B5;
+    --primitive-color-indigo-700: #3B4594;
+    --primitive-color-indigo-900: #1F2552;
+
+    /* Status colors — light variants */
+    --primitive-color-red-500: #DC3545;
+    --primitive-color-amber-500: #D4940A;
+    --primitive-color-green-500: #2D8F3F;
+    --primitive-color-blue-500: #2B7DE9;
+
+    /* Status colors — dark variants (recalibrated brighter) */
+    --primitive-color-red-400: #E8616D;
+    --primitive-color-amber-400: #F0B429;
+    --primitive-color-green-400: #4BBF64;
+    --primitive-color-blue-400: #5196EE;
+  }
+
+  /* ─── Tier 2: Semantic color tokens — Light theme (default) ─── */
+  :root,
+  :root[data-theme="light"] {
+    /* Text */
+    --color-text-primary: var(--primitive-color-gray-900);
+    --color-text-secondary: var(--primitive-color-gray-700);
+    --color-text-tertiary: var(--primitive-color-gray-600);
+    --color-text-disabled: var(--primitive-color-gray-500);
+
+    /* Surfaces */
+    --color-surface-primary: var(--primitive-color-gray-50);
+    --color-surface-secondary: var(--primitive-color-gray-100);
+    --color-surface-elevated: #FFFFFF;
+
+    /* Borders */
+    --color-border-default: var(--primitive-color-gray-300);
+    --color-border-strong: var(--primitive-color-gray-400);
+    --color-border-subtle: var(--primitive-color-gray-200);
+
+    /* Accent (interactive) */
+    --color-accent: var(--primitive-color-indigo-500);
+    --color-accent-subtle: var(--primitive-color-indigo-50);
+    --color-accent-hover: var(--primitive-color-indigo-600);
+    --color-accent-active: var(--primitive-color-indigo-700);
+
+    /* Status */
+    --color-status-success: var(--primitive-color-green-500);
+    --color-status-warning: var(--primitive-color-amber-500);
+    --color-status-danger: var(--primitive-color-red-500);
+    --color-status-info: var(--primitive-color-blue-500);
+
+    /* Focus */
+    --color-focus-ring: var(--primitive-color-indigo-500);
+
+    /* Data visualization (color-blind safe — Tol's vibrant qualitative) */
+    --color-data-1: #4477AA;
+    --color-data-2: #66CCEE;
+    --color-data-3: #228833;
+    --color-data-4: #CCBB44;
+    --color-data-5: #EE6677;
+    --color-data-6: #AA3377;
+    --color-data-7: #EE8866;
+    --color-data-8: #BBBBBB;
+  }
+
+  /* ─── Tier 2: Semantic color tokens — Dark theme ─── */
+  :root[data-theme="dark"] {
+    /* Text — warm off-white, NOT pure white; ~10:1 contrast target */
+    --color-text-primary: var(--primitive-color-gray-200);
+    --color-text-secondary: var(--primitive-color-gray-400);
+    --color-text-tertiary: var(--primitive-color-gray-500);
+    --color-text-disabled: var(--primitive-color-gray-600);
+
+    /* Surfaces — warm dark grays, luminance increases with elevation */
+    --color-surface-primary: var(--primitive-color-gray-900);
+    --color-surface-secondary: var(--primitive-color-gray-800);
+    --color-surface-elevated: #3E3C35;
+
+    /* Borders */
+    --color-border-default: var(--primitive-color-gray-700);
+    --color-border-strong: var(--primitive-color-gray-600);
+    --color-border-subtle: var(--primitive-color-gray-800);
+
+    /* Accent — same hue/saturation, luminance adjusted for dark backgrounds */
+    --color-accent: var(--primitive-color-indigo-400);
+    --color-accent-subtle: var(--primitive-color-indigo-900);
+    --color-accent-hover: var(--primitive-color-indigo-300);
+    --color-accent-active: var(--primitive-color-indigo-200);
+
+    /* Status — individually recalibrated for dark backgrounds */
+    --color-status-success: var(--primitive-color-green-400);
+    --color-status-warning: var(--primitive-color-amber-400);
+    --color-status-danger: var(--primitive-color-red-400);
+    --color-status-info: var(--primitive-color-blue-400);
+
+    /* Focus */
+    --color-focus-ring: var(--primitive-color-indigo-400);
+
+    /* Data visualization (brightened for dark backgrounds) */
+    --color-data-1: #5588BB;
+    --color-data-2: #77DDEE;
+    --color-data-3: #33AA44;
+    --color-data-4: #DDCC55;
+    --color-data-5: #FF7788;
+    --color-data-6: #CC4499;
+    --color-data-7: #FF9977;
+    --color-data-8: #CCCCCC;
+  }
+}

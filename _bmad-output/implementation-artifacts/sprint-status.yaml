@@ -38,7 +38,7 @@ project: Hexalith.FrontShell
 project_key: NOKEY
 tracking_system: file-system
 story_location: "{project-root}/_bmad-output/implementation-artifacts"
-last_updated: 2026-03-19T00:00:00Z
+last_updated: 2026-03-19
 
 development_status:
   # Epic 1: Platform Foundation & Authentication
@@ -62,8 +62,8 @@ development_status:
   2-4-query-hook-with-zod-validation: done
   2-5-projection-freshness-and-connection-state: done
   2-6-mock-implementations-and-contract-tests: done
-  2-7-signalr-connection-and-projection-subscriptions: backlog
-  2-8-etag-query-cache-integration: backlog
+  2-7-signalr-connection-and-projection-subscriptions: done
+  2-8-etag-query-cache-integration: ready-for-dev
   2-9-preflight-authorization-validation: backlog
   epic-2-retrospective: optional
 

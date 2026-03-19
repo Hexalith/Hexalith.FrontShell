@@ -216,6 +216,10 @@ PublishScripts/
 **/[Pp]ackages/*
 # except build/, which is used as an MSBuild target.
 !**/[Pp]ackages/build/
+# This repo also uses a top-level `packages/` folder for the pnpm workspace
+# (source code + local packages). Re-include it so Git can track changes.
+!/packages/
+!/packages/**
 # Uncomment if necessary however generally it will be regenerated when needed
 #!**/[Pp]ackages/repositories.config
 # NuGet v3's project.json files produces more ignorable files

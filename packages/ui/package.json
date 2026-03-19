@@ -1,0 +1,32 @@
+{
+  "name": "@hexalith/ui",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./tokens/*.css": "./src/tokens/*.css"
+  },
+  "scripts": {
+    "build": "tsup",
+    "lint": "eslint src tsup.config.ts vitest.config.ts eslint.config.js",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "@hexalith/shell-api": "workspace:*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@hexalith/eslint-config": "workspace:*",
+    "@hexalith/tsconfig": "workspace:*",
+    "@types/node": "^25.5.0",
+    "stylelint": "^17.4.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  }
+}

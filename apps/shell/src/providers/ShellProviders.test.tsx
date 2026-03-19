@@ -9,6 +9,7 @@ import {
   useTheme,
   useLocale,
 } from "@hexalith/shell-api";
+import { MockSignalRHub } from "@hexalith/cqrs-client";
 
 import { ShellProviders } from "./ShellProviders";
 
@@ -22,6 +23,8 @@ const TEST_OIDC_CONFIG = {
 };
 
 const TEST_BACKEND_URL = "https://localhost:5000";
+
+const testSignalRHub = new MockSignalRHub();
 
 // Helper to capture context values from within the provider tree
 function ContextProbe({
@@ -97,7 +100,11 @@ describe("ShellProviders", () => {
     };
 
     render(
-      <ShellProviders oidcConfig={TEST_OIDC_CONFIG} backendUrl={TEST_BACKEND_URL}>
+      <ShellProviders
+        oidcConfig={TEST_OIDC_CONFIG}
+        backendUrl={TEST_BACKEND_URL}
+        signalRHub={testSignalRHub}
+      >
         <ContextProbe onContexts={(c) => (contexts = c)} />
       </ShellProviders>,
     );
@@ -112,7 +119,11 @@ describe("ShellProviders", () => {
 
   it("renders children content", () => {
     const { getByText } = render(
-      <ShellProviders oidcConfig={TEST_OIDC_CONFIG} backendUrl={TEST_BACKEND_URL}>
+      <ShellProviders
+        oidcConfig={TEST_OIDC_CONFIG}
+        backendUrl={TEST_BACKEND_URL}
+        signalRHub={testSignalRHub}
+      >
         <div>Child Content</div>
       </ShellProviders>,
     );

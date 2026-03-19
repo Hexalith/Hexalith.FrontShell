@@ -1,0 +1,9 @@
+{
+  "name": "@hexalith/tsconfig",
+  "private": true,
+  "files": [
+    "base.json",
+    "react-library.json",
+    "react-app.json"
+  ]
+}

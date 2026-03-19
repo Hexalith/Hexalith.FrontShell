@@ -1,0 +1,42 @@
+{
+  "name": "@hexalith/cqrs-client",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./testing": {
+      "import": "./dist/testing.js",
+      "types": "./dist/testing.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "lint": "eslint src tsup.config.ts vitest.config.ts eslint.config.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@hexalith/shell-api": "workspace:*",
+    "@microsoft/signalr": "^10.0.0",
+    "ulidx": "^2.4.1",
+    "zod": "^3.25.76"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@hexalith/eslint-config": "workspace:*",
+    "@hexalith/tsconfig": "workspace:*",
+    "@testing-library/react": "^16.3.2",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "jsdom": "^25.0.1",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  }
+}

@@ -1,0 +1,27 @@
+/* Token count: 6/150 */
+/* Tier 1 (primitive) + Tier 2 (semantic) motion tokens */
+/* Default: 200ms ease-out; input acknowledgment <= 100ms */
+
+@layer tokens {
+  /* ─── Tier 1: Primitive motion values ─── */
+  :root {
+    --primitive-duration-fast: 100ms;
+    --primitive-duration-default: 200ms;
+    --primitive-easing-default: ease-out;
+  }
+
+  /* ─── Tier 2: Semantic motion tokens ─── */
+  :root {
+    --transition-duration-fast: var(--primitive-duration-fast);
+    --transition-duration-default: var(--primitive-duration-default);
+    --transition-easing-default: var(--primitive-easing-default);
+  }
+
+  /* ─── Accessibility: disable transitions for reduced motion preference ─── */
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --transition-duration-fast: 0ms;
+      --transition-duration-default: 0ms;
+    }
+  }
+}

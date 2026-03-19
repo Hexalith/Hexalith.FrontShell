@@ -1,0 +1,45 @@
+/* Token count: 21/150 */
+/* Tier 1 (primitive) + Tier 2 (semantic) spacing tokens */
+/* Based on 4px grid; 8px preferred rhythm unit */
+
+@layer tokens {
+  /* ─── Tier 1: Primitive spacing scale ─── */
+  :root {
+    --primitive-space-0: 0;
+    --primitive-space-1: 0.25rem;
+    --primitive-space-2: 0.5rem;
+    --primitive-space-3: 0.75rem;
+    --primitive-space-4: 1rem;
+    --primitive-space-5: 1.5rem;
+    --primitive-space-6: 2rem;
+    --primitive-space-7: 3rem;
+    --primitive-space-8: 4rem;
+  }
+
+  /* ─── Tier 2: Semantic spacing tokens ─── */
+  :root {
+    --spacing-0: var(--primitive-space-0);
+    --spacing-1: var(--primitive-space-1);
+    --spacing-2: var(--primitive-space-2);
+    --spacing-3: var(--primitive-space-3);
+    --spacing-4: var(--primitive-space-4);
+    --spacing-5: var(--primitive-space-5);
+    --spacing-6: var(--primitive-space-6);
+    --spacing-7: var(--primitive-space-7);
+    --spacing-8: var(--primitive-space-8);
+
+    /* Density-aware tokens — comfortable defaults */
+    --spacing-cell: var(--primitive-space-3);
+    --spacing-field-gap: var(--primitive-space-3);
+    --spacing-section: var(--primitive-space-5);
+  }
+}
+
+/* ─── Density overrides — compact profile ─── */
+@layer density {
+  [data-density="compact"] {
+    --spacing-cell: var(--primitive-space-2);
+    --spacing-field-gap: var(--primitive-space-2);
+    --spacing-section: var(--primitive-space-4);
+  }
+}

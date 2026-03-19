@@ -1,0 +1,37 @@
+{
+  "name": "@hexalith/shell-api",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "lint": "eslint src tsup.config.ts vitest.config.ts eslint.config.js",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "oidc-client-ts": "^3.0.0",
+    "react-oidc-context": "^3.0.0"
+  },
+  "devDependencies": {
+    "@hexalith/eslint-config": "workspace:*",
+    "@hexalith/tsconfig": "workspace:*",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/jest-dom": "^6.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "jsdom": "^25.0.0",
+    "oidc-client-ts": "^3.0.0",
+    "react-oidc-context": "^3.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  }
+}

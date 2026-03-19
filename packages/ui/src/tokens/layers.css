@@ -1,0 +1,3 @@
+/* CSS @layer cascade declaration — structural enforcement of style priority */
+/* Order matters: later layers override earlier layers regardless of specificity */
+@layer reset, tokens, primitives, components, density, module;
