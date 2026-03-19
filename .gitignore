@@ -443,3 +443,7 @@ pnpm-debug.log*
 .env
 .env.local
 .env.*.local
+
+
+#Ignore cursor AI rules
+.cursor\rules\codacy.mdc

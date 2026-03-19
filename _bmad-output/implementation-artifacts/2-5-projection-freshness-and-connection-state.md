@@ -1,6 +1,6 @@
 # Story 2.5: Projection Freshness & Connection State
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -39,12 +39,12 @@ so that end users see current data without manual refresh and I can display conn
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create `ConnectionStateProvider` and `useConnectionState` hook (AC: #2, #4, #5)
-  - [ ] Create `src/connection/ConnectionStateProvider.tsx`:
+- [x] Task 1: Create `ConnectionStateProvider` and `useConnectionState` hook (AC: #2, #4, #5)
+  - [x] Create `src/connection/ConnectionStateProvider.tsx`:
 
     ```typescript
-    type ConnectionState = 'connected' | 'reconnecting' | 'disconnected';
-    type TransportType = 'polling' | 'signalr';
+    type ConnectionState = "connected" | "reconnecting" | "disconnected";
+    type TransportType = "polling" | "signalr";
 
     interface ConnectionStateValue {
       state: ConnectionState;
@@ -53,54 +53,62 @@ so that end users see current data without manual refresh and I can display conn
       reportFailure: () => void;
     }
 
-    function ConnectionStateProvider({ children }: { children: ReactNode }): JSX.Element;
-    function useConnectionState(): { state: ConnectionState; transport: TransportType };
+    function ConnectionStateProvider({
+      children,
+    }: {
+      children: ReactNode;
+    }): JSX.Element;
+    function useConnectionState(): {
+      state: ConnectionState;
+      transport: TransportType;
+    };
     ```
 
-  - [ ] State machine transitions:
+  - [x] State machine transitions:
     - Initial state: `'connected'` (optimistic — assume healthy until proven otherwise)
     - On `reportFailure()`: increment consecutive failure counter
       - 1 failure: transition to `'reconnecting'`
       - 3+ consecutive failures: transition to `'disconnected'`
     - On `reportSuccess()`: reset failure counter, transition to `'connected'`
-  - [ ] `transport` field: hardcode `'polling'` in this story. Story 2.7 will extend the provider to accept SignalR state and set `'signalr'` when SignalR is connected.
-  - [ ] `useConnectionState()` public hook: returns `{ state, transport }` only (NOT `reportSuccess`/`reportFailure` — those are internal)
-  - [ ] Internal hook `useConnectionReporter()`: returns `{ reportSuccess, reportFailure }` — used by `useQuery` internally
-  - [ ] Hook guard: `useConnectionState` throws `"useConnectionState must be used within ConnectionStateProvider"` if outside provider
-  - [ ] Create `src/connection/ConnectionStateProvider.test.tsx`
+  - [x] `transport` field: hardcode `'polling'` in this story. Story 2.7 will extend the provider to accept SignalR state and set `'signalr'` when SignalR is connected.
+  - [x] `useConnectionState()` public hook: returns `{ state, transport }` only (NOT `reportSuccess`/`reportFailure` — those are internal)
+  - [x] Internal hook `useConnectionReporter()`: returns `{ reportSuccess, reportFailure }` — used by `useQuery` internally
+  - [x] Hook guard: `useConnectionState` throws `"useConnectionState must be used within ConnectionStateProvider"` if outside provider
+  - [x] Create `src/connection/ConnectionStateProvider.test.tsx`
 
-- [ ] Task 2: Implement jittered exponential backoff retry in `useQuery` (AC: #4, #5)
-  - [ ] Add retry logic to `useQuery.ts` fetch error path:
+- [x] Task 2: Implement jittered exponential backoff retry in `useQuery` (AC: #4, #5)
+  - [x]Add retry logic to `useQuery.ts` fetch error path:
 
     ```typescript
     const BACKOFF_SCHEDULE = [1000, 3000, 5000, 10000, 30000] as const;
 
     function getBackoffDelay(attempt: number): number {
-      const base = BACKOFF_SCHEDULE[Math.min(attempt, BACKOFF_SCHEDULE.length - 1)];
+      const base =
+        BACKOFF_SCHEDULE[Math.min(attempt, BACKOFF_SCHEDULE.length - 1)];
       // Jitter: +-25% randomization to prevent thundering herd
       const jitter = base * 0.25 * (Math.random() * 2 - 1);
       return Math.max(0, base + jitter);
     }
     ```
 
-  - [ ] On fetch error (network failure, 5xx):
+  - [x]On fetch error (network failure, 5xx):
     1. Call `reportFailure()` from `useConnectionReporter()`
     2. Keep existing cached data (do NOT clear `data` state)
     3. Schedule retry with backoff delay (use `setTimeout`, track with `useRef`)
     4. On successful retry: call `reportSuccess()`, update data, reset retry counter
-  - [ ] On fetch success: call `reportSuccess()`, reset retry counter to 0
-  - [ ] Retry applies to ALL fetch attempts: initial, refetch, interval, window-focus
-  - [ ] Retry is additive to `refetchInterval` — if polling is active and a fetch fails, retry backoff runs concurrently. If the polling interval fires before retry completes, skip (don't stack requests)
-  - [ ] Abort in-flight retries on unmount or param change (existing `AbortController` pattern)
-  - [ ] DO NOT retry on business errors: `ValidationError`, `AuthError`, `ForbiddenError` — only on network errors and `ApiError` with 5xx status codes
-  - [ ] Create/update `src/queries/useQuery.test.ts` with retry tests
+  - [x]On fetch success: call `reportSuccess()`, reset retry counter to 0
+  - [x]Retry applies to ALL fetch attempts: initial, refetch, interval, window-focus
+  - [x]Retry is additive to `refetchInterval` — if polling is active and a fetch fails, retry backoff runs concurrently. If the polling interval fires before retry completes, skip (don't stack requests)
+  - [x]Abort in-flight retries on unmount or param change (existing `AbortController` pattern)
+  - [x]DO NOT retry on business errors: `ValidationError`, `AuthError`, `ForbiddenError` — only on network errors and `ApiError` with 5xx status codes
+  - [x]Create/update `src/queries/useQuery.test.ts` with retry tests
 
-- [ ] Task 3: Wire command-complete → projection invalidation (AC: #1)
-  - [ ] In `QueryProvider.tsx`, subscribe to `commandEventBus.onCommandCompleted`:
+- [x] Task 3: Wire command-complete → projection invalidation (AC: #1)
+  - [x]In `QueryProvider.tsx`, subscribe to `commandEventBus.onCommandCompleted`:
 
     ```typescript
     // Inside QueryProvider
-    const { commandEventBus } = useCqrs('QueryProvider');
+    const { commandEventBus } = useCqrs("QueryProvider");
 
     useEffect(() => {
       const unsubscribe = commandEventBus.onCommandCompleted((event) => {
@@ -111,17 +119,19 @@ so that end users see current data without manual refresh and I can display conn
     }, [commandEventBus]);
     ```
 
-  - [ ] Invalidation mechanism — add domain invalidation channel to `QueryContextValue`:
+  - [x]Invalidation mechanism — add domain invalidation channel to `QueryContextValue`:
 
     ```typescript
     interface QueryContextValue {
       fetchClient: FetchClient;
       etagCache: ETagCache;
-      onDomainInvalidation: (listener: (domain: string, tenant: string) => void) => () => void;
+      onDomainInvalidation: (
+        listener: (domain: string, tenant: string) => void,
+      ) => () => void;
     }
     ```
 
-  - [ ] In `useQuery.ts`, subscribe to domain invalidation:
+  - [x]In `useQuery.ts`, subscribe to domain invalidation:
 
     ```typescript
     const { onDomainInvalidation } = useQueryClient();
@@ -136,12 +146,12 @@ so that end users see current data without manual refresh and I can display conn
     }, [onDomainInvalidation, queryParams.domain, activeTenant]);
     ```
 
-  - [ ] The refetch triggered by invalidation uses the existing ETag cache — sends `If-None-Match`, gets `304` if unchanged (zero payload)
-  - [ ] Update `src/queries/QueryProvider.test.tsx` with invalidation wiring tests
-  - [ ] Update `src/queries/useQuery.test.ts` with command-complete invalidation tests
+  - [x]The refetch triggered by invalidation uses the existing ETag cache — sends `If-None-Match`, gets `304` if unchanged (zero payload)
+  - [x]Update `src/queries/QueryProvider.test.tsx` with invalidation wiring tests
+  - [x]Update `src/queries/useQuery.test.ts` with command-complete invalidation tests
 
-- [ ] Task 4: Wire `ConnectionStateProvider` into `CqrsProvider` (AC: #2)
-  - [ ] Update `CqrsProvider.tsx` to nest `ConnectionStateProvider`:
+- [x] Task 4: Wire `ConnectionStateProvider` into `CqrsProvider` (AC: #2)
+  - [x]Update `CqrsProvider.tsx` to nest `ConnectionStateProvider`:
 
     ```tsx
     export function CqrsProvider({ commandApiBaseUrl, tokenGetter, children }: CqrsProviderProps) {
@@ -160,25 +170,28 @@ so that end users see current data without manual refresh and I can display conn
     }
     ```
 
-  - [ ] Nesting order: `CqrsContext` > `ConnectionStateProvider` > `QueryProvider` — because `useQuery` (inside QueryProvider) needs `useConnectionReporter` (from ConnectionStateProvider)
-  - [ ] Update `src/CqrsProvider.test.tsx` to verify ConnectionStateProvider nesting
-  - [ ] Export `useConnectionState` from `src/index.ts`
+  - [x]Nesting order: `CqrsContext` > `ConnectionStateProvider` > `QueryProvider` — because `useQuery` (inside QueryProvider) needs `useConnectionReporter` (from ConnectionStateProvider)
+  - [x]Update `src/CqrsProvider.test.tsx` to verify ConnectionStateProvider nesting
+  - [x]Export `useConnectionState` from `src/index.ts`
 
-- [ ] Task 5: Export public API additions from `src/index.ts` (AC: all)
-  - [ ] Add to `packages/cqrs-client/src/index.ts`:
+- [x] Task 5: Export public API additions from `src/index.ts` (AC: all)
+  - [x]Add to `packages/cqrs-client/src/index.ts`:
 
     ```typescript
     // Connection state
-    export { useConnectionState } from './connection/ConnectionStateProvider';
-    export type { ConnectionState, TransportType } from './connection/ConnectionStateProvider';
+    export { useConnectionState } from "./connection/ConnectionStateProvider";
+    export type {
+      ConnectionState,
+      TransportType,
+    } from "./connection/ConnectionStateProvider";
     ```
 
-  - [ ] Do NOT export `ConnectionStateProvider` directly — it's nested inside `CqrsProvider`
-  - [ ] Do NOT export `useConnectionReporter` — internal hook for `useQuery`
-  - [ ] Verify `pnpm build` succeeds
+  - [x]Do NOT export `ConnectionStateProvider` directly — it's nested inside `CqrsProvider`
+  - [x]Do NOT export `useConnectionReporter` — internal hook for `useQuery`
+  - [x]Verify `pnpm build` succeeds
 
-- [ ] Task 6: Write comprehensive tests (AC: all)
-  - [ ] **ConnectionStateProvider.test.tsx**:
+- [x] Task 6: Write comprehensive tests (AC: all)
+  - [x]**ConnectionStateProvider.test.tsx**:
     - Initial state is `'connected'` with transport `'polling'`
     - Single failure transitions to `'reconnecting'`
     - Three consecutive failures transitions to `'disconnected'`
@@ -186,7 +199,7 @@ so that end users see current data without manual refresh and I can display conn
     - Success resets failure counter
     - Hook throws outside provider
     - `useConnectionReporter` returns reportSuccess/reportFailure
-  - [ ] **useQuery.test.ts** (additions):
+  - [x]**useQuery.test.ts** (additions):
     - Command-complete invalidation triggers refetch for matching domain
     - Command-complete invalidation does NOT trigger refetch for different domain
     - Command-complete invalidation does NOT trigger refetch for different tenant
@@ -201,18 +214,18 @@ so that end users see current data without manual refresh and I can display conn
     - Unmount cancels pending retry
     - Param change cancels pending retry
     - Concurrent retry and polling don't stack requests
-  - [ ] **CqrsProvider.test.tsx** (additions):
+  - [x]**CqrsProvider.test.tsx** (additions):
     - ConnectionStateProvider is nested inside
     - useConnectionState works within CqrsProvider
-  - [ ] All tests use `vi.useFakeTimers()` for backoff timing tests
-  - [ ] All tests mock `fetchClient` — do NOT call real APIs
+  - [x]All tests use `vi.useFakeTimers()` for backoff timing tests
+  - [x]All tests mock `fetchClient` — do NOT call real APIs
 
-- [ ] Task 7: Verify package integrity
-  - [ ] `pnpm --filter @hexalith/cqrs-client build` succeeds (ESM + .d.ts)
-  - [ ] `pnpm --filter @hexalith/cqrs-client test` passes all tests
-  - [ ] `pnpm --filter @hexalith/cqrs-client lint` passes
-  - [ ] `pnpm build` (full monorepo) succeeds
-  - [ ] Verify `useConnectionState` returns correct types (TS compile check)
+- [x] Task 7: Verify package integrity
+  - [x]`pnpm --filter @hexalith/cqrs-client build` succeeds (ESM + .d.ts)
+  - [x]`pnpm --filter @hexalith/cqrs-client test` passes all tests
+  - [x]`pnpm --filter @hexalith/cqrs-client lint` passes
+  - [x]`pnpm build` (full monorepo) succeeds
+  - [x]Verify `useConnectionState` returns correct types (TS compile check)
 
 ## Dev Notes
 
@@ -252,7 +265,7 @@ so that end users see current data without manual refresh and I can display conn
 
 ### Connection State Design
 
-```
+```text
 State Machine:
                  reportFailure (1st)
   connected ─────────────────────────→ reconnecting
@@ -272,13 +285,14 @@ Success always resets counter to 0 and state to connected.
 **Why 3 consecutive failures for `disconnected`?** A single failed request could be a transient timeout. Two could be server restart. Three consecutive failures strongly suggest the backend is actually down. This threshold prevents connection state flicker on transient errors while detecting real outages quickly (3 × 1s polling = 3s detection).
 
 **Future extension point (Story 2.7):** The `ConnectionStateProvider` will be extended to accept SignalR connection state as an additional input. The composite state will be:
+
 - `'connected'`: HTTP queries succeed AND SignalR connected
 - `'reconnecting'`: HTTP queries succeed but SignalR reconnecting, OR HTTP queries failing (retry in progress)
 - `'disconnected'`: both HTTP and SignalR failing
 
 ### Command-Complete Invalidation Design
 
-```
+```text
 useCommandPipeline                  QueryProvider                     useQuery
 ──────────────────                  ─────────────                     ────────
 Command completes
@@ -294,7 +308,7 @@ Command completes
 
 ### Retry Backoff Design
 
-```
+```text
 Attempt 0: immediate (first fetch)
 Attempt 1: ~1000ms ± 250ms jitter
 Attempt 2: ~3000ms ± 750ms jitter
@@ -304,6 +318,7 @@ Attempt 5+: ~30000ms ± 7500ms jitter (capped)
 ```
 
 **Interaction with `refetchInterval`:** If a `useQuery` hook has `refetchInterval: 5000` and fetch fails:
+
 1. Retry backoff starts (1s, 3s, 5s, ...)
 2. Polling interval continues firing every 5s
 3. If polling fires while retry is in-flight, skip (don't stack)
@@ -312,7 +327,7 @@ Attempt 5+: ~30000ms ± 7500ms jitter (capped)
 
 ### Project Structure Notes
 
-```
+```text
 packages/cqrs-client/
 ├── src/
 │   ├── index.ts                        # ADD: useConnectionState, ConnectionState, TransportType exports
@@ -340,15 +355,15 @@ packages/cqrs-client/
 
 ### Naming Conventions
 
-| Element | Convention | Example |
-|---------|-----------|---------|
-| Provider component | PascalCase | `ConnectionStateProvider` |
-| Public hook | camelCase with `use` | `useConnectionState` |
-| Internal hook | camelCase with `use` | `useConnectionReporter` |
-| State types | PascalCase union | `ConnectionState = 'connected' \| 'reconnecting' \| 'disconnected'` |
-| Transport type | PascalCase union | `TransportType = 'polling' \| 'signalr'` |
-| Constants | UPPER_SNAKE_CASE | `BACKOFF_SCHEDULE`, `MAX_CONSECUTIVE_FAILURES` |
-| Event listener | `on` + PascalCase | `onDomainInvalidation` |
+| Element            | Convention           | Example                                                             |
+| ------------------ | -------------------- | ------------------------------------------------------------------- |
+| Provider component | PascalCase           | `ConnectionStateProvider`                                           |
+| Public hook        | camelCase with `use` | `useConnectionState`                                                |
+| Internal hook      | camelCase with `use` | `useConnectionReporter`                                             |
+| State types        | PascalCase union     | `ConnectionState = 'connected' \| 'reconnecting' \| 'disconnected'` |
+| Transport type     | PascalCase union     | `TransportType = 'polling' \| 'signalr'`                            |
+| Constants          | UPPER_SNAKE_CASE     | `BACKOFF_SCHEDULE`, `MAX_CONSECUTIVE_FAILURES`                      |
+| Event listener     | `on` + PascalCase    | `onDomainInvalidation`                                              |
 
 ### References
 
@@ -371,10 +386,74 @@ packages/cqrs-client/
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.6 (1M context)
 
 ### Debug Log References
 
+- Fixed lint import order violations across 4 test files
+- Switched retry timing tests to deterministic fake timers and fixed transport-recovery connection state handling after review
+
 ### Completion Notes List
 
+- Task 1: Created `ConnectionStateProvider` with state machine (connected → reconnecting → disconnected), `useConnectionState` public hook, and `useConnectionReporter` internal hook. 9 unit tests all pass.
+- Task 2: Implemented jittered exponential backoff retry in `useQuery` with BACKOFF_SCHEDULE [1s, 3s, 5s, 10s, 30s]. Added `isFetchingRef` guard to prevent stacking concurrent requests. `isRetryableError` function classifies retryable vs non-retryable errors (only network errors and 5xx are retried).
+- Task 3: Wired command-complete → projection invalidation via `onDomainInvalidation` pub/sub in `QueryProvider`. `QueryProvider` subscribes to `commandEventBus.onCommandCompleted` and forwards events to registered `useQuery` listeners. Domain + tenant matching in `useQuery` triggers ETag-aware refetch.
+- Task 4: Nested `ConnectionStateProvider` inside `CqrsProvider` between `CqrsContext.Provider` and `QueryProvider`. Nesting order ensures `useQuery` has access to `useConnectionReporter`.
+- Task 5: Exported `useConnectionState`, `ConnectionState`, and `TransportType` from `src/index.ts`. Did NOT export `ConnectionStateProvider` or `useConnectionReporter` (internal).
+- Task 6: Wrote 34 tests for useQuery (including 8 retry tests and 4 invalidation tests), 9 tests for ConnectionStateProvider, 7 tests for QueryProvider (including invalidation wiring), 5 tests for CqrsProvider (including ConnectionStateProvider nesting). Total: 209 tests, all passing.
+- Task 7: `pnpm build` (ESM + .d.ts), `pnpm test` (209 pass), `pnpm lint` (clean), full monorepo build — all verified.
+
+### Change Log
+
+- 2026-03-19: Story 2.5 implementation complete — projection freshness via command-complete invalidation, jittered exponential backoff retry, connection state provider with HTTP reachability tracking
+- 2026-03-19: Senior developer review completed — changes requested
+- 2026-03-19: Review fixes applied — retry timing tests converted to fake timers, transport recovery updates connection state correctly, story approved
+
 ### File List
+
+- packages/cqrs-client/src/connection/ConnectionStateProvider.tsx (NEW)
+- packages/cqrs-client/src/connection/ConnectionStateProvider.test.tsx (NEW)
+- packages/cqrs-client/src/queries/useQuery.ts (MODIFIED — retry backoff, connection reporting, domain invalidation subscription)
+- packages/cqrs-client/src/queries/useQuery.test.ts (MODIFIED — added retry + invalidation tests, updated wrapper to include ConnectionStateProvider)
+- packages/cqrs-client/src/queries/QueryProvider.tsx (MODIFIED — added onDomainInvalidation pub/sub, commandEventBus subscription)
+- packages/cqrs-client/src/queries/QueryProvider.test.tsx (MODIFIED — added invalidation wiring tests, mock commandEventBus)
+- packages/cqrs-client/src/CqrsProvider.tsx (MODIFIED — nested ConnectionStateProvider)
+- packages/cqrs-client/src/CqrsProvider.test.tsx (MODIFIED — added ConnectionStateProvider nesting test)
+- packages/cqrs-client/src/index.ts (MODIFIED — added useConnectionState, ConnectionState, TransportType exports)
+
+## Senior Developer Review (AI)
+
+### Reviewer
+
+Jerome
+
+### Date
+
+2026-03-19
+
+### Outcome
+
+Approved
+
+### Summary
+
+- Follow-up fixes were applied to `packages/cqrs-client/src/queries/useQuery.ts` and `packages/cqrs-client/src/queries/useQuery.test.ts`.
+- Validation completed successfully: targeted `useQuery` suite passed with 34 tests; full `@hexalith/cqrs-client` suite passed with 209 tests; package lint and build also passed.
+- The earlier documentation mismatch around retry timer usage is resolved, and the connection-state handling now returns to `connected` when transport recovers even if payload validation still fails.
+- On re-validation, the earlier "no active tenant leaves `isLoading` stuck" concern did **not** reproduce and has been withdrawn.
+
+### Findings
+
+1. **[RESOLVED] Retry timing tests now match the completed task claim.**  
+   The retry-focused tests in `packages/cqrs-client/src/queries/useQuery.test.ts` now use `vi.useFakeTimers()` with deterministic timer advancement, so the story task claiming fake-timer usage is accurate again.
+
+2. **[RESOLVED] Transport recovery now updates connection state independently of payload validation.**  
+   `packages/cqrs-client/src/queries/useQuery.ts` now marks transport recovery as successful immediately after a successful HTTP response, before Zod payload validation, and `packages/cqrs-client/src/queries/useQuery.test.ts` includes a regression test proving the connection returns to `connected` even when the recovered response payload is invalid.
+
+3. **[WITHDRAWN] No-active-tenant loading concern.**  
+   Re-validation showed the hook does not enter a stuck loading state when `activeTenant` is missing because `isLoading` is never set to `true` on that early-return path.
+
+### Recommendation
+
+- No further action required for Story 2.5.
+- Story can be marked complete and Epic 2 work can continue with Story 2.6.
