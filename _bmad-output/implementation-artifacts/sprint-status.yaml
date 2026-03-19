@@ -63,8 +63,8 @@ development_status:
   2-5-projection-freshness-and-connection-state: done
   2-6-mock-implementations-and-contract-tests: done
   2-7-signalr-connection-and-projection-subscriptions: done
-  2-8-etag-query-cache-integration: ready-for-dev
-  2-9-preflight-authorization-validation: backlog
+  2-8-etag-query-cache-integration: done
+  2-9-preflight-authorization-validation: ready-for-dev
   epic-2-retrospective: optional
 
   # Epic 3: Component Library — Beautiful by Default

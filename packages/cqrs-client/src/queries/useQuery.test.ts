@@ -1218,20 +1218,27 @@ describe("useQuery SignalR integration", () => {
 
   it("ProjectionChanged triggers refetch for matching domain and tenant", async () => {
     const postForQuery = vi.fn().mockResolvedValue(
-      makeQueryResponse({
-        correlationId: "q-signalr",
-        payload: { id: "a", name: "realtime" },
-      }),
+      makeQueryResponse(
+        {
+          correlationId: "q-signalr",
+          payload: { id: "a", name: "realtime" },
+        },
+        '"etag-signalr"',
+      ),
     );
     const client = createMockFetchClient(postForQuery);
 
-    const { unmount } = renderHook(
+    const { result, unmount } = renderHook(
       () => useQuery(TestSchema, defaultParams),
       { wrapper: createSignalRWrapper(client) },
     );
 
     await waitFor(() => {
       expect(postForQuery).toHaveBeenCalledTimes(1);
+    });
+
+    await waitFor(() => {
+      expect(result.current.data).toEqual({ id: "a", name: "realtime" });
     });
 
     // Simulate SignalR projection change for matching domain + tenant
@@ -1242,6 +1249,10 @@ describe("useQuery SignalR integration", () => {
     await waitFor(() => {
       expect(postForQuery).toHaveBeenCalledTimes(2);
     });
+
+    // AC #6: invalidation refetch must include cached If-None-Match
+    const secondCallOptions = postForQuery.mock.calls[1]?.[1];
+    expect(secondCallOptions?.headers?.["If-None-Match"]).toBe('"etag-signalr"');
 
     unmount();
   });
@@ -1272,5 +1283,414 @@ describe("useQuery SignalR integration", () => {
 
     expect(postForQuery).toHaveBeenCalledTimes(1);
     unmount();
+  });
+});
+
+describe("ETag 304 behavior", () => {
+  beforeEach(() => {
+    mockActiveTenant = "test-tenant";
+    mockCommandEventBus = createMockEventBus();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it("no loading flicker or data loss during refetch returning 304", async () => {
+    let resolveRefetch!: (value: QueryResponse<SubmitQueryResponse>) => void;
+    let callCount = 0;
+    const postForQuery = vi.fn().mockImplementation(async () => {
+      callCount++;
+      if (callCount === 1) {
+        return makeQueryResponse(
+          { correlationId: "q-flicker", payload: { id: "x", name: "cached" } },
+          '"etag-flicker"',
+        );
+      }
+      return new Promise<QueryResponse<SubmitQueryResponse>>((resolve) => {
+        resolveRefetch = resolve;
+      });
+    });
+    const client = createMockFetchClient(postForQuery);
+
+    const { result } = renderHook(
+      () => useQuery(TestSchema, defaultParams),
+      { wrapper: createWrapper(client) },
+    );
+
+    // (a) Wait for initial load to complete
+    await waitFor(() => {
+      expect(result.current.data).toEqual({ id: "x", name: "cached" });
+    });
+    expect(result.current.isLoading).toBe(false);
+
+    // (b) Trigger refetch — starts async fetch with deferred promise
+    await act(async () => {
+      result.current.refetch();
+    });
+
+    // (c) During in-flight: isLoading stays false AND data stays defined
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.data).toEqual({ id: "x", name: "cached" });
+
+    // (d) Resolve with 304 — cached data returned
+    await act(async () => {
+      resolveRefetch({ status: 304, data: null, etag: null });
+    });
+
+    expect(result.current.data).toEqual({ id: "x", name: "cached" });
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.error).toBeNull();
+  });
+
+  it("304 response does not trigger Zod validation", async () => {
+    const safeParseSpy = vi.spyOn(TestSchema, "safeParse");
+    let callCount = 0;
+    const postForQuery = vi.fn().mockImplementation(async () => {
+      callCount++;
+      if (callCount === 1) {
+        return makeQueryResponse(
+          { correlationId: "q-zod", payload: { id: "z", name: "zod-test" } },
+          '"etag-zod"',
+        );
+      }
+      return { status: 304, data: null, etag: null };
+    });
+    const client = createMockFetchClient(postForQuery);
+
+    const { result } = renderHook(
+      () => useQuery(TestSchema, defaultParams),
+      { wrapper: createWrapper(client) },
+    );
+
+    await waitFor(() => {
+      expect(result.current.data).toEqual({ id: "z", name: "zod-test" });
+    });
+
+    // safeParse called once for initial 200
+    expect(safeParseSpy).toHaveBeenCalledTimes(1);
+
+    // Refetch → 304
+    await act(async () => {
+      result.current.refetch();
+    });
+
+    await waitFor(() => {
+      expect(postForQuery).toHaveBeenCalledTimes(2);
+    });
+
+    // Primary assertion: data equals cached value, no error
+    expect(result.current.data).toEqual({ id: "z", name: "zod-test" });
+    expect(result.current.error).toBeNull();
+
+    // Secondary assertion: safeParse not called again on 304
+    expect(safeParseSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("ETag If-None-Match across refetch sources", () => {
+  beforeEach(() => {
+    mockActiveTenant = "test-tenant";
+    mockCommandEventBus = createMockEventBus();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it("cache entry updates with new ETag on subsequent 200", async () => {
+    let callCount = 0;
+    const postForQuery = vi.fn().mockImplementation(async () => {
+      callCount++;
+      if (callCount === 1) {
+        return makeQueryResponse(
+          { correlationId: "q-v1", payload: { id: "a", name: "v1" } },
+          '"v1"',
+        );
+      }
+      if (callCount === 2) {
+        return makeQueryResponse(
+          { correlationId: "q-v2", payload: { id: "a", name: "v2" } },
+          '"v2"',
+        );
+      }
+      return makeQueryResponse(
+        { correlationId: "q-v3", payload: { id: "a", name: "v3" } },
+        '"v3"',
+      );
+    });
+    const client = createMockFetchClient(postForQuery);
+
+    const { result } = renderHook(
+      () => useQuery(TestSchema, defaultParams),
+      { wrapper: createWrapper(client) },
+    );
+
+    await waitFor(() => {
+      expect(result.current.data).toEqual({ id: "a", name: "v1" });
+    });
+
+    // First refetch → gets ETag "v2"
+    await act(async () => {
+      result.current.refetch();
+    });
+
+    await waitFor(() => {
+      expect(postForQuery).toHaveBeenCalledTimes(2);
+    });
+
+    // Second refetch → should send If-None-Match: "v2" (not "v1")
+    await act(async () => {
+      result.current.refetch();
+    });
+
+    await waitFor(() => {
+      expect(postForQuery).toHaveBeenCalledTimes(3);
+    });
+
+    const thirdCallOptions = postForQuery.mock.calls[2]?.[1];
+    expect(thirdCallOptions?.headers?.["If-None-Match"]).toBe('"v2"');
+  });
+
+  it("polling refetch sends If-None-Match header", async () => {
+    vi.useFakeTimers();
+    const postForQuery = vi.fn().mockResolvedValue(
+      makeQueryResponse(
+        { correlationId: "q-poll", payload: { id: "a", name: "poll" } },
+        '"etag-poll"',
+      ),
+    );
+    const client = createMockFetchClient(postForQuery);
+
+    renderHook(
+      () => useQuery(TestSchema, defaultParams, { refetchInterval: 5000 }),
+      { wrapper: createWrapper(client) },
+    );
+
+    // Flush initial fetch
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(postForQuery).toHaveBeenCalledTimes(1);
+
+    // Advance to trigger poll
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+    expect(postForQuery).toHaveBeenCalledTimes(2);
+
+    // Verify polling request includes If-None-Match
+    const secondCallOptions = postForQuery.mock.calls[1]?.[1];
+    expect(secondCallOptions?.headers?.["If-None-Match"]).toBe('"etag-poll"');
+
+    vi.useRealTimers();
+  });
+
+  it("window focus refetch sends If-None-Match header", async () => {
+    const postForQuery = vi.fn().mockResolvedValue(
+      makeQueryResponse(
+        { correlationId: "q-focus", payload: { id: "a", name: "focus" } },
+        '"etag-focus"',
+      ),
+    );
+    const client = createMockFetchClient(postForQuery);
+
+    const { unmount } = renderHook(
+      () => useQuery(TestSchema, defaultParams, { refetchOnWindowFocus: true }),
+      { wrapper: createWrapper(client) },
+    );
+
+    await waitFor(() => {
+      expect(postForQuery).toHaveBeenCalledTimes(1);
+    });
+
+    // Simulate tab coming back to focus
+    Object.defineProperty(document, "visibilityState", {
+      value: "visible",
+      writable: true,
+      configurable: true,
+    });
+
+    await act(async () => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    await waitFor(() => {
+      expect(postForQuery).toHaveBeenCalledTimes(2);
+    });
+
+    const secondCallOptions = postForQuery.mock.calls[1]?.[1];
+    expect(secondCallOptions?.headers?.["If-None-Match"]).toBe('"etag-focus"');
+
+    unmount();
+  });
+
+  it("stale ETag recovery -- backend rejects old ETag with 200", async () => {
+    let callCount = 0;
+    const postForQuery = vi.fn().mockImplementation(async () => {
+      callCount++;
+      if (callCount === 1) {
+        return makeQueryResponse(
+          { correlationId: "q-stale1", payload: { id: "a", name: "old" } },
+          '"stale"',
+        );
+      }
+      if (callCount === 2) {
+        return makeQueryResponse(
+          { correlationId: "q-stale2", payload: { id: "a", name: "fresh" } },
+          '"fresh"',
+        );
+      }
+      return makeQueryResponse(
+        { correlationId: "q-stale3", payload: { id: "a", name: "latest" } },
+        '"latest"',
+      );
+    });
+    const client = createMockFetchClient(postForQuery);
+
+    const { result } = renderHook(
+      () => useQuery(TestSchema, defaultParams),
+      { wrapper: createWrapper(client) },
+    );
+
+    await waitFor(() => {
+      expect(result.current.data).toEqual({ id: "a", name: "old" });
+    });
+
+    // Refetch: sends If-None-Match: "stale", backend returns 200 + "fresh"
+    await act(async () => {
+      result.current.refetch();
+    });
+
+    await waitFor(() => {
+      expect(postForQuery).toHaveBeenCalledTimes(2);
+    });
+
+    const secondCallOptions = postForQuery.mock.calls[1]?.[1];
+    expect(secondCallOptions?.headers?.["If-None-Match"]).toBe('"stale"');
+    expect(result.current.data).toEqual({ id: "a", name: "fresh" });
+
+    // Third refetch: should send If-None-Match: "fresh" (not "stale")
+    await act(async () => {
+      result.current.refetch();
+    });
+
+    await waitFor(() => {
+      expect(postForQuery).toHaveBeenCalledTimes(3);
+    });
+
+    const thirdCallOptions = postForQuery.mock.calls[2]?.[1];
+    expect(thirdCallOptions?.headers?.["If-None-Match"]).toBe('"fresh"');
+  });
+
+  it("concurrent useQuery hooks sharing same cache key both use latest ETag", async () => {
+    let callCount = 0;
+    const postForQuery = vi.fn().mockImplementation(async () => {
+      callCount++;
+      if (callCount <= 2) {
+        // Initial fetches for both hooks
+        return makeQueryResponse(
+          { correlationId: `q-shared-${callCount}`, payload: { id: "a", name: "shared" } },
+          '"shared-v1"',
+        );
+      }
+      if (callCount === 3) {
+        // Hook A refetch → returns new ETag
+        return makeQueryResponse(
+          { correlationId: "q-shared-3", payload: { id: "a", name: "updated" } },
+          '"shared-v2"',
+        );
+      }
+      // Hook B refetch → 304
+      return { status: 304, data: null, etag: null };
+    });
+    const client = createMockFetchClient(postForQuery);
+
+    const { result } = renderHook(
+      () => ({
+        a: useQuery(TestSchema, defaultParams),
+        b: useQuery(TestSchema, defaultParams),
+      }),
+      { wrapper: createWrapper(client) },
+    );
+
+    // Wait for both initial fetches
+    await waitFor(() => {
+      expect(postForQuery).toHaveBeenCalledTimes(2);
+    });
+
+    await waitFor(() => {
+      expect(result.current.a.data).toBeDefined();
+      expect(result.current.b.data).toBeDefined();
+    });
+
+    // Refetch hook A → gets new ETag "shared-v2"
+    await act(async () => {
+      result.current.a.refetch();
+    });
+
+    await waitFor(() => {
+      expect(postForQuery).toHaveBeenCalledTimes(3);
+    });
+
+    // Refetch hook B → should send If-None-Match: "shared-v2" (updated by hook A)
+    await act(async () => {
+      result.current.b.refetch();
+    });
+
+    await waitFor(() => {
+      expect(postForQuery).toHaveBeenCalledTimes(4);
+    });
+
+    const fourthCallOptions = postForQuery.mock.calls[3]?.[1];
+    expect(fourthCallOptions?.headers?.["If-None-Match"]).toBe('"shared-v2"');
+  });
+});
+
+describe("ETag tenant switch", () => {
+  beforeEach(() => {
+    mockActiveTenant = "test-tenant";
+    mockCommandEventBus = createMockEventBus();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("tenant switch clears ETag cache and refetches without If-None-Match", async () => {
+    const postForQuery = vi.fn().mockResolvedValue(
+      makeQueryResponse(
+        { correlationId: "q-tenant", payload: { id: "a", name: "b" } },
+        '"etag-tenant"',
+      ),
+    );
+    const client = createMockFetchClient(postForQuery);
+
+    const { rerender } = renderHook(
+      () => useQuery(TestSchema, defaultParams),
+      { wrapper: createWrapper(client) },
+    );
+
+    await waitFor(() => {
+      expect(postForQuery).toHaveBeenCalledTimes(1);
+    });
+
+    // Verify first call has no If-None-Match (cold start)
+    expect(postForQuery.mock.calls[0]?.[1]?.headers?.["If-None-Match"]).toBeUndefined();
+
+    // Switch tenant — cache should be cleared by QueryProvider
+    mockActiveTenant = "other-tenant";
+    rerender();
+
+    await waitFor(() => {
+      expect(postForQuery).toHaveBeenCalledTimes(2);
+    });
+
+    // After tenant switch, no If-None-Match (cache cleared, new tenant key)
+    const secondCallOptions = postForQuery.mock.calls[1]?.[1];
+    expect(secondCallOptions?.headers?.["If-None-Match"]).toBeUndefined();
+    expect(secondCallOptions?.body?.tenant).toBe("other-tenant");
   });
 });
