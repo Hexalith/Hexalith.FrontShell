@@ -35,6 +35,12 @@ export type { ErrorDisplayProps } from './components/feedback/ErrorDisplay';
 export { ErrorBoundary } from './components/feedback/ErrorBoundary';
 export type { ErrorBoundaryProps } from './components/feedback/ErrorBoundary';
 
+// --- Navigation ---
+export { Sidebar } from './components/navigation/Sidebar';
+export type { SidebarProps, NavigationItem } from './components/navigation/Sidebar';
+export { Tabs } from './components/navigation/Tabs';
+export type { TabsProps, TabItem } from './components/navigation/Tabs';
+
 // --- Overlay ---
 export { Tooltip } from './components/overlay/Tooltip';
 export type { TooltipProps } from './components/overlay/Tooltip';

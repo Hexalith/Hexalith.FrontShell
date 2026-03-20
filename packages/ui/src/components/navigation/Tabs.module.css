@@ -1,0 +1,87 @@
+@layer components {
+  .root {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .root[data-orientation="vertical"] {
+    flex-direction: row;
+  }
+
+  .list {
+    display: flex;
+    border-bottom: 1px solid var(--color-border-default);
+    flex-shrink: 0;
+  }
+
+  .list[data-orientation="vertical"] {
+    flex-direction: column;
+    border-bottom: none;
+    border-right: 1px solid var(--color-border-default);
+  }
+
+  .trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-family-sans);
+    font-size: var(--font-size-body);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-normal);
+    color: var(--color-text-secondary);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: var(--spacing-2) var(--spacing-3);
+    cursor: pointer;
+    white-space: nowrap;
+    transition-property: color, background-color, border-color;
+    transition-duration: var(--transition-duration-default);
+    transition-timing-function: var(--transition-easing-default);
+  }
+
+  .trigger:hover {
+    color: var(--color-text-primary);
+    background: var(--color-surface-secondary);
+  }
+
+  .trigger:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: -2px;
+  }
+
+  .trigger[data-state="active"] {
+    color: var(--color-text-primary);
+    font-weight: var(--font-weight-semibold);
+    border-bottom-color: var(--color-accent);
+  }
+
+  .trigger[data-state="inactive"] {
+    border-bottom-color: transparent;
+  }
+
+  .trigger[data-disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .list[data-orientation="vertical"] .trigger {
+    border-bottom: none;
+    border-right: 2px solid transparent;
+    justify-content: flex-start;
+  }
+
+  .list[data-orientation="vertical"] .trigger[data-state="active"] {
+    border-right-color: var(--color-accent);
+  }
+
+  .content {
+    padding: var(--spacing-3);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .trigger {
+      transition-duration: 0ms;
+    }
+  }
+}
