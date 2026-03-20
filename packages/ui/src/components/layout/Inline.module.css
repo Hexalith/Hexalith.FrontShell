@@ -1,0 +1,10 @@
+@layer components {
+  .root {
+    display: flex;
+    flex-direction: row;
+    gap: var(--inline-gap);
+    align-items: var(--inline-align);
+    justify-content: var(--inline-justify);
+    flex-wrap: var(--inline-wrap);
+  }
+}

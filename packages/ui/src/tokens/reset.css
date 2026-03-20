@@ -1,0 +1,20 @@
+/* Minimal CSS reset for @hexalith/ui components */
+/* Neutralizes browser defaults that conflict with the design system */
+
+@layer reset {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  /* Margin reset for every element to enforce spacing via layout gaps only */
+  * {
+    margin: 0;
+  }
+
+  hr {
+    margin: 0;
+    border: 0;
+  }
+}

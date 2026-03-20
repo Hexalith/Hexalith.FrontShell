@@ -1,0 +1,45 @@
+@layer components {
+  .root {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "pageHeader"
+      "pageContent";
+    gap: var(--spacing-section);
+    min-height: 0;
+  }
+
+  .pageHeader {
+    grid-area: pageHeader;
+  }
+
+  .headerContent {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-4);
+  }
+
+  .title {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-tight);
+    color: var(--color-text-primary);
+  }
+
+  .subtitle {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+  }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+  }
+
+  .pageContent {
+    grid-area: pageContent;
+    min-height: 0;
+  }
+}

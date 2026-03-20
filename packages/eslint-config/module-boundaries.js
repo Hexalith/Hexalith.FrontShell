@@ -35,6 +35,18 @@ export default [
               name: "styled-components",
               message: "Use CSS Modules instead of styled-components.",
             },
+            {
+              name: "@emotion/styled",
+              message: "Use CSS Modules instead of Emotion.",
+            },
+            {
+              name: "@emotion/css",
+              message: "Use CSS Modules instead of Emotion.",
+            },
+            {
+              name: "@stitches/react",
+              message: "Use CSS Modules instead of Stitches.",
+            },
           ],
         },
       ],
