@@ -45,6 +45,10 @@ export type { TabsProps, TabItem } from './components/navigation/Tabs';
 export { Tooltip } from './components/overlay/Tooltip';
 export type { TooltipProps } from './components/overlay/Tooltip';
 
+// --- Data Display ---
+export { Table } from './components/data-display/Table';
+export type { TableProps, TableColumn } from './components/data-display/Table';
+
 // --- Utilities ---
 export { computeComplianceScore } from './utils/complianceScore';
 export {

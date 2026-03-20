@@ -35,6 +35,10 @@ export default [
               message: "Import from @hexalith/cqrs-client instead.",
             },
             {
+              name: "@tanstack/react-table",
+              message: "Import from @hexalith/ui instead of @tanstack/react-table directly.",
+            },
+            {
               name: "styled-components",
               message: "Use CSS Modules instead of styled-components.",
             },

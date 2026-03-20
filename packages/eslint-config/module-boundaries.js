@@ -7,11 +7,13 @@ export default [
           patterns: [
             {
               group: ["@radix-ui/*"],
-              message: "Import from @hexalith/ui instead of @radix-ui directly.",
+              message:
+                "Import from @hexalith/ui instead of @radix-ui directly.",
             },
             {
               group: ["@hexalith/*/src/**"],
-              message: "Use barrel exports only. Deep package imports are not allowed.",
+              message:
+                "Use barrel exports only. Deep package imports are not allowed.",
             },
             {
               group: ["@emotion/*"],
@@ -30,6 +32,10 @@ export default [
             {
               name: "@tanstack/react-query",
               message: "Import from @hexalith/cqrs-client instead.",
+            },
+            {
+              name: "@tanstack/react-table",
+              message: "Import from @hexalith/ui instead.",
             },
             {
               name: "styled-components",
