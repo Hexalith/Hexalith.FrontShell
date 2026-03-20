@@ -47,6 +47,7 @@ So that I can build forms and interactions without worrying about keyboard navig
   - [ ] Implement size variants (sm/md/lg) with token-driven padding and font-size
   - [ ] Implement all interaction states: default, :hover, :focus-visible, :active, :disabled
   - [ ] Add `@media (prefers-reduced-motion: reduce)` to collapse transition durations to 0ms
+  - [ ] Set `Button.displayName = 'Button'` (required for forwardRef components)
   - [ ] Export from `packages/ui/src/index.ts`
 
 - [ ] Task 3: Implement `<Input>` component (AC: #2, #5)
@@ -57,10 +58,12 @@ So that I can build forms and interactions without worrying about keyboard navig
   - [ ] Implement required field indicator (asterisk after label text, `aria-required="true"` on input)
   - [ ] Implement error state: `error` prop renders message below field with `aria-describedby` and `aria-invalid="true"`
   - [ ] Implement focus ring: 2px solid `--color-border-focus` with 2px offset on `:focus-visible`
+  - [ ] Set `Input.displayName = 'Input'`
   - [ ] Export from `packages/ui/src/index.ts`
 
 - [ ] Task 4: Implement `<Select>` component (AC: #3, #5)
-  - [ ] Create `packages/ui/src/components/forms/Select.tsx` wrapping `@radix-ui/react-select` — use `React.forwardRef`, include `name` prop, add runtime dev-mode validation for options shape
+  - [ ] **Refer to Task 0 spike result** to determine Approach A (search in Radix Select.Content) or Approach B (Popover+Listbox for searchable). Implement accordingly.
+  - [ ] Create `packages/ui/src/components/forms/Select.tsx` wrapping `@radix-ui/react-select` — use `React.forwardRef`, include `name` prop, add runtime dev-mode validation for options shape and duplicate values
   - [ ] Create `packages/ui/src/components/forms/Select.module.css` with `@layer components { }`
   - [ ] Create `packages/ui/src/components/forms/Select.test.tsx`
   - [ ] Wrap Radix Select.Root, Select.Trigger, Select.Content, Select.Viewport, Select.Item, Select.Group, Select.Label
@@ -71,6 +74,7 @@ So that I can build forms and interactions without worrying about keyboard navig
   - [ ] DO NOT add duplicate `aria-*` — Radix manages ARIA
   - [ ] Apply motion tokens to open/close transitions with `prefers-reduced-motion` support
   - [ ] Implement label prop with same htmlFor/id pattern as Input
+  - [ ] Set `Select.displayName = 'Select'`
   - [ ] Export from `packages/ui/src/index.ts`
 
 - [ ] Task 5: Implement `<Tooltip>` component (AC: #4, #5)
@@ -87,7 +91,7 @@ So that I can build forms and interactions without worrying about keyboard navig
   - [ ] Export from `packages/ui/src/index.ts`
 
 - [ ] Task 6: Final verification — Definition of Done (AC: all)
-  - [ ] Update `packages/ui/src/index.ts` with new exports in Forms and Overlay category sections
+  - [ ] Update `packages/ui/src/index.ts` with new exports. Add canonical order comment at top of file: `// Category order: Layout → Forms → Feedback → Navigation → Overlay → Data Display`. Add Forms and Overlay sections in correct position.
   - [ ] Run `pnpm build` — confirm tsup produces ESM + .d.ts
   - [ ] Run `pnpm test` — confirm ALL Vitest tests pass (layout + forms + overlay)
   - [ ] Run `pnpm lint` — confirm ESLint + token compliance passes
@@ -98,14 +102,6 @@ So that I can build forms and interactions without worrying about keyboard navig
   - [ ] **Story is DONE when all of the above pass.** Do not mark complete with any failure.
 
 ## Dev Notes
-
-### Scope & Complexity Signal
-
-This is the largest story in Epic 3 so far. 4 components, 2 Radix integrations, 2 spike tasks, 12+ new files, new z-index token creation, and a new architectural precedent (`data-*` attribute pattern). Expect this to take significantly longer than Story 3-1. Budget attention accordingly — the spikes (Task 0) should be done first as they may change implementation approach.
-
-### Dependency Risk
-
-Story 3-1 is currently `in-progress` (not `done`). If 3-1's implementation changes precedent patterns (e.g., `data-*` attributes don't work with CSS Modules in the Vite pipeline), this story's guidance may need updating. The Task 0 gate check and spikes mitigate this risk — but if 3-1 is still in progress when dev picks up 3-2, verify that 3-1's patterns are final before proceeding.
 
 ### Prerequisites — Story 3-1 Must Be Complete
 
@@ -144,6 +140,14 @@ Story 3-2 depends on Story 3-1 (UI Package Setup & Structural Layout Components)
 10. **Simple component classification:** All four components are classified as Simple (≤ 12 props). Do not exceed the prop budget. [Source: UX spec#Component Complexity Classification]
 
 11. **API stability:** These components' public APIs become harder to change once modules consume them. Design carefully — every prop should be expressible in domain terms, not implementation terms. [Source: UX spec#API Abstraction Rule]
+
+### Scope & Complexity Signal
+
+This is the largest story in Epic 3 so far. 4 components, 2 Radix integrations, 2 spike tasks, 12+ new files, new z-index token creation, and a new architectural precedent (`data-*` attribute pattern). Expect this to take significantly longer than Story 3-1. Budget attention accordingly — the spikes (Task 0) should be done first as they may change implementation approach.
+
+### Dependency Risk
+
+Story 3-1 is currently `in-progress` (not `done`). If 3-1's implementation changes precedent patterns (e.g., `data-*` attributes don't work with CSS Modules in the Vite pipeline), this story's guidance may need updating. The Task 0 gate check and spikes mitigate this risk — but if 3-1 is still in progress when dev picks up 3-2, verify that 3-1's patterns are final before proceeding.
 
 ### Component API Specifications
 
@@ -199,6 +203,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 ```
 
 **`React.forwardRef`:** All interactive components use `forwardRef` to support React Hook Form's `register()` and programmatic focus management. Without ref forwarding, every Input/Select in a form requires a `Controller` wrapper — unnecessary boilerplate. This is a fundamental form integration pattern, not scope creep.
+
+**`displayName` requirement:** All `forwardRef` components MUST set `Component.displayName = 'ComponentName'` (e.g., `Button.displayName = 'Button'`). Without this, React DevTools shows `<ForwardRef>` instead of the component name, and ESLint `react/display-name` will fail in CI.
 
 **Epic deviation:** Renamed from `emphasis: 'high' | 'medium' | 'low'` to `variant: 'primary' | 'secondary' | 'ghost'`. Justification: architecture constraint #7 requires domain terms; `primary/secondary/ghost` is established design system vocabulary (Material, Chakra, Radix Themes all use these terms). Default changed to `secondary` — primary actions should be intentional, not accidental.
 
@@ -358,6 +364,16 @@ if (process.env.NODE_ENV !== 'production' && options.length > 0) {
 ```
 This prevents the #1 integration mistake — passing `{ id, name }` instead of `{ value, label }`. Tree-shaken in production builds.
 
+**Duplicate value warning (dev mode only):**
+```tsx
+if (process.env.NODE_ENV !== 'production') {
+  const flatValues = options.flatMap(o => 'options' in o ? o.options.map(i => i.value) : [o.value]);
+  if (new Set(flatValues).size !== flatValues.length) {
+    console.warn('Select: options contain duplicate `value` entries. Radix Select requires unique values.');
+  }
+}
+```
+
 **Group detection helper:**
 ```tsx
 function isGroup(opt: SelectOption | SelectOptionGroup): opt is SelectOptionGroup {
@@ -476,7 +492,18 @@ interface TooltipProps {
 
 ### Testing Approach
 
-Co-located Vitest tests (`.test.tsx`) using `@testing-library/react` and `@testing-library/jest-dom`.
+Co-located Vitest tests (`.test.tsx`) using `@testing-library/react`, `@testing-library/jest-dom`, and `@testing-library/user-event`.
+
+**`userEvent` setup pattern (use this, NOT deprecated `fireEvent`):**
+```tsx
+import userEvent from '@testing-library/user-event';
+
+const user = userEvent.setup();
+// Then in tests:
+await user.click(trigger);
+await user.keyboard('{ArrowDown}{Enter}');
+await user.tab();
+```
 
 **Button tests:**
 - Renders with correct `data-variant` and `data-size` attributes for each variant
@@ -504,8 +531,10 @@ Co-located Vitest tests (`.test.tsx`) using `@testing-library/react` and `@testi
 - Label association works
 - Error message renders with correct aria linking
 - Runtime validation: `console.warn` fires in dev mode when options lack `value`/`label` keys
+- Runtime validation: `console.warn` fires when options contain duplicate `value` entries
 - `name` prop is passed through to Radix (renders hidden input for form submission)
 - **Keyboard smoke test:** Use `@testing-library/user-event` to simulate `userEvent.keyboard('{ArrowDown}{Enter}')` on an open Select — verify `onChange` fires with the correct value. This catches gross Radix integration failures without full keyboard coverage (full coverage deferred to Playwright CT in Story 3.9).
+- **Escape test (critical):** When `isSearchable` is true and the search input is focused, pressing Escape MUST close the dropdown. Test: open Select, focus search input, `await user.keyboard('{Escape}')`, verify dropdown is closed.
 
 **Tooltip tests:**
 - Renders trigger child without modifying it
