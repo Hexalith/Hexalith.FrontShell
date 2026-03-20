@@ -1,0 +1,8 @@
+/* Token count: 1/150 */
+/* Z-index tokens for overlay layering */
+
+@layer tokens {
+  :root {
+    --z-popover: 1000;
+  }
+}

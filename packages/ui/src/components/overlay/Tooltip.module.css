@@ -1,0 +1,56 @@
+@layer components {
+  .content {
+    z-index: var(--z-popover);
+    background-color: var(--color-surface-elevated);
+    color: var(--color-text-primary);
+    font-family: var(--font-family-sans);
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-normal);
+    padding: var(--spacing-1) var(--spacing-2);
+    border-radius: var(--spacing-1);
+    box-shadow: 0 2px 8px var(--color-shadow-tooltip);
+    animation-duration: var(--transition-duration-fast);
+    animation-timing-function: var(--transition-easing-default);
+    user-select: none;
+  }
+
+  .content[data-state="delayed-open"] {
+    animation-name: tooltipOpen;
+  }
+
+  .content[data-state="closed"] {
+    animation-name: tooltipClose;
+  }
+
+  .arrow {
+    fill: var(--color-surface-elevated);
+  }
+
+  @keyframes tooltipOpen {
+    from {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes tooltipClose {
+    from {
+      opacity: 1;
+      transform: scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .content {
+      animation-duration: 0ms;
+    }
+  }
+}
