@@ -1,4 +1,4 @@
-import { readdir, readFile, stat } from "node:fs/promises";
+import { access, readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 
@@ -8,6 +8,7 @@ import stylelint from "stylelint";
 import { computeComplianceScore } from "../packages/ui/dist/index.js";
 
 const rootDir = process.cwd();
+const configFileName = ".stylelintrc.json";
 const includedExtension = ".css";
 const ignoredPathSegments = new Set(["node_modules", "dist", ".turbo"]);
 const ignoredRelativeStarts = [
@@ -15,6 +16,7 @@ const ignoredRelativeStarts = [
   "_bmad-output/",
   "Hexalith.Tenants/",
   "packages/ui/src/tokens/",
+  "src/tokens/",
 ];
 
 function normalizeRelative(filePath) {
@@ -89,7 +91,35 @@ async function countDeclarations(filePath) {
   return declarations;
 }
 
+async function fileExists(filePath) {
+  try {
+    await access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function findConfigFile(startDir) {
+  let currentDir = startDir;
+
+  while (true) {
+    const candidate = path.join(currentDir, configFileName);
+    if (await fileExists(candidate)) {
+      return candidate;
+    }
+
+    const parentDir = path.dirname(currentDir);
+    if (parentDir === currentDir) {
+      throw new Error(`Unable to find ${configFileName} from ${startDir}`);
+    }
+
+    currentDir = parentDir;
+  }
+}
+
 async function main() {
+  const configFile = await findConfigFile(rootDir);
   const cssFiles = await collectCssFiles(rootDir);
 
   if (cssFiles.length === 0) {
@@ -106,7 +136,7 @@ async function main() {
 
   const lintResult = await stylelint.lint({
     files: existingFiles,
-    configFile: path.join(rootDir, ".stylelintrc.json"),
+    configFile,
     formatter: "string",
     allowEmptyInput: true,
   });

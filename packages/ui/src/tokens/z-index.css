@@ -1,8 +1,12 @@
-/* Token count: 1/150 */
+/* Token count: 4/150 */
 /* Z-index tokens for overlay layering */
+/* Scale: dropdown < popover < modal < toast */
 
 @layer tokens {
   :root {
-    --z-popover: 1000;
+    --z-dropdown: 100;
+    --z-popover: 200;
+    --z-modal: 300;
+    --z-toast: 400;
   }
 }

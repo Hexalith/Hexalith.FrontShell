@@ -70,6 +70,14 @@ function filterOptions(
     .filter((o): o is SelectOption | SelectOptionGroup => o !== null);
 }
 
+function getOptionKey(
+  option: Partial<SelectOption>,
+  index: number,
+  prefix: string,
+): string {
+  return `${prefix}-${option.value ?? option.label ?? 'unknown'}-${index}`;
+}
+
 const ChevronIcon = () => (
   <svg
     width="12"
@@ -136,16 +144,16 @@ export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
     };
 
     const renderOptions = (opts: Array<SelectOption | SelectOptionGroup>) =>
-      opts.map((opt) => {
+      opts.map((opt, groupIndex) => {
         if (isGroup(opt)) {
           return (
-            <RadixSelect.Group key={opt.label}>
+            <RadixSelect.Group key={`group-${opt.label}-${groupIndex}`}>
               <RadixSelect.Label className={styles.groupLabel}>
                 {opt.label}
               </RadixSelect.Label>
-              {opt.options.map((item) => (
+              {opt.options.map((item, itemIndex) => (
                 <RadixSelect.Item
-                  key={item.value}
+                  key={getOptionKey(item, itemIndex, `group-${groupIndex}`)}
                   value={item.value}
                   disabled={item.disabled}
                   className={styles.item}
@@ -158,7 +166,7 @@ export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
         }
         return (
           <RadixSelect.Item
-            key={opt.value}
+            key={getOptionKey(opt, groupIndex, 'option')}
             value={opt.value}
             disabled={opt.disabled}
             className={styles.item}
@@ -191,6 +199,9 @@ export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
             ref={ref}
             id={triggerId}
             className={styles.trigger}
+            aria-required={required ? 'true' : undefined}
+            aria-invalid={error ? 'true' : undefined}
+            aria-describedby={error ? errorId : undefined}
           >
             <RadixSelect.Value placeholder={placeholder} />
             <RadixSelect.Icon className={styles.icon}>

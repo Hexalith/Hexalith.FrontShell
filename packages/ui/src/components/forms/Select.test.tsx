@@ -132,12 +132,17 @@ describe('Select', () => {
     render(
       <Select label="Fruit" options={flatOptions} error="Required field" />,
     );
+    const trigger = screen.getByRole('combobox');
     const errorMsg = screen.getByText('Required field');
+
+    expect(trigger).toHaveAttribute('aria-invalid', 'true');
+    expect(trigger).toHaveAttribute('aria-describedby', errorMsg.id);
     expect(errorMsg).toBeInTheDocument();
   });
 
   it('renders required indicator', () => {
     render(<Select label="Fruit" options={flatOptions} required />);
+    expect(screen.getByRole('combobox')).toHaveAttribute('aria-required', 'true');
     const asterisk = screen.getByText('*');
     expect(asterisk).toBeInTheDocument();
     expect(asterisk).toHaveAttribute('aria-hidden', 'true');

@@ -13,7 +13,7 @@
   },
   "scripts": {
     "build": "tsup",
-    "lint": "eslint src tsup.config.ts vitest.config.ts eslint.config.js",
+    "lint": "pnpm build && eslint src tsup.config.ts vitest.config.ts eslint.config.js && node ../../scripts/run-stylelint.mjs",
     "test": "vitest run"
   },
   "peerDependencies": {
@@ -37,6 +37,7 @@
   },
   "dependencies": {
     "@radix-ui/react-select": "^2.2.6",
+    "@radix-ui/react-toast": "^1.2.15",
     "@radix-ui/react-tooltip": "^1.2.8",
     "clsx": "^2.1.1"
   }

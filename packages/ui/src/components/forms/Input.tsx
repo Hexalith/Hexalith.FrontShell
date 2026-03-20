@@ -71,10 +71,15 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           value={value}
           onChange={onChange ? (e) => onChange(e.target.value) : undefined}
           placeholder={placeholder}
+          required={required}
           disabled={disabled}
-          aria-required={required || undefined}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={error ? errorId : undefined}
+          {...(required ? { 'aria-required': 'true' } : {})}
+          {...(error
+            ? {
+                'aria-invalid': 'true',
+                'aria-describedby': errorId,
+              }
+            : {})}
         />
         {error && (
           <p id={errorId} className={styles.errorMessage}>

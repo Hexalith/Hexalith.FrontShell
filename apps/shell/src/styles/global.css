@@ -3,6 +3,8 @@
 @import "../../../../packages/ui/src/tokens/spacing.css";
 @import "../../../../packages/ui/src/tokens/typography.css";
 @import "../../../../packages/ui/src/tokens/motion.css";
+@import "../../../../packages/ui/src/tokens/interactive.css";
+@import "../../../../packages/ui/src/tokens/z-index.css";
 
 /* Global styles — composition root for tokens and reset */
 

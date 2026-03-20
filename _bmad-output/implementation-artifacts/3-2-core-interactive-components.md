@@ -1,6 +1,6 @@
 # Story 3.2: Core Interactive Components
 
-Status: in-progress
+Status: done
 
 ## Story
 
@@ -603,7 +603,7 @@ await user.tab();
 
 ### Project Structure Notes
 
-```
+```text
 packages/ui/src/
 ├── index.ts                          # Update with Forms + Overlay sections
 ├── tokens/
@@ -697,6 +697,10 @@ Claude Opus 4.6 (1M context)
 - jsdom polyfills added: HTMLElement.prototype.hasPointerCapture/setPointerCapture/releasePointerCapture, scrollIntoView, ResizeObserver (all required by Radix UI in jsdom)
 - Token naming: Story references `--color-accent-base` / `--color-border-focus` but actual tokens are `--color-accent` / `--color-focus-ring`. Used actual token names.
 - ESLint: Updated packages/ui eslint.config.js to override module-boundaries and allow @radix-ui imports within packages/ui
+- Review fix: imported `interactive.css` and `z-index.css` through `apps/shell/src/styles/global.css`, which is the existing token composition root for this workspace
+- Review fix: changed dark-theme `--color-text-on-accent` to `gray-900` for 5.11:1 contrast on the dark accent token
+- Review fix: linked Select error state to the trigger with `aria-invalid` / `aria-describedby` and stabilized fallback keys for malformed or duplicate options in dev-mode tests
+- Review fix: replaced hardcoded overlay shadow and transform values with interactive design tokens
 
 ### Completion Notes List
 
@@ -709,7 +713,10 @@ Claude Opus 4.6 (1M context)
 - All forwardRef components have displayName set
 - index.ts updated with canonical category order comment and Forms/Overlay sections
 - Build: ESM + .d.ts (15.76 KB JS, 10.90 KB CSS, 7.68 KB types)
-- Contrast validation: #FFFFFF on accent passes AA (4.79:1) in light theme; borderline (3.37:1) in dark theme
+- Contrast validation: `#FFFFFF` on accent passes AA (4.79:1) in light theme; dark theme uses `gray-900` on accent for 5.11:1 contrast
+- Select error state is now exposed on the trigger via `aria-invalid` and `aria-describedby`
+- Shell token composition root imports the new interactive and z-index token files
+- Overlay animation/shadow values now resolve through interactive tokens instead of hardcoded CSS values
 
 ### File List
 
@@ -731,7 +738,10 @@ Claude Opus 4.6 (1M context)
 - packages/ui/src/test-setup.ts (modified — added jsdom polyfills for Radix)
 - packages/ui/eslint.config.js (modified — override to allow @radix-ui imports)
 - packages/ui/package.json (modified — added Radix + user-event deps)
+- apps/shell/src/styles/global.css (modified — imports interactive and z-index token files)
+- pnpm-lock.yaml (modified — lockfile updated for new dependencies)
 
 ## Change Log
 
 - 2026-03-20: Implemented Story 3-2 — Button, Input, Select, Tooltip components with full test coverage, token compliance, and accessibility support
+- 2026-03-20: Resolved code-review findings — wired interactive/z-index tokens into shell global styles, fixed dark-theme accent contrast, improved Input/Select accessibility wiring, and tokenized overlay motion/shadow values
