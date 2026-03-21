@@ -1,4 +1,4 @@
-/* Token count: 53/150 */
+/* Token count: 54/150 */
 /* Tier 1 (primitive) + Tier 2 (semantic) color tokens */
 /* Accent: Indigo — trustworthy, modern, premium; complements warm neutral base */
 
@@ -74,6 +74,9 @@
     /* Focus */
     --color-focus-ring: var(--primitive-color-indigo-500);
 
+    /* Overlay */
+    --color-overlay-backdrop: rgba(0, 0, 0, 0.4);
+
     /* Data visualization (color-blind safe — Tol's vibrant qualitative) */
     --color-data-1: #4477AA;
     --color-data-2: #66CCEE;
@@ -117,6 +120,9 @@
 
     /* Focus */
     --color-focus-ring: var(--primitive-color-indigo-400);
+
+    /* Overlay */
+    --color-overlay-backdrop: rgba(0, 0, 0, 0.6);
 
     /* Data visualization (brightened for dark backgrounds) */
     --color-data-1: #5588BB;

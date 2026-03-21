@@ -52,6 +52,19 @@ export type { TabsProps, TabItem } from './components/navigation/Tabs';
 // --- Overlay ---
 export { Tooltip } from './components/overlay/Tooltip';
 export type { TooltipProps } from './components/overlay/Tooltip';
+export { Modal } from './components/overlay/Modal';
+export type { ModalProps } from './components/overlay/Modal';
+export { AlertDialog } from './components/overlay/AlertDialog';
+export type { AlertDialogProps } from './components/overlay/AlertDialog';
+export { DropdownMenu } from './components/overlay/DropdownMenu';
+export type {
+  DropdownMenuProps,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuGroup,
+} from './components/overlay/DropdownMenu';
+export { Popover } from './components/overlay/Popover';
+export type { PopoverProps } from './components/overlay/Popover';
 
 // --- Data Display ---
 export { Table } from './components/data-display/Table';

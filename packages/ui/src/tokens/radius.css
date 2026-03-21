@@ -1,0 +1,11 @@
+/* Token count: 3/150 */
+/* Border radius tokens for component surfaces */
+/* sm: badges, tags; md: buttons, inputs; lg: modals, popovers */
+
+@layer tokens {
+  :root {
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+  }
+}

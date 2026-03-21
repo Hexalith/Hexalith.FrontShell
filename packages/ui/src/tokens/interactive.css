@@ -1,4 +1,4 @@
-/* Token count: 7/150 */
+/* Token count: 10/150 */
 /* Tokens specific to interactive components */
 /* Contrast validated: #FFFFFF on indigo-500 = 4.79:1 (light), gray-900 on indigo-400 = 5.11:1 (dark) */
 
@@ -8,8 +8,10 @@
     --color-text-on-accent: #FFFFFF;
     --color-shadow-popover: rgba(0, 0, 0, 0.12);
     --color-shadow-tooltip: rgba(0, 0, 0, 0.12);
+    --color-shadow-modal: rgba(0, 0, 0, 0.12);
     --shadow-popover: 0 4px 16px var(--color-shadow-popover);
     --shadow-tooltip: 0 2px 8px var(--color-shadow-tooltip);
+    --shadow-modal: 0 8px 24px var(--color-shadow-modal);
     --motion-translate-overlay-y: 2px;
     --motion-scale-overlay: 0.96;
   }
@@ -18,8 +20,10 @@
     --color-text-on-accent: var(--primitive-color-gray-900);
     --color-shadow-popover: rgba(0, 0, 0, 0.3);
     --color-shadow-tooltip: rgba(0, 0, 0, 0.3);
+    --color-shadow-modal: rgba(0, 0, 0, 0.4);
     --shadow-popover: 0 4px 16px var(--color-shadow-popover);
     --shadow-tooltip: 0 2px 8px var(--color-shadow-tooltip);
+    --shadow-modal: 0 8px 24px var(--color-shadow-modal);
     --motion-translate-overlay-y: 2px;
     --motion-scale-overlay: 0.96;
   }
