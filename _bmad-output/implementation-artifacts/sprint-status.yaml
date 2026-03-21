@@ -87,12 +87,12 @@ development_status:
   4-3-dev-host-for-independent-module-development: done
   4-4-scaffolded-tests-and-test-fixtures: done
   4-5-typed-manifest-and-module-boundary: done
-  4-6-module-developer-documentation: ready-for-dev
+  4-6-module-developer-documentation: done
   epic-4-retrospective: optional
 
   # Epic 5: Shell Composition & Multi-Module Experience
-  epic-5: backlog
-  5-1-module-registry-and-build-time-discovery: backlog
+  epic-5: in-progress
+  5-1-module-registry-and-build-time-discovery: ready-for-dev
   5-2-unified-navigation-and-route-generation: backlog
   5-3-module-error-isolation-and-recovery: backlog
   5-4-navigation-state-preservation-and-caching: backlog
