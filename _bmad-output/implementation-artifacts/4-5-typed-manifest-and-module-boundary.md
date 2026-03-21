@@ -25,57 +25,45 @@ So that the shell discovers my module automatically and I have full flexibility 
 ## Tasks / Subtasks
 
 - [ ] Task 1: Create `validateManifest` runtime validation function (AC: #1)
-  - [ ] 1.1: Create `packages/shell-api/src/manifest/validateManifest.ts`:
-    - Import `z` from `zod` (already a peer dep of `@hexalith/cqrs-client`, and `shell-api` can use it since Zod is a direct dependency)
-    - **CRITICAL: Check if Zod is in shell-api's package.json dependencies first.** If not, you must add it (as a regular dependency, not peer dep) before using it. If adding Zod is not desired, implement validation without Zod using plain TypeScript type guards instead.
-    - **Option A (if Zod available):** Create Zod schemas that mirror the TypeScript types:
+  - [ ] 1.1: Create `packages/shell-api/src/manifest/validateManifest.ts` — **use plain TypeScript type guards, no Zod:**
+    ```typescript
+    export interface ManifestValidationError {
+      field: string;
+      message: string;
+    }
+
+    export interface ManifestValidationResult {
+      valid: boolean;
+      errors: ManifestValidationError[];
+      warnings: ManifestValidationError[];
+    }
+
+    export function validateManifest(manifest: unknown): ManifestValidationResult
+    ```
+    - **Structure as a switch on `manifestVersion`** (even though only `1` exists today). This makes adding `ModuleManifestV2` validation a single new case block:
       ```typescript
-      const ModuleRouteSchema = z.object({
-        path: z.string().min(1, "Route path must not be empty").startsWith("/", "Route path must start with /"),
-      });
-
-      const ModuleNavigationSchema = z.object({
-        label: z.string().min(1, "Navigation label must not be empty"),
-        path: z.string().min(1, "Navigation path must not be empty").startsWith("/", "Navigation path must start with /"),
-        icon: z.string().optional(),
-        category: z.string().optional(),
-      });
-
-      const ModuleManifestV1Schema = z.object({
-        manifestVersion: z.literal(1),
-        name: z.string().min(1).regex(/^[a-z][a-z0-9-]*$/, "Module name must be lowercase kebab-case"),
-        displayName: z.string().min(1, "Display name must not be empty"),
-        version: z.string().regex(/^\d+\.\d+\.\d+/, "Version must be semver format"),
-        routes: z.array(ModuleRouteSchema).min(1, "At least one route required"),
-        navigation: z.array(ModuleNavigationSchema).min(1, "At least one navigation item required"),
-      });
-      ```
-    - **Option B (if Zod NOT available — PREFERRED to avoid adding a new dependency):** Create a plain TypeScript validation function:
-      ```typescript
-      export interface ManifestValidationError {
-        field: string;
-        message: string;
+      // Guard: manifest is an object
+      if (manifest == null || typeof manifest !== "object") {
+        return { valid: false, errors: [{ field: "manifest", message: "Manifest must be a non-null object" }], warnings: [] };
       }
-
-      export interface ManifestValidationResult {
-        valid: boolean;
-        errors: ManifestValidationError[];
-        warnings: ManifestValidationError[];
+      const m = manifest as Record<string, unknown>;
+      switch (m.manifestVersion) {
+        case 1:
+          return validateV1(m);
+        default:
+          return { valid: false, errors: [{ field: "manifestVersion", message: `Unknown manifestVersion: ${String(m.manifestVersion)}` }], warnings: [] };
       }
-
-      export function validateManifest(manifest: unknown): ManifestValidationResult
       ```
-    - Validate:
-      - `manifestVersion` is `1` (literal)
+    - `validateV1` checks:
       - `name` is non-empty, lowercase kebab-case (`/^[a-z][a-z0-9-]*$/`)
       - `displayName` is non-empty string
       - `version` is semver format (`/^\d+\.\d+\.\d+/`)
       - `routes` is non-empty array, each with a `path` starting with `/`
       - `navigation` is non-empty array, each with `label` and `path` both non-empty, `path` starts with `/`
       - Navigation `path` values should match a declared route `path` — this is a **warning**, not an error (modules may have valid reasons for partial coverage). Use exact-match semantics, not prefix-match.
-    - **Decision rule for Option A vs B:** Run `cat packages/shell-api/package.json | grep zod` to check. If Zod is not already a dependency of `shell-api`, use Option B (plain TypeScript) to avoid introducing a new dependency. The architecture says `shell-api` MUST NOT depend on `@hexalith/cqrs-client` and should minimize dependencies.
+    - **Do NOT use Zod.** Shell-api should have a minimal dependency surface. Plain TypeScript validation is architecturally cleaner for a contract package.
 
-  - [ ] 1.2: Export `validateManifest` (and `ManifestValidationResult`, `ManifestValidationError` if using Option B) from `packages/shell-api/src/index.ts`:
+  - [ ] 1.2: Export `validateManifest`, `ManifestValidationResult`, and `ManifestValidationError` from `packages/shell-api/src/index.ts`:
     ```typescript
     export { validateManifest } from "./manifest/validateManifest";
     export type { ManifestValidationResult, ManifestValidationError } from "./manifest/validateManifest";
@@ -97,25 +85,9 @@ So that the shell discovers my module automatically and I have full flexibility 
     - **Test: rejects manifest with invalid semver** — `"abc"` should fail
     - **Test: warns when navigation path doesn't match a route** — navigation `path: "/admin"` when no route has `path: "/admin"`. Result should have `valid: true` but include a `warnings` array with the mismatch. Validation distinguishes errors (structural) from warnings (semantic). Add a `warnings: ManifestValidationError[]` field to `ManifestValidationResult`.
     - **Test: accepts manifest with optional icon and category in navigation**
-
-- [ ] Task 3: Enhance scaffold manifest template with icon and category (AC: #1, #3)
-  - [ ] 3.1: Update `tools/create-hexalith-module/templates/module/src/manifest.ts` — add `icon` and `category` to the navigation item:
-    ```typescript
-    navigation: [
-      {
-        label: "__MODULE_DISPLAY_NAME__",
-        path: "/",
-        icon: "box",
-        category: "Modules",
-      },
-    ],
-    ```
-    - `icon: "box"` is a sensible default. The actual icon system will be defined in Epic 5, but the manifest should demonstrate the field.
-    - `category: "Modules"` groups this module in a sidebar category. Default modules land in "Modules" group.
-    - This change is cosmetic — the scaffold already type-checks against `ModuleManifest` which allows these optional fields. This just demonstrates best practice.
-
-- [ ] Task 4: Enhance manifest type tests for comprehensive AC coverage (AC: #1)
-  - [ ] 4.1: Update `packages/shell-api/src/manifest/manifestTypes.test.ts` — add tests that cover additional AC requirements not yet tested:
+    - **Test: actual scaffold manifest passes validation** — construct a manifest matching the post-scaffold output (e.g., `{ manifestVersion: 1, name: "test-module", displayName: "Test Module", version: "0.1.0", routes: [{ path: "/" }, { path: "/:id" }, { path: "/create" }], navigation: [{ label: "Test Module", path: "/", icon: "box", category: "Modules" }] }`), pass to `validateManifest()`, expect `valid: true`, `errors: []`, `warnings: []`
+    - **Test: rejects null and undefined input** — pass `null` and `undefined` to `validateManifest()`, expect `valid: false` with error: "Manifest must be a non-null object"
+  - [ ] 2.2: Update `packages/shell-api/src/manifest/manifestTypes.test.ts` — add compile-time type enforcement tests (AC: #1):
     - **Test: manifest supports discriminated union via manifestVersion** — verify `ModuleManifest` is a union type (currently only `ModuleManifestV1`, but the architecture requires `manifestVersion` as a discriminated union field for future schema evolution)
     - **Test: rejects manifest with missing version field** — `@ts-expect-error` test
     - **Test: rejects manifest with missing displayName** — `@ts-expect-error` test
@@ -124,19 +96,36 @@ So that the shell discovers my module automatically and I have full flexibility 
     - **Test: ModuleRoute only requires path** — verify no additional required fields
     - These are compile-time checks via `@ts-expect-error` patterns — they verify TypeScript enforcement, not runtime validation
 
-- [ ] **DEFINITION OF DONE GATE — All previous tasks (1-4) must pass these verification checks before the story is complete. Do NOT mark the story as done until every check below passes.**
+- [ ] Task 3: Enhance scaffold manifest template with icon and category (AC: #1, #3)
+  - [ ] 3.1: Update `tools/create-hexalith-module/templates/module/src/manifest.ts` — add `icon` and `category` to the navigation item:
+    ```typescript
+    navigation: [
+      {
+        label: "__MODULE_DISPLAY_NAME__",
+        path: "/",
+        /** Replace with a domain-specific icon for your module (e.g., "shopping-cart", "users", "settings"). */
+        icon: "box",
+        category: "Modules",
+      },
+    ],
+    ```
+    - `icon: "box"` is a sensible default with a JSDoc hint to replace it. The actual icon system will be defined in Epic 5, but the manifest should demonstrate the field.
+    - `category: "Modules"` groups this module in a sidebar category. Default modules land in "Modules" group.
+    - This change is cosmetic — the scaffold already type-checks against `ModuleManifest` which allows these optional fields. This just demonstrates best practice.
 
-- [ ] Task 5: Verification (AC: #1-#5)
-  - [ ] 5.1: Run `pnpm exec tsc -p packages/shell-api/tsconfig.json --noEmit` — verify shell-api compiles with new `validateManifest.ts`
-  - [ ] 5.2: Run `pnpm -F @hexalith/shell-api test` — verify all manifest type tests and validation tests pass
-  - [ ] 5.3: Run `pnpm exec tsc -p tools/create-hexalith-module/tsconfig.templates.json --noEmit` — verify template files still compile after manifest changes
-  - [ ] 5.4: Run `pnpm -F create-hexalith-module test` — verify integration test passes (scaffold output includes updated manifest, type-checks correctly)
-  - [ ] 5.5: **(AC2)** Verify route URL pattern convention — routes in `templates/module/src/routes.tsx` are `/`, `/:id`, `/create` (module-relative). The shell (Story 5.1) mounts these under `/{module-name}/`. Effective URLs: `/{module}/`, `/{module}/:id`, `/{module}/create`. The AC says `/{module}/{entity}/{id}` — the current pattern uses flat routes (`/:id` not `/detail/:id`). This is intentional: modules have a single entity focus, so the entity segment is implicit. Verify all three routes use `React.lazy()` + `Suspense` + `Skeleton` fallback. **No code changes needed — already satisfied by Stories 4.1/4.2.**
-  - [ ] 5.6: **(AC4)** Verify ESLint module boundary enforcement — `packages/eslint-config/module-boundaries.js` blocks: `@radix-ui/*`, `@hexalith/*/src/**`, `@emotion/*`, `oidc-client-ts`, `ky`, `@tanstack/react-query`, `@tanstack/react-table`, `styled-components`, `@emotion/styled`, `@emotion/css`, `@stitches/react`. All other libraries are permitted. `templates/module/eslint.config.js` composes `base + react + boundaries`. **No code changes needed — already satisfied.**
-  - [ ] 5.7: **(AC5)** Verify domain types are self-contained — `templates/module/src/schemas/exampleSchemas.ts` imports only `z` from `zod` (no cross-module type imports). `templates/module/src/index.ts` re-exports domain types. **No code changes needed — already satisfied.**
-  - [ ] 5.8: Verify no `@radix-ui/*`, no `oidc-client-ts`, no `ky`, no `@tanstack/*` direct imports in template files
-  - [ ] 5.9: Grep scaffold template for any cross-module imports (imports from other modules like `@hexalith/tenants`) — should find none
-  - [ ] 5.10: Verify the scaffold manifest template has no unreplaced placeholder tokens after scaffold runs (covered by integration test assertion in `integration.test.ts`)
+- [ ] **DEFINITION OF DONE GATE — All previous tasks (1-3) must pass these verification checks before the story is complete. Do NOT mark the story as done until every check below passes.**
+
+- [ ] Task 4: Verification (AC: #1-#5)
+  - [ ] 4.1: Run `pnpm exec tsc -p packages/shell-api/tsconfig.json --noEmit` — verify shell-api compiles with new `validateManifest.ts`
+  - [ ] 4.2: Run `pnpm -F @hexalith/shell-api test` — verify all manifest type tests and validation tests pass
+  - [ ] 4.3: Run `pnpm exec tsc -p tools/create-hexalith-module/tsconfig.templates.json --noEmit` — verify template files still compile after manifest changes
+  - [ ] 4.4: Run `pnpm -F create-hexalith-module test` — verify integration test passes (scaffold output includes updated manifest, type-checks correctly)
+  - [ ] 4.5: **(AC2)** Verify route URL pattern convention — routes in `templates/module/src/routes.tsx` are `/`, `/:id`, `/create` (module-relative). The shell (Story 5.1) mounts these under `/{module-name}/`. Effective URLs: `/{module}/`, `/{module}/:id`, `/{module}/create`. The AC says `/{module}/{entity}/{id}` — the current pattern uses flat routes (`/:id` not `/detail/:id`). This is intentional: modules have a single entity focus, so the entity segment is implicit. Verify all three routes use `React.lazy()` + `Suspense` + `Skeleton` fallback. **No code changes needed — already satisfied by Stories 4.1/4.2.**
+  - [ ] 4.6: **(AC4)** Verify ESLint module boundary enforcement — `packages/eslint-config/module-boundaries.js` blocks: `@radix-ui/*`, `@hexalith/*/src/**`, `@emotion/*`, `oidc-client-ts`, `ky`, `@tanstack/react-query`, `@tanstack/react-table`, `styled-components`, `@emotion/styled`, `@emotion/css`, `@stitches/react`. All other libraries are permitted. `templates/module/eslint.config.js` composes `base + react + boundaries`. **No code changes needed — already satisfied.**
+  - [ ] 4.7: **(AC5)** Verify domain types are self-contained — `templates/module/src/schemas/exampleSchemas.ts` imports only `z` from `zod` (no cross-module type imports). `templates/module/src/index.ts` re-exports domain types. **No code changes needed — already satisfied.**
+  - [ ] 4.8: Verify no `@radix-ui/*`, no `oidc-client-ts`, no `ky`, no `@tanstack/*` direct imports in template files
+  - [ ] 4.9: Grep scaffold template for any cross-module imports (imports from other modules like `@hexalith/tenants`) — should find none
+  - [ ] 4.10: Verify the scaffold manifest template has no unreplaced placeholder tokens after scaffold runs (covered by integration test assertion in `integration.test.ts`)
 
 ## Dev Notes
 
@@ -158,11 +147,17 @@ So that the shell discovers my module automatically and I have full flexibility 
 - Build-time manifest validation in CI pipeline (Story 5.5)
 - Documentation (Story 4.6)
 
-**Key insight: Much of this story's acceptance criteria are ALREADY satisfied** by work done in Stories 4.1 (CLI scaffold with manifest.ts), 4.2 (example code with routes, schemas, domain types), and earlier platform work (shell-api manifest types, ESLint module-boundaries config). The primary NEW deliverable is `validateManifest.ts` — the runtime validation function that Story 5.1 will use for build-time manifest validation.
+**Key insight: ~80% of this story is verification, ~20% is new code.** Most acceptance criteria are ALREADY satisfied by work done in Stories 4.1 (CLI scaffold with manifest.ts), 4.2 (example code with routes, schemas, domain types), and earlier platform work (shell-api manifest types, ESLint module-boundaries config). The primary NEW deliverable is `validateManifest.ts` (~60 lines) + its tests (~80 lines) + minor scaffold manifest enhancement. The verification tasks confirm existing work meets the ACs.
+
+**`validateManifest` has no callers in this story — by design.** It is a foundation function for Story 5.1 (Module Registry, which imports manifests) and Story 5.5 (Build-Time Manifest Validation in CI). Creating it here completes the manifest contract defined by FR4, even though the consumer stories are in Epic 5.
+
+**Route-to-manifest sync validation is deferred to Story 5.5.** The manifest declares routes as `{ path }` declarations. The runtime `routes.tsx` has `{ path, element }` objects. These two sources can drift. Automated drift detection belongs in Story 5.5's build-time validation pipeline, not here.
+
+**AC4 note:** The epic text says the module's ESLint config "only blocks: `@radix-ui/*` direct imports, CSS-in-JS libraries, and `oidc-client-ts`." The actual implementation in `module-boundaries.js` also blocks `ky`, `@tanstack/react-query`, `@tanstack/react-table`, and deep `@hexalith/*/src/**` imports. These additional blocks are architecturally necessary (they enforce the facade pattern through `@hexalith/*` packages). The AC text is a simplification — the implementation is correct.
 
 ### Architecture Constraints — MUST Follow
 
-1. **(CRITICAL) `@hexalith/shell-api` MUST NOT depend on `@hexalith/cqrs-client`.** Check `packages/shell-api/package.json` before adding Zod. If Zod is not already a dependency, implement validation with plain TypeScript (no Zod). Do NOT add `@hexalith/cqrs-client` as a dependency just to get Zod. [Source: architecture.md#Package Dependency Rules]
+1. **(CRITICAL) `@hexalith/shell-api` MUST NOT depend on Zod or `@hexalith/cqrs-client`.** Use plain TypeScript for validation — no Zod, no external validation libraries. Shell-api is a contract package with minimal dependency surface. [Source: architecture.md#Package Dependency Rules]
 
 2. **(CRITICAL) Manifest routes are declarations, NOT runtime route objects.** `ModuleRoute` has only `{ path: string }` — it declares the URL path pattern. The runtime route objects in `routes.tsx` are `{ path, element }` with React components. These are different shapes by design. The manifest declares *what paths exist*; Story 5.1 bridges manifest declarations to runtime `react-router` route objects by mapping `manifest.routes[].path` to lazy-loaded components. Do NOT add `element` or `component` to `ModuleRoute` — that coupling would make manifests non-serializable.
 
@@ -260,13 +255,14 @@ Dynamically compares ALL template files to scaffold output. Verifies: file prese
 
 ### Critical Anti-Patterns to Prevent
 
-1. **Do NOT add Zod as a dependency to `@hexalith/shell-api` without checking first.** Shell-api has a minimal dependency surface. If Zod is not already there, use plain TypeScript for validation. The architecture explicitly says shell-api must not depend on cqrs-client.
-2. **Do NOT create a validation schema that duplicates the TypeScript types.** If using Zod, derive types from schemas or schemas from types — but for manifest types, the TypeScript interfaces are the source of truth (they're used at build time), and the Zod schema is for runtime validation only.
+1. **Do NOT add Zod as a dependency to `@hexalith/shell-api`.** Use plain TypeScript for validation. Shell-api has a minimal dependency surface — plain TS is architecturally cleaner for a contract package.
+2. **Do NOT duplicate the TypeScript type definitions in validation logic.** The TypeScript interfaces in `manifestTypes.ts` are the source of truth for manifest shape (compile-time). The `validateManifest` function validates values at runtime — it should reference the same field names and constraints, but not re-declare the types.
 3. **Do NOT change the `ModuleManifest` TypeScript interface** unless adding a new field that the AC requires and is currently missing. The existing types already cover all AC1 fields.
 4. **Do NOT modify `packages/eslint-config/module-boundaries.js`** — it already correctly implements AC4. Changing it could break boundary enforcement across the monorepo.
 5. **Do NOT import from `react-router-dom`.** This project uses `react-router` v7 (unified package). [Source: Story 4.2 learnings]
 6. **Do NOT use `enum`.** Use union types. [Source: architecture.md]
 7. **Do NOT create barrel exports in sub-folders.** No `index.ts` in `packages/shell-api/src/manifest/`.
+8. **Do NOT use a different name validation regex than the CLI scaffold.** The canonical regex for module names is `/^[a-z][a-z0-9-]*$/` (from `tools/create-hexalith-module/` CLI prompts). `validateManifest` MUST use the same regex to ensure parity. If the regexes diverge, a module name accepted by the CLI could be rejected by validation (or vice versa).
 
 ### Previous Story Intelligence (Stories 4.1-4.4)
 

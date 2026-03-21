@@ -47,8 +47,9 @@ describe("ExampleDetailPage", () => {
       { initialRoute: `/${firstDetail.id}`, queryBus: slowQueryBus },
     );
 
-    // Should show loading skeleton (page title during loading)
-    expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
+    expect(
+      screen.getByRole("status", { name: /loading content/i }),
+    ).toBeInTheDocument();
   });
 
   it("renders error state on failure", async () => {

@@ -21,12 +21,16 @@
       "@testing-library/jest-dom/vitest": ["../../node_modules/.pnpm/node_modules/@testing-library/jest-dom/vitest.d.ts"],
       "@testing-library/user-event": ["../../node_modules/.pnpm/node_modules/@testing-library/user-event/dist/types/index.d.ts"],
       "@playwright/experimental-ct-react": ["../../node_modules/.pnpm/node_modules/@playwright/experimental-ct-react/index.d.ts"],
+      "@playwright/experimental-ct-react/hooks": ["../../node_modules/.pnpm/node_modules/@playwright/experimental-ct-react/hooks.d.ts"],
       "@axe-core/playwright": ["../../node_modules/.pnpm/node_modules/@axe-core/playwright/dist/index.d.ts"]
     }
   },
   "include": [
     "templates/module/src/**/*.ts",
     "templates/module/src/**/*.tsx",
+    "templates/module/playwright/**/*.ts",
+    "templates/module/playwright/**/*.tsx",
+    "templates/module/playwright-ct.config.ts",
     "templates/module/dev-host/**/*.ts",
     "templates/module/dev-host/**/*.tsx"
   ]

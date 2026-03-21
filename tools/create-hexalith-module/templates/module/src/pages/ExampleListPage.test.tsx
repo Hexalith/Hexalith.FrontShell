@@ -17,8 +17,9 @@ describe("ExampleListPage", () => {
 
     renderWithProviders(<ExampleListPage />, { queryBus: slowQueryBus });
 
-    // Skeleton loading state should be visible
-    expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
+    expect(
+      screen.getByRole("status", { name: /loading content/i }),
+    ).toBeInTheDocument();
   });
 
   it("renders sample data in table after load", async () => {
@@ -42,8 +43,12 @@ describe("ExampleListPage", () => {
   });
 
   it("renders empty state when no data", async () => {
-    // Create an empty MockQueryBus — no responses registered
+    // Create a MockQueryBus with an explicit empty list response.
+    // No configured response would produce a 404 error state, not an empty state.
     const emptyQueryBus = new MockQueryBus({ delay: 30 });
+    const TENANT = createMockTenantContext().activeTenant;
+    const listKey = `${TENANT}:${EXAMPLE_LIST_QUERY.domain}:${EXAMPLE_LIST_QUERY.queryType}::`;
+    emptyQueryBus.setResponse(listKey, []);
 
     renderWithProviders(<ExampleListPage />, { queryBus: emptyQueryBus });
 

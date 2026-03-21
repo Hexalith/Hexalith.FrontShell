@@ -1,6 +1,6 @@
 # Story 4.4: Scaffolded Tests & Test Fixtures
 
-Status: in-progress
+Status: done
 
 ## Story
 
@@ -20,7 +20,7 @@ So that I have a working test foundation and can run tests from minute one.
 
 5. **AC5 — Contract tests catch mock divergence.** Given tests use the mock implementations, when the mock behavior diverges from real implementations, then the contract test suites from `@hexalith/cqrs-client` catch the divergence. _Note: This AC is satisfied by the existing contract test suites in `packages/cqrs-client/src/mocks/__contracts__/` — no new contract tests are created in this story._
 
-_FRs covered: FR3_
+**FRs covered:** FR3
 
 ## Tasks / Subtasks
 
@@ -33,6 +33,7 @@ _FRs covered: FR3_
     - Polyfill `globalThis.ResizeObserver` (required by Radix UI components)
     - Polyfill `window.matchMedia` for theme detection
     - Polyfill `crypto.randomUUID` if not available — `ExampleCreatePage` calls `crypto.randomUUID()` for aggregate ID generation. Node 20+ has it globally, but jsdom may not expose it. Add a conditional polyfill:
+
       ```typescript
       if (typeof globalThis.crypto?.randomUUID !== "function") {
         Object.defineProperty(globalThis.crypto, "randomUUID", {
@@ -41,9 +42,12 @@ _FRs covered: FR3_
         });
       }
       ```
+
       Verify first if the polyfill is needed (it may work without it on Node 20+). If it IS needed and missing, `ExampleCreatePage` throws `TypeError: crypto.randomUUID is not a function` when the form submits.
+
     - Call `cleanup()` in `afterEach`
     - Follow the exact same pattern as `packages/ui/src/test-setup.ts` — keep it consistent
+
   - [x] 1.2: Update `templates/module/vitest.config.ts`:
 
     ```typescript
@@ -90,6 +94,7 @@ _FRs covered: FR3_
     - Import sample data and query constants from `../data/sampleData`
     - Import `exampleDetails` from `../data/sampleData`
     - Define `RenderWithProvidersOptions` type extending `RenderOptions`:
+
       ```typescript
       interface RenderWithProvidersOptions extends Omit<
         RenderOptions,
@@ -100,8 +105,10 @@ _FRs covered: FR3_
         commandBus?: MockCommandBus;
       }
       ```
+
     - Create a `createConfiguredQueryBus` function that creates a `MockQueryBus` with `{ delay: 30 }` and pre-registers sample data responses:
       - **Build keys from query constants** (imported from `../data/sampleData`) to prevent manual string typos. **Derive the tenant value** from `createMockTenantContext()` instead of hardcoding, so the utility is resilient to MockShellProvider default changes:
+
         ```typescript
         import { createMockTenantContext } from "@hexalith/shell-api";
         const TENANT = createMockTenantContext().activeTenant; // Derives from same default as MockShellProvider
@@ -112,8 +119,10 @@ _FRs covered: FR3_
           mockQueryBus.setResponse(detailKey, detail);
         }
         ```
+
       - This uses the SAME `domain` and `queryType` values that the pages pass to `useQuery`, eliminating the possibility of a key mismatch from manual string construction
       - **Key format:** `"${tenant}:${domain}:${queryType}:${aggregateId ?? ""}:${entityId ?? ""}"`. Tenant comes from MockShellProvider default = `"test-tenant"`. Empty aggregateId/entityId produce trailing `:`
+
     - Create a `createConfiguredCommandBus` function returning `new MockCommandBus({ delay: 50, defaultBehavior: "success" })`
     - Export `renderWithProviders` function:
 
@@ -237,6 +246,7 @@ _FRs covered: FR3_
 - [x] Task 6: Create Playwright component test with a11y check (AC: #4)
   - [x] 6.0: Create Playwright CT harness files (required by `@playwright/experimental-ct-react`):
     - Create `templates/module/playwright/index.html`:
+
       ```html
       <!DOCTYPE html>
       <html lang="en">
@@ -254,6 +264,7 @@ _FRs covered: FR3_
         </body>
       </html>
       ```
+
     - Create `templates/module/playwright/index.tsx`:
 
       ```typescript
@@ -365,10 +376,12 @@ _FRs covered: FR3_
       ```
 
   - [x] 6.3: Update `templates/module/package.json` — add Playwright-related devDependencies:
+
     ```json
     "@playwright/experimental-ct-react": "^1.50.0",
     "@axe-core/playwright": "^4.10.0"
     ```
+
     Add script: `"test:ct": "playwright test -c playwright-ct.config.ts"`
 
 - [x] Task 7: Update vitest.config.ts and package.json for test setup (AC: #1)
@@ -384,6 +397,7 @@ _FRs covered: FR3_
 
 - [x] Task 8: Update tsconfig.templates.json to include test files (AC: #1)
   - [x] 8.1: Update `tools/create-hexalith-module/tsconfig.templates.json` — add test files and testing directory to the `include` array:
+
     ```json
     "include": [
       "templates/module/src/**/*.ts",
@@ -392,8 +406,10 @@ _FRs covered: FR3_
       "templates/module/dev-host/main.tsx"
     ]
     ```
+
     Test files (.test.tsx) are already covered by `templates/module/src/**/*.tsx`. But the `testing/` directory needs to be included — it's under `src/` so it's already in scope.
     **(CRITICAL) Add paths for test dependencies.** The current `tsconfig.templates.json` only has paths for `@hexalith/*`, `react-router`, and `zod`. The template directory has no `node_modules` — TypeScript cannot resolve test imports without explicit paths. **Add these path mappings:**
+
     ```json
     "paths": {
       "@hexalith/shell-api": ["../../packages/shell-api/src/index.ts"],
@@ -407,8 +423,10 @@ _FRs covered: FR3_
       "@testing-library/user-event": ["../../node_modules/@testing-library/user-event/dist/index.d.ts"]
     }
     ```
+
     **Note:** The exact paths to `.d.ts` files depend on the installed package versions. Verify the actual paths by running `find ../../node_modules -name "index.d.ts" -path "*/@testing-library/react/*"` (or equivalent). If the paths are wrong, `tsc` will fail with "Cannot find module" errors for test imports. The `@hexalith/*`, `react-router`, and `zod` paths already exist and work — extend the same pattern.
     **Without these paths, ALL test files will fail type-checking** even though they work fine in Vitest (which uses its own module resolution). This is a hard blocker — do this BEFORE writing test files to get early feedback.
+
   - [x] 8.2: Run `pnpm exec tsc -p tools/create-hexalith-module/tsconfig.templates.json` to verify all template files (including test files) compile cleanly. If test imports fail, fix the paths in 8.1 first
 
 - [x] **DEFINITION OF DONE GATE — All previous tasks (1-8) must pass these verification checks before the story is complete. Do NOT mark the story as done until every check below passes.**
@@ -731,7 +749,7 @@ The `templates/module/` directory is the scaffold blueprint — files here are c
 - [Source: packages/cqrs-client/src/mocks/MockQueryBus.ts] — Response key format, setResponse API
 - [Source: packages/cqrs-client/src/mocks/MockCommandBus.ts] — Command bus mock config
 - [Source: packages/cqrs-client/src/mocks/MockSignalRHub.ts] — SignalR hub mock
-- [Source: packages/cqrs-client/src/mocks/__contracts__/] — Contract tests for mock/real parity
+- [Source: `packages/cqrs-client/src/mocks/__contracts__/`] — Contract tests for mock/real parity
 - [Source: packages/shell-api/src/testing/MockShellProvider.tsx] — MockShellProvider props and defaults
 - [Source: Story 4.1 — 4-1-create-hexalith-module-cli.md] — CLI scaffold engine, template structure
 - [Source: Story 4.2 — 4-2-scaffold-example-code-premium-showcase.md] — Page components, schemas, sample data, key learnings
@@ -749,6 +767,10 @@ Claude Opus 4.6 (1M context)
 - `renderWithProviders` return type inference failed (TS2742: reference to `pretty-format`) — resolved by adding explicit `RenderResult & { queryBus; commandBus }` return type annotation
 - Template `.test.tsx` files were initially picked up by the scaffold tool's own vitest config — resolved by adding `exclude: ["templates/**"]` to `tools/create-hexalith-module/vitest.config.ts`
 - Integration test `tsc --noEmit` check failed for scaffolded test files (missing test dep path mappings) — resolved by adding test dependency paths to integration test's inline tsconfig
+- Code review found the empty-state list test was asserting the wrong branch — resolved by returning an explicit empty array response instead of relying on MockQueryBus 404 behavior
+- Code review found loading-state tests only asserted the page heading — resolved by asserting the actual skeleton status element instead
+- Code review found Playwright CT harness/config files were not covered by template type-check verification — resolved by including `playwright/**` and `playwright-ct.config.ts` in both template and scaffold smoke-test tsconfig includes
+- Expanded Playwright CT coverage initially exposed a missing `@playwright/experimental-ct-react/hooks` type mapping — resolved by adding the hooks subpath declaration to both template and scaffold smoke-test tsconfig path maps
 
 ### Completion Notes List
 
@@ -764,7 +786,11 @@ Claude Opus 4.6 (1M context)
 - Updated tsconfig.templates.json with test dependency path mappings
 - Updated scaffold tool's vitest.config.ts to exclude templates/ directory
 - Updated integration test with test dependency path mappings for scaffolded output tsc check
-- All 37 scaffold tool tests pass (including integration test with type-check)
+- Strengthened scaffold loading-state tests to assert the actual skeleton status instead of only the page heading
+- Fixed the scaffold empty-state test to use an explicit empty query response instead of MockQueryBus fallback 404 behavior
+- Expanded template type-check coverage to include the Playwright CT harness and config files
+- Added the Playwright CT hooks subpath type mapping so the newly covered harness files type-check cleanly
+- All 39 scaffold tool tests pass (including integration test with type-check)
 - No regressions in monorepo test suite (only pre-existing CssLayerSmoke timeout in @hexalith/ui)
 
 ### Change Log
@@ -787,6 +813,13 @@ New files:
 
 Modified files:
 
+- packages/cqrs-client/package.json
+- packages/shell-api/package.json
+- packages/ui/package.json
+- tools/create-hexalith-module/src/scaffold.ts
+- tools/create-hexalith-module/src/scaffold.test.ts
+- tools/create-hexalith-module/src/versionCheck.ts
+- tools/create-hexalith-module/src/versionCheck.test.ts
 - tools/create-hexalith-module/templates/module/vitest.config.ts
 - tools/create-hexalith-module/templates/module/package.json
 - tools/create-hexalith-module/tsconfig.templates.json
