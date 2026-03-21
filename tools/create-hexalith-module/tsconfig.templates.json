@@ -1,0 +1,14 @@
+{
+  "extends": "@hexalith/tsconfig/base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "noEmit": true,
+    "paths": {
+      "@hexalith/shell-api": ["../../packages/shell-api/src/index.ts"],
+      "@hexalith/cqrs-client": ["../../packages/cqrs-client/src/index.ts"],
+      "@hexalith/ui": ["../../packages/ui/src/index.ts"]
+    }
+  },
+  "include": ["templates/module/src/**/*.ts", "templates/module/src/**/*.tsx"]
+}

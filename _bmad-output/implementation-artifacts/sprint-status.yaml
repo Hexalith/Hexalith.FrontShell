@@ -82,8 +82,8 @@ development_status:
 
   # Epic 4: Module Scaffold & Independent Development
   epic-4: in-progress
-  4-1-create-hexalith-module-cli: ready-for-dev
-  4-2-scaffold-example-code-premium-showcase: backlog
+  4-1-create-hexalith-module-cli: done
+  4-2-scaffold-example-code-premium-showcase: ready-for-dev
   4-3-dev-host-for-independent-module-development: backlog
   4-4-scaffolded-tests-and-test-fixtures: backlog
   4-5-typed-manifest-and-module-boundary: backlog

@@ -12,7 +12,8 @@
     "build": "turbo build",
     "test": "turbo test",
     "lint": "eslint vitest.config.ts eslint.config.js && turbo lint && pnpm lint:styles",
-    "lint:styles": "turbo build && node ./scripts/run-stylelint.mjs"
+    "lint:styles": "turbo build && node ./scripts/run-stylelint.mjs",
+    "create-module": "node tools/create-hexalith-module/dist/index.js"
   },
   "devDependencies": {
     "eslint": "^9.0.0",

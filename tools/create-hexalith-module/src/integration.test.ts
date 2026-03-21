@@ -1,0 +1,249 @@
+import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
+import { readdir, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { promisify } from "node:util";
+
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
+import { scaffold } from "./scaffold.js";
+
+const execFileAsync = promisify(execFile);
+
+const PACKAGE_ROOT = resolve(import.meta.dirname, "..");
+const MONOREPO_ROOT = resolve(PACKAGE_ROOT, "../..");
+const TEMPLATE_DIR = join(PACKAGE_ROOT, "templates", "module");
+
+async function getAllFiles(dir: string): Promise<string[]> {
+  const entries = await readdir(dir, { withFileTypes: true, recursive: true });
+  return entries
+    .filter((e) => e.isFile())
+    .map((e) => join(e.parentPath ?? e.path, e.name).replace(dir + "\\", "").replace(dir + "/", ""));
+}
+
+describe("integration: scaffold smoke test", () => {
+  let tempDir: string;
+  let outputDir: string;
+
+  beforeEach(async () => {
+    tempDir = join(tmpdir(), `scaffold-integration-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    outputDir = join(tempDir, "hexalith-my-orders");
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  it("generates all template files dynamically compared to template source", async () => {
+    await scaffold({
+      moduleName: "my-orders",
+      outputDir,
+      templateDir: TEMPLATE_DIR,
+      monorepoRoot: MONOREPO_ROOT,
+    });
+
+    const templateFiles = await getAllFiles(TEMPLATE_DIR);
+    const outputFiles = await getAllFiles(outputDir);
+
+    // Filter out .git directory from output
+    const outputFilesFiltered = outputFiles.filter(
+      (f) => !f.startsWith(".git/") && !f.startsWith(".git\\"),
+    );
+
+    // Every template file should appear in output
+    for (const templateFile of templateFiles) {
+      const normalized = templateFile.replace(/\\/g, "/");
+      const found = outputFilesFiltered.some(
+        (f) => f.replace(/\\/g, "/") === normalized,
+      );
+      expect(found, `Expected output to contain ${normalized}`).toBe(true);
+    }
+  });
+
+  it("generates package.json with correct dependencies", async () => {
+    await scaffold({
+      moduleName: "my-orders",
+      outputDir,
+      templateDir: TEMPLATE_DIR,
+      monorepoRoot: MONOREPO_ROOT,
+    });
+
+    const pkgContent = await readFile(join(outputDir, "package.json"), "utf-8");
+    const pkg = JSON.parse(pkgContent);
+
+    expect(pkg.name).toBe("@hexalith/my-orders");
+    expect(pkg.type).toBe("module");
+    expect(pkg.peerDependencies).toHaveProperty("@hexalith/shell-api");
+    expect(pkg.peerDependencies).toHaveProperty("@hexalith/cqrs-client");
+    expect(pkg.peerDependencies).toHaveProperty("@hexalith/ui");
+    expect(pkg.peerDependencies).toHaveProperty("react");
+    expect(pkg.peerDependencies).toHaveProperty("react-dom");
+    expect(pkg.peerDependencies).toHaveProperty("zod");
+  });
+
+  it("generates tsconfig.json that extends base", async () => {
+    await scaffold({
+      moduleName: "my-orders",
+      outputDir,
+      templateDir: TEMPLATE_DIR,
+      monorepoRoot: MONOREPO_ROOT,
+    });
+
+    const tsconfigContent = await readFile(join(outputDir, "tsconfig.json"), "utf-8");
+    const tsconfig = JSON.parse(tsconfigContent);
+
+    expect(tsconfig.extends).toBe("@hexalith/tsconfig/base.json");
+    expect(tsconfig.compilerOptions.jsx).toBe("react-jsx");
+  });
+
+  it("applies module name substitution correctly", async () => {
+    await scaffold({
+      moduleName: "my-orders",
+      outputDir,
+      templateDir: TEMPLATE_DIR,
+      monorepoRoot: MONOREPO_ROOT,
+    });
+
+    const manifestContent = await readFile(join(outputDir, "src", "manifest.ts"), "utf-8");
+    expect(manifestContent).toContain('"my-orders"');
+    expect(manifestContent).toContain('"My Orders"');
+    expect(manifestContent).not.toContain("__MODULE_NAME__");
+    expect(manifestContent).not.toContain("__MODULE_DISPLAY_NAME__");
+
+    const routesContent = await readFile(join(outputDir, "src", "routes.tsx"), "utf-8");
+    expect(routesContent).toContain("MyOrdersRootPage");
+    expect(routesContent).not.toContain("ExampleRootPage");
+
+    const indexContent = await readFile(join(outputDir, "src", "index.ts"), "utf-8");
+    expect(indexContent).toContain("export { MyOrdersRootPage as default }");
+  });
+
+  it("includes ESLint config", async () => {
+    await scaffold({
+      moduleName: "my-orders",
+      outputDir,
+      templateDir: TEMPLATE_DIR,
+      monorepoRoot: MONOREPO_ROOT,
+    });
+
+    expect(existsSync(join(outputDir, "eslint.config.js"))).toBe(true);
+    const eslintContent = await readFile(join(outputDir, "eslint.config.js"), "utf-8");
+    expect(eslintContent).toContain("module-boundaries");
+  });
+
+  it("includes .gitignore and .gitattributes", async () => {
+    await scaffold({
+      moduleName: "my-orders",
+      outputDir,
+      templateDir: TEMPLATE_DIR,
+      monorepoRoot: MONOREPO_ROOT,
+    });
+
+    expect(existsSync(join(outputDir, ".gitignore"))).toBe(true);
+    expect(existsSync(join(outputDir, ".gitattributes"))).toBe(true);
+
+    const gitattributes = await readFile(join(outputDir, ".gitattributes"), "utf-8");
+    expect(gitattributes).toContain("text=auto eol=lf");
+  });
+
+  it("includes a standalone stylelint config", async () => {
+    await scaffold({
+      moduleName: "my-orders",
+      outputDir,
+      templateDir: TEMPLATE_DIR,
+      monorepoRoot: MONOREPO_ROOT,
+    });
+
+    const stylelintContent = await readFile(join(outputDir, ".stylelintrc.json"), "utf-8");
+    expect(stylelintContent).toContain("@hexalith/ui/dist/tokenCompliance.js");
+    expect(stylelintContent).not.toContain("../../.stylelintrc.json");
+  });
+
+  it("initializes git repository", async () => {
+    await scaffold({
+      moduleName: "my-orders",
+      outputDir,
+      templateDir: TEMPLATE_DIR,
+      monorepoRoot: MONOREPO_ROOT,
+    });
+
+    expect(existsSync(join(outputDir, ".git"))).toBe(true);
+  });
+
+  it("has no unreplaced placeholder tokens in output", async () => {
+    await scaffold({
+      moduleName: "my-orders",
+      outputDir,
+      templateDir: TEMPLATE_DIR,
+      monorepoRoot: MONOREPO_ROOT,
+    });
+
+    const files = await getAllFiles(outputDir);
+    const textFiles = files.filter((f) => {
+      const ext = f.substring(f.lastIndexOf(".")).toLowerCase();
+      return [".ts", ".tsx", ".json", ".md", ".html", ".css", ".js"].includes(ext);
+    });
+
+    for (const file of textFiles) {
+      const content = await readFile(join(outputDir, file), "utf-8");
+      const matches = content.match(/__[A-Z_]+__/g);
+      expect(
+        matches,
+        `Found unreplaced placeholder(s) in ${file}: ${matches?.join(", ")}`,
+      ).toBeNull();
+    }
+  });
+
+  it("type-checks the scaffolded source against workspace types", async () => {
+    await scaffold({
+      moduleName: "my-orders",
+      outputDir,
+      templateDir: TEMPLATE_DIR,
+      monorepoRoot: MONOREPO_ROOT,
+    });
+
+    // Create a temporary tsconfig for type-checking the output.
+    // Inline base config settings because the temp dir has no node_modules.
+    const tsconfigContent = JSON.stringify({
+      compilerOptions: {
+        strict: true,
+        target: "ES2022",
+        module: "ESNext",
+        moduleResolution: "bundler",
+        esModuleInterop: true,
+        skipLibCheck: true,
+        forceConsistentCasingInFileNames: true,
+        resolveJsonModule: true,
+        isolatedModules: true,
+        jsx: "react-jsx",
+        lib: ["ES2022", "DOM", "DOM.Iterable"],
+        noEmit: true,
+        typeRoots: [join(PACKAGE_ROOT, "node_modules/@types")],
+        paths: {
+          "@hexalith/shell-api": [join(MONOREPO_ROOT, "packages/shell-api/src/index.ts")],
+          "@hexalith/cqrs-client": [join(MONOREPO_ROOT, "packages/cqrs-client/src/index.ts")],
+          "@hexalith/ui": [join(MONOREPO_ROOT, "packages/ui/src/index.ts")],
+        },
+      },
+      include: ["src/**/*.ts", "src/**/*.tsx"],
+    });
+
+    const { writeFile: writeFs } = await import("node:fs/promises");
+    await writeFs(join(outputDir, "tsconfig.check.json"), tsconfigContent);
+
+    // Run tsc --noEmit to verify types using the monorepo's typescript
+    const tscLib = join(MONOREPO_ROOT, "node_modules", "typescript", "lib", "tsc.js");
+    try {
+      await execFileAsync(
+        process.execPath,
+        [tscLib, "-p", "tsconfig.check.json", "--noEmit"],
+        { cwd: outputDir },
+      );
+    } catch (error: unknown) {
+      const execError = error as { stdout?: string; stderr?: string };
+      const output = [execError.stdout, execError.stderr].filter(Boolean).join("\n");
+      expect.unreachable(`tsc type-check failed:\n${output}`);
+    }
+  }, 30000);
+});

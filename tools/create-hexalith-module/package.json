@@ -4,6 +4,9 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "create-hexalith-module": "./dist/index.js"
+  },
   "exports": {
     ".": {
       "import": "./dist/index.js",
@@ -12,13 +15,18 @@
   },
   "scripts": {
     "build": "tsup",
-    "lint": "eslint src tsup.config.ts vitest.config.ts eslint.config.js",
+    "lint": "eslint src tsup.config.ts vitest.config.ts eslint.config.js && pnpm typecheck:templates",
+    "typecheck:templates": "tsc -p tsconfig.templates.json --noEmit",
     "test": "vitest run"
   },
   "devDependencies": {
     "@hexalith/eslint-config": "workspace:*",
     "@hexalith/tsconfig": "workspace:*",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
     "tsup": "^8.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vitest": "^3.0.0"
   }
 }
