@@ -12,7 +12,7 @@ So that I can discover, test, and copy-paste components with confidence they're 
 
 ## Critical Checklist — Must Not Miss
 
-1. Storybook 10 with `@storybook/react-vite` — NOT `@storybook/react-webpack5`
+1. Latest stable Storybook with `@storybook/react-vite` — NOT `@storybook/react-webpack5`
 2. `.storybook/` lives inside `packages/ui/` — NOT at repo root
 3. `preview.tsx` imports `MockShellProvider` from `@hexalith/shell-api` — NOT hand-rolled mocks
 4. Sidebar titles: `@hexalith/ui/{Category}/{ComponentName}` — NOT `Components/X` or `UI/X`
@@ -29,7 +29,7 @@ So that I can discover, test, and copy-paste components with confidence they're 
 
 ## Acceptance Criteria
 
-1. **Storybook launches with organized sidebar:** `pnpm storybook` launches Storybook 10 with all `@hexalith/ui` components organized by category. Sidebar titles follow `@hexalith/ui/{Category}/{ComponentName}`. Categories: Layout, Data Display, Forms, Feedback, Overlay, Navigation.
+1. **Storybook launches with organized sidebar:** `pnpm storybook` launches Storybook with all `@hexalith/ui` components organized by category. Sidebar titles follow `@hexalith/ui/{Category}/{ComponentName}`. Categories: Layout, Data Display, Forms, Feedback, Overlay, Navigation.
 
 2. **Default stories use realistic data:** Each component's default story shows the best-looking configuration with realistic domain data (order names, tenant names, dates, statuses). No lorem ipsum or placeholder text. Each story has a "View Code" panel showing clean, copy-pasteable usage code.
 
@@ -58,7 +58,7 @@ So that I can discover, test, and copy-paste components with confidence they're 
 
 - [ ] Task 1: Install Storybook and accessibility dependencies (AC: #1, #5)
   - [ ] Add to `packages/ui/package.json` devDependencies:
-    - `@storybook/react-vite` (Storybook 10 framework)
+    - `@storybook/react-vite` (Latest stable Storybook framework (the epics reference "Storybook 10" — install whatever the latest stable `@storybook/react-vite` is))
     - `@storybook/addon-essentials` (docs, controls, actions, viewport, backgrounds)
     - `@storybook/addon-a11y` (live accessibility panel in Storybook UI)
     - `@storybook/addon-interactions` (interactive testing in browser)
@@ -117,7 +117,8 @@ So that I can discover, test, and copy-paste components with confidence they're 
   - [ ] Verify `@layer` ordering resolves correctly — tokens apply in Storybook isolation
 
 - [ ] Task 3: Create composition stories — Kitchen Sink pages (AC: #3) **[HIGH PRIORITY — do before individual stories]**
-  - [ ] **RATIONALE:** Compositions are the highest-value deliverable — they test component integration and produce the Slack test screenshots. If time runs out, compositions matter more than individual stories.
+  - [ ] **RATIONALE:** Compositions are the highest-value deliverable — they test component integration AND serve as the screenshot source for the Slack test protocol (Task 15). If time runs out, compositions matter more than individual stories.
+  - [ ] **VISUAL POLISH REQUIRED:** These compositions are NOT just functional integration tests. They will be screenshotted for the Slack test where 5 engineers judge whether FrontShell looks like "the real product." Every composition must demonstrate the design system at its best: proper spacing, realistic data density, correct theme token usage, balanced visual hierarchy. Treat these as the product demo.
   - [ ] Create `packages/ui/src/stories/compositions/TenantListPage.stories.tsx`:
     - Title: `@hexalith/ui/Compositions/Tenant List Page`
     - Realistic page: PageLayout + Table with mock tenant data + pagination + search filter bar + "Create Tenant" button
@@ -139,6 +140,8 @@ So that I can discover, test, and copy-paste components with confidence they're 
     - Regions: "Europe West", "North America East", "Asia Pacific"
     - Statuses: "Active", "Suspended", "Provisioning"
     - Dates: use `new Date()` variants for realistic timestamps
+
+- [ ] **NOTE for Tasks 4-9 (individual component stories):** For MVP, each component needs only a `Default` story with `tags: ['autodocs']` and realistic domain data. Storybook autodocs auto-generates prop tables and interactive controls from TypeScript types. Variant stories showing all states/sizes/error conditions are Phase 2 polish — add them iteratively after the pipeline is proven. The variants listed below are suggestions, not requirements.
 
 - [ ] Task 4: Create component stories — Layout category (AC: #1, #2)
   - [ ] Create `packages/ui/src/components/layout/PageLayout.stories.tsx`:
@@ -344,6 +347,7 @@ So that I can discover, test, and copy-paste components with confidence they're 
     });
     ```
   - [ ] **A11Y VIOLATION RESOLUTION:** If axe-core discovers violations in existing components, fix them in this story. Accessibility fixes are corrections, not feature modifications — the "do not modify existing components" rule does not apply to a11y compliance fixes. Update the component's existing `.test.tsx` if the fix changes behavior.
+  - [ ] **AXE-CORE FALSE POSITIVES:** If axe-core flags a correctly-implemented pattern (e.g., Radix provides `aria-labelledby` but axe expects `aria-label`), use `AxeBuilder({ page }).exclude('[data-radix-*]')` or `disableRules(['specific-rule'])` with a comment explaining WHY the exclusion is justified. Document each exclusion in the spec file. Never blanket-exclude — target the specific element or rule.
 
 - [ ] Task 12: Create Design System Health gate script (AC: #6)
   - [ ] Create `packages/ui/scripts/design-system-health.ts`:
@@ -517,17 +521,17 @@ export const Default: Story = {
 
 ### Design System Health Gate — Implementation Details
 
-The gate aggregates existing tools + adds 3 checks not covered elsewhere. Design principle: don't rebuild what ESLint/Stylelint already enforce.
+The health gate runs 3 unique checks only. CI orchestrates `pnpm lint`, `pnpm test:ct`, and `pnpm health` as separate parallel steps — the gate does NOT re-invoke lint or test:ct.
 
-| Check | Tool | Threshold | New or Existing? |
-|-------|------|-----------|-----------------|
-| Token compliance | `computeComplianceScore` utility | 100% | **New script** — calls existing utility |
-| Token parity | `validateThemeContrast` + `validateContrastMatrix` | All tokens in both themes | **New script** — calls existing utilities |
-| Prop budget | TypeScript file parse of *Props interfaces | <=12 simple, <=20 complex | **New script** — not covered by lint |
-| Naming conventions | `pnpm lint` (ESLint + Stylelint) | 0 violations | **Existing** — delegated |
-| Import boundaries | `pnpm lint` (ESLint `no-restricted-imports`) | 0 violations | **Existing** — delegated |
-| Inline style ban | `pnpm lint` (ESLint) | 0 violations | **Existing** — delegated |
-| Accessibility | `pnpm test:ct` (Playwright + axe-core) | 0 violations | **Existing** — delegated |
+| Check | Tool | Threshold | Runs in |
+|-------|------|-----------|---------|
+| Token compliance | `computeComplianceScore` utility | 100% | `pnpm health` |
+| Token parity | `validateThemeContrast` + `validateContrastMatrix` | All tokens in both themes | `pnpm health` |
+| Prop budget | TypeScript file parse of declared *Props | <=12 simple, <=20 complex (declared only, not inherited) | `pnpm health` |
+| Naming conventions | ESLint + Stylelint | 0 violations | `pnpm lint` (separate CI step) |
+| Import boundaries | ESLint `no-restricted-imports` | 0 violations | `pnpm lint` (separate CI step) |
+| Inline style ban | ESLint | 0 violations | `pnpm lint` (separate CI step) |
+| Accessibility | Playwright + axe-core | 0 violations | `pnpm test:ct` (separate CI step) |
 
 **Component complexity classification for prop budget:**
 
@@ -606,7 +610,7 @@ packages/ui/
 ├── playwright/
 │   └── index.tsx                        # NEW — CT mount wrapper (MockShellProvider + tokens)
 ├── scripts/
-│   └── design-system-health.ts          # NEW — Design System Health gate script
+│   └── design-system-health.ts          # NEW — 3 unique checks (token compliance, token parity, prop budget)
 ├── docs/
 │   └── slack-test-protocol.md           # NEW — Manual Slack test documentation
 ├── src/
