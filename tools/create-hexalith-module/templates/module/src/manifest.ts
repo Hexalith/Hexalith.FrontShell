@@ -21,7 +21,11 @@ export const manifest: ModuleManifest = {
   version: "0.1.0",
 
   /** Route definitions — each `path` is relative to the module's mount point. */
-  routes: [{ path: "/" }],
+  routes: [
+    { path: "/" },
+    { path: "/:id" },
+    { path: "/create" },
+  ],
 
   /** Sidebar / top-nav entries. `path` must match a declared route. */
   navigation: [{ label: "__MODULE_DISPLAY_NAME__", path: "/" }],

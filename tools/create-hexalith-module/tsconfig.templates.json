@@ -7,7 +7,9 @@
     "paths": {
       "@hexalith/shell-api": ["../../packages/shell-api/src/index.ts"],
       "@hexalith/cqrs-client": ["../../packages/cqrs-client/src/index.ts"],
-      "@hexalith/ui": ["../../packages/ui/src/index.ts"]
+      "@hexalith/ui": ["../../packages/ui/src/index.ts"],
+      "react-router": ["../../apps/shell/node_modules/react-router/dist/development/index.d.ts"],
+      "zod": ["../../node_modules/.pnpm/zod@3.25.76/node_modules/zod/index.d.cts"]
     }
   },
   "include": ["templates/module/src/**/*.ts", "templates/module/src/**/*.tsx"]

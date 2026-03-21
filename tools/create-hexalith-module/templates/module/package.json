@@ -23,6 +23,7 @@
     "@hexalith/ui": "workspace:*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-router": "^7.6.0",
     "zod": "^3.0.0"
   },
   "devDependencies": {

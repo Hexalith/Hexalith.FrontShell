@@ -1,6 +1,6 @@
 # Story 4.2: Scaffold Example Code — Premium Showcase
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -34,15 +34,17 @@ So that I see a beautiful, interactive page in the browser before writing any co
 
 6. **AC6 — Template compilation.** Given all template files are type-checked via `tsconfig.templates.json`, when the type-check runs, then all scaffold-generated `.ts` and `.tsx` files compile without errors against current `@hexalith/*` workspace package APIs.
 
-*FRs covered: FR2, FR7*
+### FRs Covered
+
+FR2, FR7
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Zod schemas and domain types (AC: #2, #3)
-  - [ ] 1.1: Create `templates/module/src/schemas/exampleSchemas.ts` — define `ExampleItemSchema` (list view model with id, name, status, description, createdAt, updatedAt fields), `ExampleDetailSchema` (full detail model extending list with additional fields like notes, category, priority), `CreateExampleCommandSchema` (command input with name, description, category, priority validated fields). Use `z.infer<typeof Schema>` for all types. Include realistic Zod constraints: `.min()`, `.max()`, `.regex()`, `.optional()`, enum union types for status/priority
+- [x] Task 1: Zod schemas and domain types (AC: #2, #3)
+  - [x] 1.1: Create `templates/module/src/schemas/exampleSchemas.ts` — define `ExampleItemSchema` (list view model with id, name, status, description, createdAt, updatedAt fields), `ExampleDetailSchema` (full detail model extending list with additional fields like notes, category, priority), `CreateExampleCommandSchema` (command input with name, description, category, priority validated fields). Use `z.infer<typeof Schema>` for all types. Include realistic Zod constraints: `.min()`, `.max()`, `.regex()`, `.optional()`, enum union types for status/priority
 
-- [ ] Task 2: Example list page with useQuery + Table (AC: #1, #4)
-  - [ ] 2.1: Create `templates/module/src/pages/ExampleListPage.tsx`:
+- [x] Task 2: Example list page with useQuery + Table (AC: #1, #4)
+  - [x] 2.1: Create `templates/module/src/pages/ExampleListPage.tsx`:
     - Import `useQuery` from `@hexalith/cqrs-client` with `ExampleItemSchema` (array). Import `TableColumn` type from `@hexalith/ui`
     - Call `useQuery` with params: `{ domain: '__MODULE_NAME__', queryType: 'ExampleList' }` — add inline comment: `// Replace 'ExampleList' with your projection query type (e.g., 'OrderList') — check your backend's projection configuration for the correct name`
     - Define `columns: TableColumn<ExampleItem>[]` with realistic column definitions (name, status with badge styling, created date formatted, priority)
@@ -52,10 +54,10 @@ So that I see a beautiful, interactive page in the browser before writing any co
     - Handle empty: `<EmptyState title="No items yet" description="Create your first item to get started" action={{ label: "Create Item", onClick: handleCreate }} />`
     - Handle data: `<Table data={data} columns={columns} sorting pagination={{ pageSize: 10 }} globalSearch onRowClick={handleRowClick} caption="__MODULE_DISPLAY_NAME__ items" />`
     - Use `react-router-dom` `useNavigate` for row click navigation to detail page
-  - [ ] 2.2: Create `templates/module/src/pages/ExampleListPage.module.css` — minimal styling using ONLY design token custom properties. Use `@layer components { }` wrapping. Status badge styles using `--color-status-*` tokens
+  - [x] 2.2: Create `templates/module/src/pages/ExampleListPage.module.css` — minimal styling using ONLY design token custom properties. Use `@layer components { }` wrapping. Status badge styles using `--color-status-*` tokens
 
-- [ ] Task 3: Example detail page with DetailView (AC: #1, #4)
-  - [ ] 3.1: Create `templates/module/src/pages/ExampleDetailPage.tsx`:
+- [x] Task 3: Example detail page with DetailView (AC: #1, #4)
+  - [x] 3.1: Create `templates/module/src/pages/ExampleDetailPage.tsx`:
     - Import `useQuery` from `@hexalith/cqrs-client` with `ExampleDetailSchema`
     - Call `useQuery` with params: `{ domain: '__MODULE_NAME__', queryType: 'ExampleDetail', aggregateId: id }` — add inline comment: `// Replace 'ExampleDetail' with your projection query type — check your backend's projection configuration`
     - Use route param (`:id`) via `useParams` from `react-router-dom`
@@ -67,14 +69,15 @@ So that I see a beautiful, interactive page in the browser before writing any co
       - "Audit Trail" (created by, created at, updated at)
     - Back navigation button to list page
 
-- [ ] Task 4: Example form page with Form + useCommandPipeline (AC: #1, #3, #4)
-  - [ ] 4.1: Create `templates/module/src/pages/ExampleCreatePage.tsx`:
+- [x] Task 4: Example form page with Form + useCommandPipeline (AC: #1, #3, #4)
+  - [x] 4.1: Create `templates/module/src/pages/ExampleCreatePage.tsx`:
     - Import `useCommandPipeline` and `SubmitCommandInput` type from `@hexalith/cqrs-client`
     - Import `Form`, `FormField`, `Input`, `Select`, `TextArea`, `Button` from `@hexalith/ui`
     - Import `useToast` from `@hexalith/ui` for success/error notifications
     - Import `CreateExampleCommandSchema` from schemas
     - For aggregate ID generation: use `crypto.randomUUID()` (Node 19+ / all modern browsers). Do NOT add a `ulidx` dependency — `ulidx` is used internally by `@hexalith/cqrs-client` for correlation IDs, but modules should use standard `crypto.randomUUID()` for aggregate IDs
     - Use `useCommandPipeline` to send a `CreateExample` command:
+
       ```typescript
       const { send, status, error } = useCommandPipeline();
       // CQRS commands are async — you send a command to EventStore, then the hook
@@ -82,13 +85,14 @@ So that I see a beautiful, interactive page in the browser before writing any co
       // Status flow: idle → sending → polling → completed | rejected | failed | timedOut
       const handleSubmit = async (data: CreateExampleInput) => {
         await send({
-          commandName: 'CreateExample', // Replace with your command name
-          aggregateName: '__MODULE_NAME__', // Replace with your aggregate name
+          commandName: "CreateExample", // Replace with your command name
+          aggregateName: "__MODULE_NAME__", // Replace with your aggregate name
           aggregateId: crypto.randomUUID(),
           body: data,
         });
       };
       ```
+
     - Show command status feedback: idle → sending → polling → completed/rejected/failed
     - On success: use `useToast` from `@hexalith/ui` to show success toast, then navigate back to list
     - On error: show `<ErrorDisplay>` with the command error
@@ -96,25 +100,25 @@ So that I see a beautiful, interactive page in the browser before writing any co
     - Include `<FormField>` wrappers for: name (`<Input>`), description (`<TextArea>`), category (`<Select>` with options), priority (`<Select>` with options)
     - Form buttons: `<Button variant="ghost" type="reset">Cancel</Button>` + `<Button variant="primary" type="submit" disabled={status === 'sending' || status === 'polling'}>Create</Button>`
 
-- [ ] Task 5: Route definitions and manifest update (AC: #1, #5)
-  - [ ] 5.1: Update `templates/module/src/routes.tsx` — define routes for `ExampleListPage` (index route), `ExampleDetailPage` (`/:id`), and `ExampleCreatePage` (`/create`). Use `React.lazy()` for code-splitting each page
-  - [ ] 5.2: Update `templates/module/src/manifest.ts` — update routes array with list/detail/create paths, update navigation with display name and icon
+- [x] Task 5: Route definitions and manifest update (AC: #1, #5)
+  - [x] 5.1: Update `templates/module/src/routes.tsx` — define routes for `ExampleListPage` (index route), `ExampleDetailPage` (`/:id`), and `ExampleCreatePage` (`/create`). Use `React.lazy()` for code-splitting each page
+  - [x] 5.2: Update `templates/module/src/manifest.ts` — update routes array with list/detail/create paths, update navigation with display name and icon
 
-- [ ] Task 6: Module entry point and CSS (AC: #4)
-  - [ ] 6.1: Update `templates/module/src/index.ts` — export manifest, route component, and re-export domain types from schemas
-  - [ ] 6.2: Ensure all CSS in template files uses `@layer components { }` wrapping with design token custom properties exclusively — zero raw color/spacing/font values
+- [x] Task 6: Module entry point and CSS (AC: #4)
+  - [x] 6.1: Update `templates/module/src/index.ts` — export manifest, route component, and re-export domain types from schemas
+  - [x] 6.2: Ensure all CSS in template files uses `@layer components { }` wrapping with design token custom properties exclusively — zero raw color/spacing/font values
 
-- [ ] Task 7: Realistic sample data and template package.json update (AC: #4, #6)
-  - [ ] 7.1: Create `templates/module/src/data/sampleData.ts` — realistic domain data arrays with proper dates, statuses, names (not "Test Item 1" or "Lorem Ipsum"). Use generic-but-professional domain vocabulary: project names, resource names, department names — NOT tenant-specific terms (the scaffold is domain-agnostic). Business-relevant statuses (Active/Inactive/Pending/Archived), dates spanning several months (ISO 8601), realistic descriptions. At least 8-12 items. This data is used by MockQueryBus responses in the dev host. Export query param constants (`EXAMPLE_LIST_QUERY = { domain: '__MODULE_NAME__', queryType: 'ExampleList' }`) so the dev host's MockQueryBus handler can match them
-  - [ ] 7.2: Ensure sample data matches the Zod schemas exactly (type-safe, validated at import time)
-  - [ ] 7.3: Update `templates/module/package.json` (from Story 4.1) — add `react-router-dom` as a peerDependency (version `^7.0.0` or matching shell's version). This is required because the example pages import `useNavigate` and `useParams` from `react-router-dom`. Verify the version matches what the shell app uses
+- [x] Task 7: Realistic sample data and template package.json update (AC: #4, #6)
+  - [x] 7.1: Create `templates/module/src/data/sampleData.ts` — realistic domain data arrays with proper dates, statuses, names (not "Test Item 1" or "Lorem Ipsum"). Use generic-but-professional domain vocabulary: project names, resource names, department names — NOT tenant-specific terms (the scaffold is domain-agnostic). Business-relevant statuses (Active/Inactive/Pending/Archived), dates spanning several months (ISO 8601), realistic descriptions. At least 8-12 items. This data is used by MockQueryBus responses in the dev host. Export query param constants (`EXAMPLE_LIST_QUERY = { domain: '__MODULE_NAME__', queryType: 'ExampleList' }`) so the dev host's MockQueryBus handler can match them
+  - [x] 7.2: Ensure sample data matches the Zod schemas exactly (type-safe, validated at import time)
+  - [x] 7.3: Update `templates/module/package.json` (from Story 4.1) — add `react-router-dom` as a peerDependency (version `^7.0.0` or matching shell's version). This is required because the example pages import `useNavigate` and `useParams` from `react-router-dom`. Verify the version matches what the shell app uses
 
-- [ ] Task 8: Verification (AC: #1-#6)
-  - [ ] 8.1: Verify all template files compile against `@hexalith/*` workspace packages via `tsconfig.templates.json` — the type-check must pass with current API surfaces (AC: #6)
-  - [ ] 8.2: Verify the `Example` prefix naming convention is consistent: `ExampleListPage`, `ExampleDetailPage`, `ExampleCreatePage`, `ExampleItemSchema`, `ExampleDetailSchema`, `CreateExampleCommandSchema` — all must match the PascalCase-aware regex replacement pattern from Story 4.1 (`/\bExample(?=[A-Z])/g`)
-  - [ ] 8.3: Verify no `@radix-ui/*` direct imports, no `oidc-client-ts`, no `ky`, no `@tanstack/*` direct imports in template code — only `@hexalith/*` packages
-  - [ ] 8.4: Verify no inline styles (`style={{}}`) in any template component — CSS Modules only
-  - [ ] 8.5: Verify all CSS files use only design token custom properties (e.g., `var(--color-*)`, `var(--spacing-*)`) — zero hard-coded colors, font sizes, or spacing values
+- [x] Task 8: Verification (AC: #1-#6)
+  - [x] 8.1: Verify all template files compile against `@hexalith/*` workspace packages via `tsconfig.templates.json` — the type-check must pass with current API surfaces (AC: #6)
+  - [x] 8.2: Verify the `Example` prefix naming convention is consistent: `ExampleListPage`, `ExampleDetailPage`, `ExampleCreatePage`, `ExampleItemSchema`, `ExampleDetailSchema`, `CreateExampleCommandSchema` — all must match the PascalCase-aware regex replacement pattern from Story 4.1 (`/\bExample(?=[A-Z])/g`)
+  - [x] 8.3: Verify no `@radix-ui/*` direct imports, no `oidc-client-ts`, no `ky`, no `@tanstack/*` direct imports in template code — only `@hexalith/*` packages
+  - [x] 8.4: Verify no inline styles (`style={{}}`) in any template component — CSS Modules only
+  - [x] 8.5: Verify all CSS files use only design token custom properties (e.g., `var(--color-*)`, `var(--spacing-*)`) — zero hard-coded colors, font sizes, or spacing values
 
 ## Dev Notes
 
@@ -123,6 +127,7 @@ So that I see a beautiful, interactive page in the browser before writing any co
 **This story creates the premium example pages, schemas, and sample data inside the scaffold template.** It builds on Story 4.1's CLI and template infrastructure. The generated code should be beautiful, realistic, and demonstrate the platform's core value proposition.
 
 **This story IS:**
+
 - Example page components (ExampleListPage, ExampleDetailPage, ExampleCreatePage)
 - Zod schemas with realistic validation rules
 - Sample data for mock query responses
@@ -130,6 +135,7 @@ So that I see a beautiful, interactive page in the browser before writing any co
 - Route definitions linking pages together
 
 **This story is NOT:**
+
 - MockShellProvider wiring in dev-host (Story 4.3 — the dev host renders these pages but the mock provider setup is 4.3's scope)
 - Pre-built test fixtures or passing tests (Story 4.4 — tests come after the example code exists)
 - Full typed manifest contract (Story 4.5 — expands the manifest schema beyond what 4.2 needs)
@@ -153,9 +159,9 @@ So that I see a beautiful, interactive page in the browser before writing any co
 
 7. **Import order convention.** React first, external libraries, `@hexalith/*` packages, relative imports, CSS Modules last. No blank lines within groups, one blank line between groups. [Source: ESLint config]
 
-8. **File names keep `Example` prefix — this is intentional.** Story 4.1's scaffold engine replaces `Example` in file *content* only (via PascalCase regex), NOT in file names. So `ExampleListPage.tsx` stays as `ExampleListPage.tsx` in the scaffolded output, but internal identifiers like `ExampleListPage` component name become `MyOrdersListPage`. The CSS Module import `'./ExampleListPage.module.css'` also stays unchanged since it's a string literal, not a PascalCase identifier. This is correct — developers rename files manually if desired. [Source: Story 4.1 Task 5.5]
+8. **File names keep `Example` prefix — this is intentional.** Story 4.1's scaffold engine replaces `Example` in file _content_ only (via PascalCase regex), NOT in file names. So `ExampleListPage.tsx` stays as `ExampleListPage.tsx` in the scaffolded output, but internal identifiers like `ExampleListPage` component name become `MyOrdersListPage`. The CSS Module import `'./ExampleListPage.module.css'` also stays unchanged since it's a string literal, not a PascalCase identifier. This is correct — developers rename files manually if desired. [Source: Story 4.1 Task 5.5]
 
-9. **(CRITICAL) Example pages are teaching artifacts — include strategic inline comments.** Each page component should include brief inline comments explaining *why* (not *what*) at key CQRS integration points. Examples: `// useQuery validates the response against the Zod schema at runtime`, `// CQRS commands are async — the hook polls the backend for the command result (accepted/rejected)`, `// Replace 'ExampleList' with your projection query type (e.g., 'OrderList')`. These comments help developers understand the platform patterns, not just copy code. Keep comments sparse and high-value — do NOT over-comment obvious React patterns.
+9. **(CRITICAL) Example pages are teaching artifacts — include strategic inline comments.** Each page component should include brief inline comments explaining _why_ (not _what_) at key CQRS integration points. Examples: `// useQuery validates the response against the Zod schema at runtime`, `// CQRS commands are async — the hook polls the backend for the command result (accepted/rejected)`, `// Replace 'ExampleList' with your projection query type (e.g., 'OrderList')`. These comments help developers understand the platform patterns, not just copy code. Keep comments sparse and high-value — do NOT over-comment obvious React patterns.
 
 ### Existing Codebase Context — MUST Reference
 
@@ -185,43 +191,48 @@ useCommandPipeline() → {
 ```
 
 **CRITICAL hook name mapping:**
+
 - Epics file says `useProjection` → actual codebase export is `useQuery` (accepts Zod schema)
 - Epics file says `useCommand` → actual codebase export is `useCommandPipeline` (three-phase lifecycle)
 - The scaffold MUST use `useQuery` and `useCommandPipeline` — these are the real exported names
 
 **Key type imports from `@hexalith/cqrs-client`:**
+
 - `SubmitCommandInput` — the input shape for `useCommandPipeline().send()`. Import it for type annotations on the command payload
 - `HexalithError` — base error type returned by `error` fields in hooks
 - `CommandStatus`, `PipelineStatus` — status literal union types
 
 **Key type imports from `@hexalith/ui`:**
+
 - `TableColumn<T>` — column definition type for `<Table>` component. Import: `import type { TableColumn } from '@hexalith/ui'`
 
 **@hexalith/ui component signatures (actual exports):**
 
-| Component | Key Props |
-|-----------|-----------|
-| `PageLayout` | `title`, `subtitle`, `actions`, `children`, `className` |
-| `Table` | `data`, `columns`, `sorting`, `pagination`, `globalSearch`, `onRowClick`, `caption` |
-| `DetailView` | `sections` (array of `{title, fields}`), `actions`, `density`, `loading` |
-| `Form` | `schema` (Zod), `onSubmit`, `density`, `children` (FormField + Button) |
-| `FormField` | `name`, `children` (Input/Select/TextArea) |
-| `Input` | `label`, `placeholder`, `required`, `disabled` |
-| `Select` | `label`, `options`, `placeholder`, `required` |
-| `TextArea` | `label`, `placeholder`, `required`, `rows` |
-| `Button` | `variant` ('primary'/'secondary'/'ghost'), `size`, `type`, `disabled` |
-| `Skeleton` | `variant` ('table'/'form'/'detail'/'card'), `rows`/`fields`, `isReady` |
-| `EmptyState` | `title`, `description`, `action` (`{label, onClick}`), `illustration` |
-| `ErrorDisplay` | `error` (string/Error), `title`, `onRetry` |
-| `ErrorBoundary` | `fallback`, `onError`, `children` |
-| `Stack` | `gap` ('xs'/'sm'/'md'/'lg'/'xl'), `justify`, `align` |
-| `Inline` | `gap`, `justify`, `align` |
+| Component       | Key Props                                                                           |
+| --------------- | ----------------------------------------------------------------------------------- |
+| `PageLayout`    | `title`, `subtitle`, `actions`, `children`, `className`                             |
+| `Table`         | `data`, `columns`, `sorting`, `pagination`, `globalSearch`, `onRowClick`, `caption` |
+| `DetailView`    | `sections` (array of `{title, fields}`), `actions`, `density`, `loading`            |
+| `Form`          | `schema` (Zod), `onSubmit`, `density`, `children` (FormField + Button)              |
+| `FormField`     | `name`, `children` (Input/Select/TextArea)                                          |
+| `Input`         | `label`, `placeholder`, `required`, `disabled`                                      |
+| `Select`        | `label`, `options`, `placeholder`, `required`                                       |
+| `TextArea`      | `label`, `placeholder`, `required`, `rows`                                          |
+| `Button`        | `variant` ('primary'/'secondary'/'ghost'), `size`, `type`, `disabled`               |
+| `Skeleton`      | `variant` ('table'/'form'/'detail'/'card'), `rows`/`fields`, `isReady`              |
+| `EmptyState`    | `title`, `description`, `action` (`{label, onClick}`), `illustration`               |
+| `ErrorDisplay`  | `error` (string/Error), `title`, `onRetry`                                          |
+| `ErrorBoundary` | `fallback`, `onError`, `children`                                                   |
+| `Stack`         | `gap` ('xs'/'sm'/'md'/'lg'/'xl'), `justify`, `align`                                |
+| `Inline`        | `gap`, `justify`, `align`                                                           |
 
 **@hexalith/shell-api testing:**
+
 - `MockShellProvider` — wraps children with all mock providers
 - `createMockAuthContext()`, `createMockTenantContext()`, `createMockConnectionHealthContext()`, `createMockFormDirtyContext()`
 
 **Mock implementations from @hexalith/cqrs-client:**
+
 - `MockCommandBus` — implements `ICommandBus`
 - `MockQueryBus` — implements `IQueryBus`
 - `MockSignalRHub` — implements SignalR hub interface
@@ -263,6 +274,7 @@ useCommandPipeline() → {
 ### Sample Data Guidelines
 
 Sample data must be **realistic and domain-agnostic** (the scaffold is not tied to any specific domain):
+
 - Use generic-but-professional entity names: project names ("Project Atlas", "Operation Horizon"), resource names ("Northern Distribution Hub"), department names — NOT tenant-specific terms like "Contoso" which imply a specific domain
 - Use realistic statuses: `Active`, `Inactive`, `Pending`, `Archived`
 - Use date strings spanning several months (ISO 8601 format)
@@ -283,6 +295,7 @@ Sample data must be **realistic and domain-agnostic** (the scaffold is not tied 
 ### Canonical Page Composition Pattern (Source of Truth)
 
 The scaffold **establishes** the canonical page composition pattern that all future modules (including the Tenants reference module in Epic 6) SHOULD follow:
+
 1. **List page** — Table with sorting, pagination, global search, row click to detail
 2. **Detail page** — DetailView with sections, action buttons (edit, delete), back navigation
 3. **Create page** — Form with Zod validation, command submission via `useCommandPipeline`, success/error feedback
@@ -295,6 +308,7 @@ List page auto-loads with realistic data in Table → developer clicks a row →
 ### Git Intelligence — Established Patterns
 
 Epic 3 (Component Library) is complete. Patterns confirmed from recent commits:
+
 - Components follow `Component.tsx` + `Component.module.css` + `Component.test.tsx` + `Component.stories.tsx` co-located pattern
 - All CSS uses `@layer components { }` wrapping with design token custom properties
 - Tests: `@testing-library/react` + `vitest` (`.test.tsx`), Playwright CT (`.spec.tsx`)
@@ -304,6 +318,7 @@ Epic 3 (Component Library) is complete. Patterns confirmed from recent commits:
 ### Previous Story Intelligence (Story 4.1)
 
 Story 4.1 (`4-1-create-hexalith-module-cli`) is currently `in-progress` and establishes:
+
 - CLI entry point at `tools/create-hexalith-module/src/index.ts`
 - Scaffold engine at `tools/create-hexalith-module/src/scaffold.ts`
 - Template files in `tools/create-hexalith-module/templates/module/`
@@ -313,6 +328,7 @@ Story 4.1 (`4-1-create-hexalith-module-cli`) is currently `in-progress` and esta
 - `pnpm create-module <name>` workspace script
 
 **Key decisions from 4.1 that affect 4.2:**
+
 - Template files must be real TypeScript that compiles in the monorepo
 - `Example` prefix must always be followed by uppercase (regex: `/\bExample(?=[A-Z])/g`)
 - Sub-folder structure: `src/schemas/`, `src/pages/`, `src/components/`, `src/hooks/`, `src/data/` — created as `.gitkeep` placeholders in 4.1, populated with real files in 4.2
@@ -351,8 +367,73 @@ Story 4.1 (`4-1-create-hexalith-module-cli`) is currently `in-progress` and esta
 
 ### Agent Model Used
 
+Claude Opus 4.6 (1M context)
+
 ### Debug Log References
+
+- Type-check initially failed due to missing `react-router` and `zod` path mappings in `tsconfig.templates.json`. Resolved by adding paths entries.
+- `SpacingScale` type uses numeric strings (`'0'`-`'8'`), not named tokens (`'sm'`/`'md'`). Story description used wrong values; fixed to use `'2'`.
+- Shell uses `react-router` v7 (unified package), not `react-router-dom`. All imports use `from "react-router"`.
+- `SubmitCommandInput.commandType` and `.domain` and `.payload` are the actual field names (story description used `commandName`, `aggregateName`, `body`).
+- CSS design tokens use numeric suffixes (`--spacing-2`, `--spacing-4`), not named ones (`--spacing-xs`, `--spacing-sm`).
+- Created `css-modules.d.ts` for template CSS module type declarations.
 
 ### Completion Notes List
 
+- Task 1: Created `exampleSchemas.ts` with `ExampleItemSchema`, `ExampleDetailSchema`, `CreateExampleCommandSchema`. All types inferred via `z.infer`. Realistic Zod constraints include `.min()`, `.max()`, `.optional()`, union literal types for status/priority.
+- Task 2: Created `ExampleListPage.tsx` with `useQuery` (array schema), `TableColumn<ExampleItem>[]` with sorting/filtering, status badge cells with CSS Module styling, full loading/error/empty state handling, row click navigation via `useNavigate`. Created `ExampleListPage.module.css` with `@layer components` and design token custom properties only.
+- Task 3: Created `ExampleDetailPage.tsx` with `useQuery` (single item), `DetailView` with "General Information" and "Audit Trail" sections, back/edit/delete action buttons, ISO date formatting via `Intl.DateTimeFormat`.
+- Task 4: Created `ExampleCreatePage.tsx` with `useCommandPipeline`, `Form` + Zod schema validation, `FormField` wrappers for all inputs, `crypto.randomUUID()` for aggregate ID, toast notification on success, command status feedback (sending/polling/completed), disabled submit during busy state.
+- Task 4: Updated `ExampleCreatePage.tsx` so success feedback and navigation occur only after the command pipeline reaches `completed`, with explicit sending/polling/rejected/failed/timedOut user feedback during the lifecycle.
+- Task 5: Updated `routes.tsx` with `React.lazy()` code-splitting for all 3 pages, `Suspense` with `Skeleton` fallback. Updated `manifest.ts` with list/detail/create routes.
+- Task 6: Updated `index.ts` to re-export domain types and schemas from `exampleSchemas.ts`. CSS uses `@layer components` wrapping with design tokens exclusively.
+- Task 7: Created `sampleData.ts` with 12 realistic domain-agnostic items (project names, professional vocabulary, ISO 8601 dates spanning months, mixed statuses). Exported query param constants for MockQueryBus matching. Added `react-router: "^7.6.0"` as peerDependency in `package.json`.
+- Task 7: Updated `sampleData.ts` so sample items and detail records are validated against `ExampleItemSchema` and `ExampleDetailSchema` at import time.
+- Task 8: Template verification passes — `tsc -p tools/create-hexalith-module/tsconfig.templates.json` and `eslint tools/create-hexalith-module/templates/module/src --ext .ts,.tsx,.css` both succeed. The canonical `pnpm lint:styles` gate still reports unrelated existing workspace warnings outside this story's scaffold files.
+- Additional: Updated `tsconfig.templates.json` with `react-router` and `zod` path mappings to enable template type-checking. Created `css-modules.d.ts` in template sources.
+
+### Change Log
+
+- 2026-03-21: Implemented all 8 tasks for Story 4.2 — premium example pages, schemas, sample data, routes, and verification
+- 2026-03-21: Fixed code review findings — command pipeline success timing, stronger schema validation, import-time sample data validation, import-order cleanup, and status badge CSS compatibility
+
 ### File List
+
+- `tools/create-hexalith-module/templates/module/src/schemas/exampleSchemas.ts` (new)
+- `tools/create-hexalith-module/templates/module/src/pages/ExampleListPage.tsx` (new)
+- `tools/create-hexalith-module/templates/module/src/pages/ExampleListPage.module.css` (new)
+- `tools/create-hexalith-module/templates/module/src/pages/ExampleDetailPage.tsx` (new)
+- `tools/create-hexalith-module/templates/module/src/pages/ExampleCreatePage.tsx` (new)
+- `tools/create-hexalith-module/templates/module/src/data/sampleData.ts` (new)
+- `tools/create-hexalith-module/templates/module/src/css-modules.d.ts` (new)
+- `tools/create-hexalith-module/templates/module/src/routes.tsx` (modified)
+- `tools/create-hexalith-module/templates/module/src/manifest.ts` (modified)
+- `tools/create-hexalith-module/templates/module/src/index.ts` (modified)
+- `tools/create-hexalith-module/templates/module/package.json` (modified)
+- `tools/create-hexalith-module/tsconfig.templates.json` (modified)
+
+## Senior Developer Review (AI)
+
+### Reviewer
+
+GitHub Copilot (GPT-5.4) — 2026-03-21
+
+### Findings Resolution
+
+- Fixed the create-page command flow so success toast + navigation happen only after `useCommandPipeline()` reaches `completed`.
+- Added stronger UUID / ISO 8601 / regex-backed validation to the scaffold schemas.
+- Validated sample data against the Zod schemas at import time.
+- Resolved template ESLint import-order violations.
+- Replaced the `color-mix()` badge background pattern with token-only border/background styling to avoid the prior compatibility warning.
+
+### Validation
+
+- ✅ `pnpm exec tsc -p tools/create-hexalith-module/tsconfig.templates.json`
+- ✅ `pnpm exec eslint tools/create-hexalith-module/templates/module/src --ext .ts,.tsx,.css`
+- ✅ Editor diagnostics for the changed scaffold files are clean
+- ℹ️ `pnpm lint:styles` still reports pre-existing workspace warnings outside the Story 4.2 scaffold files
+
+### Review Outcome
+
+- All previously identified HIGH and MEDIUM issues were fixed.
+- Story is ready to move from `review` to `done`.
