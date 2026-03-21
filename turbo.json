@@ -15,6 +15,17 @@
     "dev": {
       "persistent": true,
       "cache": false
+    },
+    "storybook": {
+      "persistent": true,
+      "cache": false
+    },
+    "build-storybook": {
+      "dependsOn": ["build"],
+      "outputs": ["storybook-static/**"]
+    },
+    "test:ct": {
+      "dependsOn": ["build"]
     }
   }
 }

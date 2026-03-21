@@ -77,12 +77,12 @@ development_status:
   3-6-data-table-advanced-features: done
   3-7-form-and-detail-view-components: done
   3-8-overlay-components: done
-  3-9-storybook-showcase-and-accessibility-pipeline: ready-for-dev
+  3-9-storybook-showcase-and-accessibility-pipeline: done
   epic-3-retrospective: optional
 
   # Epic 4: Module Scaffold & Independent Development
-  epic-4: backlog
-  4-1-create-hexalith-module-cli: backlog
+  epic-4: in-progress
+  4-1-create-hexalith-module-cli: ready-for-dev
   4-2-scaffold-example-code-premium-showcase: backlog
   4-3-dev-host-for-independent-module-development: backlog
   4-4-scaffolded-tests-and-test-fixtures: backlog

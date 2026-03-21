@@ -440,6 +440,14 @@ dist/
 # Vitest
 coverage/
 
+# Storybook
+storybook-static/
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+
 # pnpm
 pnpm-debug.log*
 

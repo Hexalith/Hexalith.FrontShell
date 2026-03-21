@@ -14,7 +14,11 @@
   "scripts": {
     "build": "tsup",
     "lint": "pnpm build && eslint src tsup.config.ts vitest.config.ts eslint.config.js && node ../../scripts/run-stylelint.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "test:ct": "playwright test -c playwright-ct.config.ts",
+    "health": "tsx scripts/design-system-health.ts"
   },
   "peerDependencies": {
     "@hexalith/shell-api": "workspace:*",
@@ -23,8 +27,16 @@
     "zod": "^3.0.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.0",
     "@hexalith/eslint-config": "workspace:*",
     "@hexalith/tsconfig": "workspace:*",
+    "@playwright/experimental-ct-react": "^1.52.0",
+    "@playwright/test": "^1.52.0",
+    "@storybook/addon-a11y": "^8.6.0",
+    "@storybook/addon-essentials": "^8.6.0",
+    "@storybook/addon-interactions": "^8.6.0",
+    "@storybook/react": "^8.6.0",
+    "@storybook/react-vite": "^8.6.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
@@ -32,8 +44,10 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "jsdom": "^29.0.1",
+    "storybook": "^8.6.0",
     "stylelint": "^17.4.0",
     "tsup": "^8.0.0",
+    "tsx": "^4.0.0",
     "typescript": "^5.0.0",
     "zod": "^3.0.0"
   },

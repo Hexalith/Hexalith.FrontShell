@@ -98,6 +98,7 @@ export function Skeleton({
     <div
       className={clsx(styles.root, className)}
       data-variant={variant}
+      role="status"
       aria-busy="true"
       aria-label="Loading content"
     >

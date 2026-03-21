@@ -65,6 +65,21 @@ jobs:
       - name: Test
         run: pnpm turbo test
 
+      # ─── Storybook Build ───
+      - name: Build Storybook
+        run: pnpm --filter @hexalith/ui build-storybook
+
+      # ─── Playwright Component Tests (a11y) ───
+      - name: Install Playwright Browsers
+        run: pnpx playwright install --with-deps chromium
+
+      - name: Playwright Component Tests
+        run: pnpm --filter @hexalith/ui test:ct
+
+      # ─── Design System Health Gate ───
+      - name: Design System Health
+        run: pnpm --filter @hexalith/ui health
+
       # ─── Build duration tracking & regression detection ───
       - name: Restore build time history
         if: github.ref == 'refs/heads/main'
