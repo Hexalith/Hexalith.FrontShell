@@ -1,0 +1,79 @@
+@layer components {
+  .detailView {
+    --spacing-section: var(--spacing-6);
+    max-width: 800px;
+    width: 100%;
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--spacing-4);
+    margin-bottom: var(--spacing-section);
+  }
+
+  .headerSpacer {
+    flex: 1;
+  }
+
+  .section {
+    margin: 0;
+  }
+
+  .sectionTitle {
+    font-family: var(--font-family-sans);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+    line-height: var(--line-height-normal);
+    margin: 0 0 var(--spacing-3) 0;
+  }
+
+  .fieldGrid {
+    display: grid;
+    gap: var(--spacing-3);
+  }
+
+  .fieldRow {
+    display: grid;
+    grid-template-columns: minmax(120px, auto) 1fr;
+    gap: var(--spacing-3) var(--spacing-4);
+    align-items: baseline;
+  }
+
+  .fieldRowWide {
+    grid-template-columns: 1fr;
+  }
+
+  .fieldLabel {
+    font-family: var(--font-family-sans);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
+    line-height: var(--line-height-normal);
+  }
+
+  .fieldValue {
+    font-family: var(--font-family-sans);
+    font-size: var(--font-size-base);
+    color: var(--color-text-primary);
+    line-height: var(--line-height-normal);
+  }
+
+  .fieldValue[data-span='2'] {
+    grid-column: 1 / -1;
+  }
+
+  .fieldLabel[data-span='2'] {
+    grid-column: 1 / -1;
+  }
+
+  .detailView[data-density='compact'] {
+    --spacing-section: var(--spacing-5);
+  }
+
+  .detailView[data-density='compact'] .fieldGrid {
+    gap: var(--spacing-2);
+  }
+}

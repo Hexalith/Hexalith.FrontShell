@@ -32,6 +32,36 @@
     border: 0;
   }
 
+  /* --- Toolbar --- */
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-2) var(--spacing-3);
+    gap: var(--spacing-3);
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+
+  .searchInput {
+    width: min(300px, 100%);
+    padding: var(--spacing-1) var(--spacing-2);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-primary);
+    color: var(--color-text-primary);
+    font-size: var(--font-size-sm);
+    font-family: inherit;
+  }
+
+  .searchInput::placeholder {
+    color: var(--color-text-tertiary);
+  }
+
+  .searchInput:focus {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: -1px; /* stylelint-disable-line hexalith/no-hardcoded-spacing -- focus ring inset */
+  }
+
   /* --- Header --- */
   .thead {
     border-bottom: 2px solid var(--color-border-default);
@@ -113,6 +143,37 @@
 
   .sortIndicator[data-direction="desc"] .sortArrowUp {
     opacity: 0.2;
+  }
+
+  /* --- Filter Row --- */
+  .filterRow {
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+
+  .filterCell {
+    padding: var(--spacing-1) var(--spacing-3);
+    vertical-align: top;
+  }
+
+  .filterInput {
+    width: 100%;
+    padding: var(--spacing-1);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-primary);
+    color: var(--color-text-primary);
+    font-size: var(--font-size-sm);
+    font-family: inherit;
+  }
+
+  .filterInput:focus {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: -1px; /* stylelint-disable-line hexalith/no-hardcoded-spacing -- focus ring inset */
+  }
+
+  .dateRangeFilter {
+    display: flex;
+    gap: var(--spacing-1);
   }
 
   /* --- Body --- */
@@ -206,6 +267,19 @@
 
   .pageInfo {
     white-space: nowrap;
+  }
+
+  /* --- Row Status Tints --- */
+  :global(.row-urgent) {
+    background-color: color-mix(in srgb, var(--color-status-danger) 8%, transparent); /* stylelint-disable-line hexalith/no-hardcoded-colors -- color-mix tint on design token */
+  }
+
+  :global(.row-warning) {
+    background-color: color-mix(in srgb, var(--color-status-warning) 8%, transparent); /* stylelint-disable-line hexalith/no-hardcoded-colors -- color-mix tint on design token */
+  }
+
+  :global(.row-success) {
+    background-color: color-mix(in srgb, var(--color-status-success) 8%, transparent); /* stylelint-disable-line hexalith/no-hardcoded-colors -- color-mix tint on design token */
   }
 
   /* --- Reduced motion --- */

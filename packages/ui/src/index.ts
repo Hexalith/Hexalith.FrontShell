@@ -22,6 +22,14 @@ export type {
   SelectOption,
   SelectOptionGroup,
 } from './components/forms/Select';
+export { TextArea } from './components/forms/TextArea';
+export type { TextAreaProps } from './components/forms/TextArea';
+export { Checkbox } from './components/forms/Checkbox';
+export type { CheckboxProps } from './components/forms/Checkbox';
+export { Form, FormField, useFormStatus } from './components/forms/Form';
+export type { FormProps, FormFieldProps } from './components/forms/Form';
+export { DatePicker } from './components/forms/DatePicker';
+export type { DatePickerProps } from './components/forms/DatePicker';
 
 // --- Feedback ---
 export { ToastProvider, useToast } from './components/feedback/Toast';
@@ -47,7 +55,13 @@ export type { TooltipProps } from './components/overlay/Tooltip';
 
 // --- Data Display ---
 export { Table } from './components/data-display/Table';
-export type { TableProps, TableColumn } from './components/data-display/Table';
+export type { TableProps, TableColumn, TableFilterState } from './components/data-display/Table';
+export { DetailView } from './components/data-display/DetailView';
+export type {
+  DetailViewProps,
+  DetailSection,
+  DetailField,
+} from './components/data-display/DetailView';
 
 // --- Utilities ---
 export { computeComplianceScore } from './utils/complianceScore';
