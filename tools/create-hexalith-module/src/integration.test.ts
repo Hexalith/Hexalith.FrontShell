@@ -7,6 +7,7 @@ import { promisify } from "node:util";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { toPascalCase } from "./nameUtils.js";
 import { scaffold } from "./scaffold.js";
 
 const execFileAsync = promisify(execFile);
@@ -51,13 +52,15 @@ describe("integration: scaffold smoke test", () => {
       (f) => !f.startsWith(".git/") && !f.startsWith(".git\\"),
     );
 
-    // Every template file should appear in output
+    // Every template file should appear in output (with Example→PascalCase renaming)
+    const pascalCase = toPascalCase("my-orders");
     for (const templateFile of templateFiles) {
       const normalized = templateFile.replace(/\\/g, "/");
+      const expected = normalized.replace(/Example(?=[A-Z])/g, pascalCase);
       const found = outputFilesFiltered.some(
-        (f) => f.replace(/\\/g, "/") === normalized,
+        (f) => f.replace(/\\/g, "/") === expected,
       );
-      expect(found, `Expected output to contain ${normalized}`).toBe(true);
+      expect(found, `Expected output to contain ${expected}`).toBe(true);
     }
   });
 
@@ -219,14 +222,35 @@ describe("integration: scaffold smoke test", () => {
         jsx: "react-jsx",
         lib: ["ES2022", "DOM", "DOM.Iterable"],
         noEmit: true,
+        types: ["node"],
         typeRoots: [join(PACKAGE_ROOT, "node_modules/@types")],
         paths: {
           "@hexalith/shell-api": [join(MONOREPO_ROOT, "packages/shell-api/src/index.ts")],
           "@hexalith/cqrs-client": [join(MONOREPO_ROOT, "packages/cqrs-client/src/index.ts")],
           "@hexalith/ui": [join(MONOREPO_ROOT, "packages/ui/src/index.ts")],
+          "@hexalith/ui/tokens.css": [join(MONOREPO_ROOT, "packages/ui/src/tokens/index.css")],
+          "@vitejs/plugin-react": [
+            join(
+              MONOREPO_ROOT,
+              "node_modules/.pnpm/@vitejs+plugin-react@4.7.0_vite@6.4.1_@types+node@25.5.0_/node_modules/@vitejs/plugin-react/dist/index.d.ts",
+            ),
+          ],
+          vite: [
+            join(
+              MONOREPO_ROOT,
+              "node_modules/.pnpm/vite@6.4.1_@types+node@25.5.0/node_modules/vite/dist/node/index.d.ts",
+            ),
+          ],
+          "react-router": [join(MONOREPO_ROOT, "apps/shell/node_modules/react-router/dist/development/index.d.ts")],
+          "zod": [join(MONOREPO_ROOT, "node_modules/.pnpm/zod@3.25.76/node_modules/zod/index.d.cts")],
         },
       },
-      include: ["src/**/*.ts", "src/**/*.tsx"],
+      include: [
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "dev-host/**/*.ts",
+        "dev-host/**/*.tsx",
+      ],
     });
 
     const { writeFile: writeFs } = await import("node:fs/promises");

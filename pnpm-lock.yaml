@@ -88,6 +88,128 @@ importers:
         specifier: ^6.0.0
         version: 6.4.1(@types/node@25.5.0)(tsx@4.21.0)
 
+  modules/hexalith-demo-tasks:
+    dependencies:
+      '@hexalith/cqrs-client':
+        specifier: workspace:*
+        version: link:../../packages/cqrs-client
+      '@hexalith/shell-api':
+        specifier: workspace:*
+        version: link:../../packages/shell-api
+      '@hexalith/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      react:
+        specifier: ^19.0.0
+        version: 19.2.4
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.4(react@19.2.4)
+      react-router:
+        specifier: ^7.6.0
+        version: 7.13.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      zod:
+        specifier: ^3.0.0
+        version: 3.25.76
+    devDependencies:
+      '@hexalith/eslint-config':
+        specifier: workspace:*
+        version: link:../../packages/eslint-config
+      '@hexalith/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
+      '@testing-library/jest-dom':
+        specifier: ^6.0.0
+        version: 6.9.1
+      '@testing-library/react':
+        specifier: ^16.0.0
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.14
+      '@types/react-dom':
+        specifier: ^19.0.0
+        version: 19.2.3(@types/react@19.2.14)
+      '@vitejs/plugin-react':
+        specifier: ^4.0.0
+        version: 4.7.0(vite@6.4.1(@types/node@25.5.0)(tsx@4.21.0))
+      jsdom:
+        specifier: ^25.0.0
+        version: 25.0.1
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      vite:
+        specifier: ^6.0.0
+        version: 6.4.1(@types/node@25.5.0)(tsx@4.21.0)
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.4(@types/node@25.5.0)(jsdom@25.0.1)(tsx@4.21.0)
+
+  modules/hexalith-test-orders:
+    dependencies:
+      '@hexalith/cqrs-client':
+        specifier: workspace:*
+        version: link:../../packages/cqrs-client
+      '@hexalith/shell-api':
+        specifier: workspace:*
+        version: link:../../packages/shell-api
+      '@hexalith/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      react:
+        specifier: ^19.0.0
+        version: 19.2.4
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.4(react@19.2.4)
+      react-router:
+        specifier: ^7.6.0
+        version: 7.13.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      zod:
+        specifier: ^3.0.0
+        version: 3.25.76
+    devDependencies:
+      '@hexalith/eslint-config':
+        specifier: workspace:*
+        version: link:../../packages/eslint-config
+      '@hexalith/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
+      '@testing-library/jest-dom':
+        specifier: ^6.0.0
+        version: 6.9.1
+      '@testing-library/react':
+        specifier: ^16.0.0
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.14
+      '@types/react-dom':
+        specifier: ^19.0.0
+        version: 19.2.3(@types/react@19.2.14)
+      '@vitejs/plugin-react':
+        specifier: ^4.0.0
+        version: 4.7.0(vite@6.4.1(@types/node@25.5.0)(tsx@4.21.0))
+      jsdom:
+        specifier: ^25.0.0
+        version: 25.0.1
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      vite:
+        specifier: ^6.0.0
+        version: 6.4.1(@types/node@25.5.0)(tsx@4.21.0)
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.4(@types/node@25.5.0)(jsdom@25.0.1)(tsx@4.21.0)
+
   packages/cqrs-client:
     dependencies:
       '@hexalith/shell-api':
@@ -8512,6 +8634,48 @@ snapshots:
     optionalDependencies:
       '@types/node': 22.19.15
       jsdom: 29.0.1
+    transitivePeerDependencies:
+      - jiti
+      - less
+      - lightningcss
+      - msw
+      - sass
+      - sass-embedded
+      - stylus
+      - sugarss
+      - supports-color
+      - terser
+      - tsx
+      - yaml
+
+  vitest@3.2.4(@types/node@25.5.0)(jsdom@25.0.1)(tsx@4.21.0):
+    dependencies:
+      '@types/chai': 5.2.3
+      '@vitest/expect': 3.2.4
+      '@vitest/mocker': 3.2.4(vite@6.4.1(@types/node@25.5.0)(tsx@4.21.0))
+      '@vitest/pretty-format': 3.2.4
+      '@vitest/runner': 3.2.4
+      '@vitest/snapshot': 3.2.4
+      '@vitest/spy': 3.2.4
+      '@vitest/utils': 3.2.4
+      chai: 5.3.3
+      debug: 4.4.3
+      expect-type: 1.3.0
+      magic-string: 0.30.21
+      pathe: 2.0.3
+      picomatch: 4.0.3
+      std-env: 3.10.0
+      tinybench: 2.9.0
+      tinyexec: 0.3.2
+      tinyglobby: 0.2.15
+      tinypool: 1.1.1
+      tinyrainbow: 2.0.0
+      vite: 6.4.1(@types/node@25.5.0)(tsx@4.21.0)
+      vite-node: 3.2.4(@types/node@25.5.0)(tsx@4.21.0)
+      why-is-node-running: 2.3.0
+    optionalDependencies:
+      '@types/node': 25.5.0
+      jsdom: 25.0.1
     transitivePeerDependencies:
       - jiti
       - less

@@ -8,9 +8,20 @@
       "@hexalith/shell-api": ["../../packages/shell-api/src/index.ts"],
       "@hexalith/cqrs-client": ["../../packages/cqrs-client/src/index.ts"],
       "@hexalith/ui": ["../../packages/ui/src/index.ts"],
+      "@vitejs/plugin-react": [
+        "../../node_modules/.pnpm/@vitejs+plugin-react@4.7.0_vite@6.4.1_@types+node@25.5.0_/node_modules/@vitejs/plugin-react/dist/index.d.ts"
+      ],
+      "vite": [
+        "../../node_modules/.pnpm/vite@6.4.1_@types+node@25.5.0/node_modules/vite/dist/node/index.d.ts"
+      ],
       "react-router": ["../../apps/shell/node_modules/react-router/dist/development/index.d.ts"],
       "zod": ["../../node_modules/.pnpm/zod@3.25.76/node_modules/zod/index.d.cts"]
     }
   },
-  "include": ["templates/module/src/**/*.ts", "templates/module/src/**/*.tsx"]
+  "include": [
+    "templates/module/src/**/*.ts",
+    "templates/module/src/**/*.tsx",
+    "templates/module/dev-host/**/*.ts",
+    "templates/module/dev-host/**/*.tsx"
+  ]
 }

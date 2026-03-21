@@ -1,0 +1,21 @@
+@import "@hexalith/ui/tokens.css";
+
+body {
+  margin: 0;
+  font-family: var(--font-family-sans);
+  background: var(--color-surface-primary);
+  color: var(--color-text-primary);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+@media (prefers-color-scheme: dark) {
+  body:not([data-theme]),
+  body[data-theme="dark"],
+  [data-theme="dark"] body {
+    background: var(--color-surface-primary);
+    color: var(--color-text-primary);
+  }
+}

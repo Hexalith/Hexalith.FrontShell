@@ -94,7 +94,9 @@ export async function scaffold(options: ScaffoldOptions): Promise<string[]> {
 
   for (const templateFile of templateFiles) {
     const relativePath = relative(templateDir, templateFile);
-    const destPath = join(outputDir, relativePath);
+    // Apply Example→PascalCase renaming to file/directory names (same regex as content)
+    const transformedPath = relativePath.replace(/Example(?=[A-Z])/g, pascalCase);
+    const destPath = join(outputDir, transformedPath);
 
     await mkdir(dirname(destPath), { recursive: true });
 
@@ -127,7 +129,7 @@ export async function scaffold(options: ScaffoldOptions): Promise<string[]> {
       await copyFile(templateFile, destPath);
     }
 
-    createdFiles.push(relativePath);
+    createdFiles.push(transformedPath);
   }
 
   try {

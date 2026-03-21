@@ -9,6 +9,7 @@
       "types": "./dist/index.d.ts",
       "import": "./src/index.ts"
     },
+    "./tokens.css": "./src/tokens/index.css",
     "./tokens/*.css": "./src/tokens/*.css"
   },
   "scripts": {
