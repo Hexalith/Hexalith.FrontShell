@@ -1,6 +1,7 @@
 import { render, cleanup } from "@testing-library/react";
 import { describe, it, expect, afterEach } from "vitest";
 
+import { MockSignalRHub } from "@hexalith/cqrs-client";
 import {
   useAuth,
   useTenant,
@@ -9,7 +10,6 @@ import {
   useTheme,
   useLocale,
 } from "@hexalith/shell-api";
-import { MockSignalRHub } from "@hexalith/cqrs-client";
 
 import { ShellProviders } from "./ShellProviders";
 

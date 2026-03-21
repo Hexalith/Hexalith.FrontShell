@@ -39,6 +39,9 @@ project_key: NOKEY
 tracking_system: file-system
 story_location: "{project-root}/_bmad-output/implementation-artifacts"
 last_updated: "2026-03-21"
+# Story 5-3 context created 2026-03-21
+# Story 5-2 completed and moved to review 2026-03-21
+# Story 5-2 context created 2026-03-21
 
 development_status:
   # Epic 1: Platform Foundation & Authentication
@@ -92,9 +95,9 @@ development_status:
 
   # Epic 5: Shell Composition & Multi-Module Experience
   epic-5: in-progress
-  5-1-module-registry-and-build-time-discovery: ready-for-dev
-  5-2-unified-navigation-and-route-generation: backlog
-  5-3-module-error-isolation-and-recovery: backlog
+  5-1-module-registry-and-build-time-discovery: done
+  5-2-unified-navigation-and-route-generation: done
+  5-3-module-error-isolation-and-recovery: ready-for-dev
   5-4-navigation-state-preservation-and-caching: backlog
   5-5-build-time-manifest-validation-and-dependency-detection: backlog
   5-6-runtime-module-validation-and-connection-indicators: backlog

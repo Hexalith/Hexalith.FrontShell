@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 
 import { validateManifest } from "./validateManifest";
+
 import type { ModuleManifest } from "./manifestTypes";
 
 function validManifest(): ModuleManifest {

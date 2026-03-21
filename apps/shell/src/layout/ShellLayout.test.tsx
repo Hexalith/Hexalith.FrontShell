@@ -1,4 +1,5 @@
 import { render, screen, cleanup } from "@testing-library/react";
+import { MemoryRouter } from "react-router";
 import { describe, it, expect, afterEach, vi } from "vitest";
 
 import {
@@ -17,18 +18,6 @@ vi.mock("react-router", async (importOriginal) => {
   return {
     ...actual,
     Outlet: () => <div data-testid="outlet">Outlet Content</div>,
-    NavLink: ({ children, to, className }: Record<string, unknown>) => (
-      <a
-        className={
-          typeof className === "function"
-            ? className({ isActive: to === "/" })
-            : (className as string | undefined)
-        }
-        href={to as string}
-      >
-        {children as React.ReactNode}
-      </a>
-    ),
   };
 });
 
@@ -49,7 +38,9 @@ function renderShellLayout() {
         availableTenants: ["tenant-a"],
       })}
     >
-      <ShellLayout />
+      <MemoryRouter>
+        <ShellLayout />
+      </MemoryRouter>
     </MockShellProvider>,
   );
 }

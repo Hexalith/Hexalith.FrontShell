@@ -6,19 +6,19 @@ import {
   type CommandEventBus,
 } from "./commands/commandEventBus";
 import { ConnectionStateProvider } from "./connection/ConnectionStateProvider";
-import type { ICommandBus } from "./core/ICommandBus";
-import type { IQueryBus } from "./core/IQueryBus";
 import {
   createFetchClient,
   type FetchClient,
   type FetchRequestOptions,
   type QueryResponse,
 } from "./core/fetchClient";
-import type { SubmitCommandRequest, SubmitQueryRequest } from "./core/types";
 import { SignalRProvider } from "./notifications/SignalRProvider";
 import { QueryProvider } from "./queries/QueryProvider";
 import { createPreflightCache } from "./validation/preflightCache";
 
+import type { ICommandBus } from "./core/ICommandBus";
+import type { IQueryBus } from "./core/IQueryBus";
+import type { SubmitCommandRequest, SubmitQueryRequest } from "./core/types";
 import type { ISignalRHub } from "./mocks/MockSignalRHub";
 import type { IPreflightCache } from "./validation/preflightCache";
 

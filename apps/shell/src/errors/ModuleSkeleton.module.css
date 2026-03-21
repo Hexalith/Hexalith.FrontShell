@@ -1,0 +1,18 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  padding: var(--spacing-4);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+}
+
+.titleBar {
+  height: 2rem;
+  width: 40%;
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-secondary);
+}

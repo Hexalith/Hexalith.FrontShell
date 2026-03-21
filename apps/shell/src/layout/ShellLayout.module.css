@@ -12,6 +12,13 @@
   grid-template-rows: auto 1fr auto;
   height: 100vh;
   background: var(--color-surface-primary);
+  transition-property: grid-template-columns;
+  transition-duration: var(--transition-duration-default);
+  transition-timing-function: var(--transition-easing-default);
+}
+
+.layout[data-collapsed="true"] {
+  grid-template-columns: var(--shell-sidebar-width-collapsed) 1fr;
 }
 
 .header {
@@ -39,7 +46,8 @@
   flex-direction: column;
 }
 
-/* Structural preparation for collapse — NOT toggled in this story */
-.layout.collapsed {
-  grid-template-columns: var(--shell-sidebar-width-collapsed) 1fr;
+@media (prefers-reduced-motion: reduce) {
+  .layout {
+    transition-duration: 0ms;
+  }
 }

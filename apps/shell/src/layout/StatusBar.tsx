@@ -7,6 +7,7 @@ import {
 } from "@hexalith/shell-api";
 import type { ConnectionHealth } from "@hexalith/shell-api";
 
+import { useActiveModule } from "../hooks/useActiveModule";
 import { DisconnectionBanner } from "./DisconnectionBanner";
 import styles from "./StatusBar.module.css";
 
@@ -34,6 +35,7 @@ export function StatusBar(): React.JSX.Element {
   const { activeTenant, availableTenants, switchTenant } = useTenant();
   const { health } = useConnectionHealth();
   const { isDirty, setDirty } = useFormDirty();
+  const { activeModuleName } = useActiveModule();
 
   // Controlled component pattern for select — prevents visual flash on cancel
   const [displayedTenant, setDisplayedTenant] = useState(activeTenant ?? "");
@@ -122,9 +124,9 @@ export function StatusBar(): React.JSX.Element {
           <span aria-label="No recent commands">&mdash;</span>
         </div>
 
-        {/* Segment 4 — Active Module (placeholder) */}
+        {/* Segment 4 — Active Module */}
         <div className={`${styles.segment} ${styles.defaultSegment}`}>
-          <span>Welcome</span>
+          <span>{activeModuleName}</span>
         </div>
       </div>
     </div>

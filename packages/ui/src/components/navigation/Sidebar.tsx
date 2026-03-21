@@ -155,6 +155,7 @@ export const Sidebar = React.forwardRef<HTMLElement, SidebarProps>(
     ref,
   ) => {
     const [searchTerm, setSearchTerm] = useState('');
+    const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
     const responsiveCollapsed = useResponsiveCollapsed();
     const [internalIsCollapsed, setInternalIsCollapsed] = useState(
       responsiveCollapsed,
@@ -202,6 +203,13 @@ export const Sidebar = React.forwardRef<HTMLElement, SidebarProps>(
       }
 
       onCollapsedChange?.(nextIsCollapsed);
+    };
+
+    const handleGroupOpenChange = (groupName: string, isOpen: boolean) => {
+      setOpenGroups((current) => ({
+        ...current,
+        [groupName]: isOpen,
+      }));
     };
 
     const renderItem = (item: NavigationItem) => {
@@ -289,8 +297,10 @@ export const Sidebar = React.forwardRef<HTMLElement, SidebarProps>(
                   cat.items.length > 0 && (
                     <li key={cat.name} className={styles.group}>
                       <Collapsible.Root
-                        defaultOpen={!isSearching || undefined}
-                        open={isSearching ? true : undefined}
+                        open={isSearching ? true : openGroups[cat.name] ?? true}
+                        onOpenChange={(isOpen) =>
+                          handleGroupOpenChange(cat.name, isOpen)
+                        }
                       >
                         {!effectiveIsCollapsed && (
                           <Collapsible.Trigger className={styles.groupHeader}>

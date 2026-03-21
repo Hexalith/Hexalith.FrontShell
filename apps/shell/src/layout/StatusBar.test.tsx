@@ -1,4 +1,6 @@
 import { render, screen, cleanup, fireEvent, act } from "@testing-library/react";
+import React from "react";
+import { MemoryRouter } from "react-router";
 import { describe, it, expect, afterEach, vi } from "vitest";
 
 import {
@@ -16,12 +18,35 @@ import type {
 
 import { StatusBar } from "./StatusBar";
 
+// Mock modules so useActiveModule resolves active module from route
+vi.mock("../modules", async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    modules: [
+      {
+        manifest: {
+          name: "tenants",
+          displayName: "Tenants",
+          version: "1.0.0",
+          navigation: [{ label: "Tenants", path: "/", category: "Admin" }],
+        },
+        component: React.lazy(() =>
+          Promise.resolve({ default: () => null }),
+        ),
+        basePath: "tenants",
+      },
+    ],
+  };
+});
+
 afterEach(cleanup);
 
 function renderStatusBar(overrides?: {
   tenantContext?: Partial<TenantContextValue>;
   connectionHealth?: Partial<ConnectionHealthContextValue>;
   formDirty?: Partial<FormDirtyContextValue>;
+  initialRoute?: string;
 }) {
   return render(
     <MockShellProvider
@@ -39,7 +64,9 @@ function renderStatusBar(overrides?: {
       )}
       formDirtyContext={createMockFormDirtyContext(overrides?.formDirty)}
     >
-      <StatusBar />
+      <MemoryRouter initialEntries={[overrides?.initialRoute ?? "/"]}>
+        <StatusBar />
+      </MemoryRouter>
     </MockShellProvider>,
   );
 }
@@ -376,7 +403,9 @@ describe("AC #7 — Disconnection banner", () => {
           health: "disconnected",
         })}
       >
-        <StatusBar />
+        <MemoryRouter>
+          <StatusBar />
+        </MemoryRouter>
       </MockShellProvider>,
     );
 
@@ -393,7 +422,9 @@ describe("AC #7 — Disconnection banner", () => {
           health: "connected",
         })}
       >
-        <StatusBar />
+        <MemoryRouter>
+          <StatusBar />
+        </MemoryRouter>
       </MockShellProvider>,
     );
 
@@ -404,5 +435,19 @@ describe("AC #7 — Disconnection banner", () => {
 
     expect(screen.queryByText(/Connection lost/)).toBeNull();
     vi.useRealTimers();
+  });
+});
+
+// ─── 0.6 — Tests for Story 5-2 AC #2: Active module in status bar ───
+
+describe("AC #2 (5-2) — Active module segment", () => {
+  it("displays 'Welcome' when on root path", () => {
+    renderStatusBar({ initialRoute: "/" });
+    expect(screen.getByText("Welcome")).toBeTruthy();
+  });
+
+  it("displays module displayName when on a module route", () => {
+    renderStatusBar({ initialRoute: "/tenants" });
+    expect(screen.getByText("Tenants")).toBeTruthy();
   });
 });

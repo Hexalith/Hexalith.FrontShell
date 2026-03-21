@@ -3,7 +3,7 @@ import { createBrowserRouter, RouterProvider } from "react-router";
 
 import { AuthGate } from "./auth/AuthGate";
 import { ShellLayout } from "./layout/ShellLayout";
-import { getModuleRoutes } from "./modules/placeholderModules";
+import { modules, buildModuleRoutes } from "./modules";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { WelcomePage } from "./pages/WelcomePage";
 import { ShellProviders } from "./providers/ShellProviders";
@@ -11,7 +11,7 @@ import { ShellProviders } from "./providers/ShellProviders";
 import type { RuntimeConfig } from "./config/types";
 
 function createAppRouter() {
-  const moduleRoutes = getModuleRoutes();
+  const moduleRoutes = buildModuleRoutes(modules);
 
   return createBrowserRouter([
     {

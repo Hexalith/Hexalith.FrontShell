@@ -252,6 +252,30 @@ describe('Sidebar', () => {
       await user.click(screen.getByText('Commerce'));
       expect(screen.getByText('Orders')).toBeVisible();
     });
+
+    it('does not emit a controlled/uncontrolled warning when search expands groups', async () => {
+      const user = userEvent.setup();
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      render(<Sidebar items={categorizedItems} />);
+
+      await user.click(screen.getByText('Commerce'));
+      expect(screen.getByText('Commerce').closest('button')).toHaveAttribute(
+        'data-state',
+        'closed',
+      );
+
+      await user.type(screen.getByLabelText('Filter navigation'), 'ord');
+
+      expect(screen.getByText('Orders')).toBeInTheDocument();
+      expect(errorSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining(
+          'Collapsible is changing from uncontrolled to controlled',
+        ),
+      );
+
+      errorSpy.mockRestore();
+    });
   });
 
   it('merges className via clsx', () => {

@@ -122,15 +122,12 @@ describe("App", () => {
     expect(screen.getByRole("main")).toBeTruthy();
   });
 
-  it("renders the tenants placeholder route instead of a 404", () => {
-    window.history.pushState({}, "", "/tenants");
+  it("renders the not-found page for unknown routes", () => {
+    window.history.pushState({}, "", "/unknown-route");
 
     render(<App config={TEST_CONFIG} />);
 
-    expect(
-      screen.getByRole("heading", { name: /^tenants$/i }),
-    ).toBeTruthy();
-    expect(screen.queryByText(/page not found/i)).toBeNull();
+    expect(screen.getByText(/page not found/i)).toBeTruthy();
 
     window.history.replaceState({}, "", "/");
   });
