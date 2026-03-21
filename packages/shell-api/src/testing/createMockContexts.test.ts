@@ -10,10 +10,22 @@ describe("mock context factories", () => {
     await context.signinRedirect();
     await context.signoutRedirect();
 
-    expect(context.signinRedirect.callCount).toBe(1);
-    expect(context.signoutRedirect.callCount).toBe(1);
-    expect(context.signinRedirect.calls).toEqual([[]]);
-    expect(context.signoutRedirect.calls).toEqual([[]]);
+    expect("callCount" in context.signinRedirect).toBe(true);
+    expect("callCount" in context.signoutRedirect).toBe(true);
+
+    const signinRedirect = context.signinRedirect as typeof context.signinRedirect & {
+      callCount: number;
+      calls: unknown[][];
+    };
+    const signoutRedirect = context.signoutRedirect as typeof context.signoutRedirect & {
+      callCount: number;
+      calls: unknown[][];
+    };
+
+    expect(signinRedirect.callCount).toBe(1);
+    expect(signoutRedirect.callCount).toBe(1);
+    expect(signinRedirect.calls).toEqual([[]]);
+    expect(signoutRedirect.calls).toEqual([[]]);
   });
 
   it("creates tenant switch callback that records requested tenant ids", () => {
@@ -21,7 +33,14 @@ describe("mock context factories", () => {
 
     context.switchTenant("tenant-b");
 
-    expect(context.switchTenant.callCount).toBe(1);
-    expect(context.switchTenant.calls).toEqual([["tenant-b"]]);
+    expect("callCount" in context.switchTenant).toBe(true);
+
+    const switchTenant = context.switchTenant as typeof context.switchTenant & {
+      callCount: number;
+      calls: unknown[][];
+    };
+
+    expect(switchTenant.callCount).toBe(1);
+    expect(switchTenant.calls).toEqual([["tenant-b"]]);
   });
 });

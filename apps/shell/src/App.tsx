@@ -3,14 +3,16 @@ import { createBrowserRouter, RouterProvider } from "react-router";
 
 import { AuthGate } from "./auth/AuthGate";
 import { ShellLayout } from "./layout/ShellLayout";
+import { getModuleRoutes } from "./modules/placeholderModules";
 import { NotFoundPage } from "./pages/NotFoundPage";
-import { TenantsPlaceholderPage } from "./pages/TenantsPlaceholderPage";
 import { WelcomePage } from "./pages/WelcomePage";
 import { ShellProviders } from "./providers/ShellProviders";
 
 import type { RuntimeConfig } from "./config/types";
 
 function createAppRouter() {
+  const moduleRoutes = getModuleRoutes();
+
   return createBrowserRouter([
     {
       path: "/",
@@ -20,10 +22,7 @@ function createAppRouter() {
           index: true,
           element: <WelcomePage />,
         },
-        {
-          path: "tenants",
-          element: <TenantsPlaceholderPage />,
-        },
+        ...moduleRoutes,
         {
           path: "*",
           element: <NotFoundPage />,

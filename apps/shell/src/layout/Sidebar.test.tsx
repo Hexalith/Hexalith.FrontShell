@@ -19,11 +19,12 @@ function renderSidebar(initialRoute = "/") {
 }
 
 describe("Sidebar", () => {
-  // AC #8: Placeholder navigation renders
-  it("renders placeholder navigation items", () => {
+  it("renders manifest-driven navigation items", () => {
     renderSidebar();
     expect(screen.getByText("Home")).toBeTruthy();
+    expect(screen.getByText("Modules")).toBeTruthy();
     expect(screen.getByText("Tenants")).toBeTruthy();
+    expect(screen.getByText("users")).toBeTruthy();
   });
 
   // AC #5: Active item has aria-current="page"
@@ -47,5 +48,12 @@ describe("Sidebar", () => {
     expect(links.length).toBe(2);
     expect(links[0].getAttribute("href")).toBe("/");
     expect(links[1].getAttribute("href")).toBe("/tenants");
+  });
+
+  it("groups module items by manifest category", () => {
+    renderSidebar();
+    const group = screen.getByRole("region", { name: "Modules" });
+    expect(group).toBeTruthy();
+    expect(group.textContent).toContain("Tenants");
   });
 });

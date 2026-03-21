@@ -38,7 +38,7 @@ project: Hexalith.FrontShell
 project_key: NOKEY
 tracking_system: file-system
 story_location: "{project-root}/_bmad-output/implementation-artifacts"
-last_updated: 2026-03-21
+last_updated: "2026-03-21"
 
 development_status:
   # Epic 1: Platform Foundation & Authentication
@@ -86,8 +86,8 @@ development_status:
   4-2-scaffold-example-code-premium-showcase: done
   4-3-dev-host-for-independent-module-development: done
   4-4-scaffolded-tests-and-test-fixtures: done
-  4-5-typed-manifest-and-module-boundary: ready-for-dev
-  4-6-module-developer-documentation: backlog
+  4-5-typed-manifest-and-module-boundary: done
+  4-6-module-developer-documentation: ready-for-dev
   epic-4-retrospective: optional
 
   # Epic 5: Shell Composition & Multi-Module Experience

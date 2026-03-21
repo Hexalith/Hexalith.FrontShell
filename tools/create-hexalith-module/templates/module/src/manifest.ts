@@ -23,10 +23,18 @@ export const manifest: ModuleManifest = {
   /** Route definitions — each `path` is relative to the module's mount point. */
   routes: [
     { path: "/" },
-    { path: "/:id" },
+    { path: "/detail/:id" },
     { path: "/create" },
   ],
 
   /** Sidebar / top-nav entries. `path` must match a declared route. */
-  navigation: [{ label: "__MODULE_DISPLAY_NAME__", path: "/" }],
+  navigation: [
+    {
+      label: "__MODULE_DISPLAY_NAME__",
+      path: "/",
+      /** Replace with a domain-specific icon for your module (e.g., "shopping-cart", "users", "settings"). */
+      icon: "box",
+      category: "Modules",
+    },
+  ],
 };

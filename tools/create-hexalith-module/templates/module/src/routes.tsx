@@ -46,7 +46,7 @@ export const routes = [
     ),
   },
   {
-    path: "/:id",
+    path: "/detail/:id",
     element: (
       <ExampleSuspense>
         <ExampleDetailPage />

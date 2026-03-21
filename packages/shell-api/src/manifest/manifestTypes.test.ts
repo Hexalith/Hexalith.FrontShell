@@ -35,8 +35,8 @@ describe("ModuleManifest types — Acceptance Tests", () => {
     });
 
     it("rejects unknown manifestVersion", () => {
-      // @ts-expect-error — manifestVersion: 2 is not a valid version
       const bad: ModuleManifest = {
+        // @ts-expect-error — manifestVersion: 2 is not a valid version
         manifestVersion: 2,
         name: "test",
         displayName: "Test",
@@ -67,6 +67,72 @@ describe("ModuleManifest types — Acceptance Tests", () => {
       };
       expect(nav.icon).toBe("settings");
       expect(nav.category).toBe("admin");
+    });
+
+    it("manifest supports discriminated union via manifestVersion", () => {
+      const m: ModuleManifest = {
+        manifestVersion: 1,
+        name: "test",
+        displayName: "Test",
+        version: "0.1.0",
+        routes: [{ path: "/" }],
+        navigation: [{ label: "Test", path: "/" }],
+      };
+      // manifestVersion acts as discriminant for future union variants
+      expect(m.manifestVersion).toBe(1);
+    });
+
+    it("rejects manifest with missing version field", () => {
+      // @ts-expect-error — missing required 'version' field
+      const bad: ModuleManifest = {
+        manifestVersion: 1,
+        name: "test",
+        displayName: "Test",
+        routes: [{ path: "/" }],
+        navigation: [{ label: "Test", path: "/" }],
+      };
+      expect(bad).toBeDefined();
+    });
+
+    it("rejects manifest with missing displayName", () => {
+      // @ts-expect-error — missing required 'displayName' field
+      const bad: ModuleManifest = {
+        manifestVersion: 1,
+        name: "test",
+        version: "0.1.0",
+        routes: [{ path: "/" }],
+        navigation: [{ label: "Test", path: "/" }],
+      };
+      expect(bad).toBeDefined();
+    });
+
+    it("rejects manifest with missing routes", () => {
+      // @ts-expect-error — missing required 'routes' field
+      const bad: ModuleManifest = {
+        manifestVersion: 1,
+        name: "test",
+        displayName: "Test",
+        version: "0.1.0",
+        navigation: [{ label: "Test", path: "/" }],
+      };
+      expect(bad).toBeDefined();
+    });
+
+    it("rejects manifest with missing navigation", () => {
+      // @ts-expect-error — missing required 'navigation' field
+      const bad: ModuleManifest = {
+        manifestVersion: 1,
+        name: "test",
+        displayName: "Test",
+        version: "0.1.0",
+        routes: [{ path: "/" }],
+      };
+      expect(bad).toBeDefined();
+    });
+
+    it("ModuleRoute only requires path", () => {
+      const route: ModuleRoute = { path: "/" };
+      expect(Object.keys(route)).toEqual(["path"]);
     });
   });
 });

@@ -35,6 +35,13 @@ export type {
   ModuleNavigation,
 } from "./manifest/manifestTypes";
 
+// Manifest validation
+export { validateManifest } from "./manifest/validateManifest";
+export type {
+  ManifestValidationResult,
+  ManifestValidationError,
+} from "./manifest/validateManifest";
+
 // Types
 export type {
   AuthContextValue,
