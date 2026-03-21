@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { toPascalCase } from "./nameUtils.js";
 import { scaffold } from "./scaffold.js";
+import { readWorkspaceVersions } from "./versionCheck.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -74,12 +75,13 @@ describe("integration: scaffold smoke test", () => {
 
     const pkgContent = await readFile(join(outputDir, "package.json"), "utf-8");
     const pkg = JSON.parse(pkgContent);
+    const expectedVersions = await readWorkspaceVersions(MONOREPO_ROOT);
 
     expect(pkg.name).toBe("@hexalith/my-orders");
     expect(pkg.type).toBe("module");
-    expect(pkg.peerDependencies).toHaveProperty("@hexalith/shell-api");
-    expect(pkg.peerDependencies).toHaveProperty("@hexalith/cqrs-client");
-    expect(pkg.peerDependencies).toHaveProperty("@hexalith/ui");
+    expect(pkg.peerDependencies["@hexalith/shell-api"]).toBe(expectedVersions.shellApi);
+    expect(pkg.peerDependencies["@hexalith/cqrs-client"]).toBe(expectedVersions.cqrsClient);
+    expect(pkg.peerDependencies["@hexalith/ui"]).toBe(expectedVersions.ui);
     expect(pkg.peerDependencies).toHaveProperty("react");
     expect(pkg.peerDependencies).toHaveProperty("react-dom");
     expect(pkg.peerDependencies).toHaveProperty("zod");
@@ -243,6 +245,12 @@ describe("integration: scaffold smoke test", () => {
           ],
           "react-router": [join(MONOREPO_ROOT, "apps/shell/node_modules/react-router/dist/development/index.d.ts")],
           "zod": [join(MONOREPO_ROOT, "node_modules/.pnpm/zod@3.25.76/node_modules/zod/index.d.cts")],
+          "vitest": [join(MONOREPO_ROOT, "node_modules/vitest/dist/index.d.ts")],
+          "@testing-library/react": [join(MONOREPO_ROOT, "node_modules/.pnpm/node_modules/@testing-library/react/types/index.d.ts")],
+          "@testing-library/jest-dom/vitest": [join(MONOREPO_ROOT, "node_modules/.pnpm/node_modules/@testing-library/jest-dom/vitest.d.ts")],
+          "@testing-library/user-event": [join(MONOREPO_ROOT, "node_modules/.pnpm/node_modules/@testing-library/user-event/dist/types/index.d.ts")],
+          "@playwright/experimental-ct-react": [join(MONOREPO_ROOT, "node_modules/.pnpm/node_modules/@playwright/experimental-ct-react/index.d.ts")],
+          "@axe-core/playwright": [join(MONOREPO_ROOT, "node_modules/.pnpm/node_modules/@axe-core/playwright/dist/index.d.ts")],
         },
       },
       include: [

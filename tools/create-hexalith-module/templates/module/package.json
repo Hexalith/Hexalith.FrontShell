@@ -15,22 +15,28 @@
     "build": "tsup",
     "dev": "vite --config dev-host/vite.config.ts",
     "lint": "eslint src",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ct": "playwright test -c playwright-ct.config.ts"
   },
   "peerDependencies": {
-    "@hexalith/shell-api": "workspace:*",
-    "@hexalith/cqrs-client": "workspace:*",
-    "@hexalith/ui": "workspace:*",
+    "@hexalith/shell-api": "^0.1.0",
+    "@hexalith/cqrs-client": "^0.1.0",
+    "@hexalith/ui": "^0.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router": "^7.6.0",
     "zod": "^3.0.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.0",
     "@hexalith/eslint-config": "workspace:*",
     "@hexalith/tsconfig": "workspace:*",
-    "@testing-library/react": "^16.0.0",
+    "@playwright/experimental-ct-react": "^1.50.0",
+    "@testing-library/dom": "^10.0.0",
     "@testing-library/jest-dom": "^6.0.0",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/user-event": "^14.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.0.0",

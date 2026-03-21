@@ -4,7 +4,10 @@ import { dirname, join, relative } from "node:path";
 import { promisify } from "node:util";
 
 import { toPascalCase, toDisplayName } from "./nameUtils.js";
-import { readWorkspaceVersions } from "./versionCheck.js";
+import {
+  DEFAULT_HEXALITH_VERSION_RANGE,
+  readWorkspaceVersions,
+} from "./versionCheck.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -81,9 +84,9 @@ export async function scaffold(options: ScaffoldOptions): Promise<string[]> {
     versions = await readWorkspaceVersions(monorepoRoot);
   } catch {
     versions = {
-      shellApi: "workspace:*",
-      cqrsClient: "workspace:*",
-      ui: "workspace:*",
+      shellApi: DEFAULT_HEXALITH_VERSION_RANGE,
+      cqrsClient: DEFAULT_HEXALITH_VERSION_RANGE,
+      ui: DEFAULT_HEXALITH_VERSION_RANGE,
     };
   }
 

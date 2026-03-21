@@ -26,15 +26,15 @@ describe("scaffold", () => {
 
     await writeFile(
       join(monorepoRoot, "packages", "shell-api", "package.json"),
-      JSON.stringify({ name: "@hexalith/shell-api", version: "workspace:*" }),
+      JSON.stringify({ name: "@hexalith/shell-api", version: "0.1.0" }),
     );
     await writeFile(
       join(monorepoRoot, "packages", "cqrs-client", "package.json"),
-      JSON.stringify({ name: "@hexalith/cqrs-client", version: "workspace:*" }),
+      JSON.stringify({ name: "@hexalith/cqrs-client", version: "0.1.0" }),
     );
     await writeFile(
       join(monorepoRoot, "packages", "ui", "package.json"),
-      JSON.stringify({ name: "@hexalith/ui", version: "workspace:*" }),
+      JSON.stringify({ name: "@hexalith/ui", version: "0.1.0" }),
     );
   });
 
@@ -195,6 +195,40 @@ describe("scaffold", () => {
 
     const content = await readFile(join(outputDir, "test.ts"), "utf-8");
     expect(content).toBe('"@hexalith/cool-widget"');
+  });
+
+  it("injects versioned @hexalith peer dependency ranges", async () => {
+    await writeFile(
+      join(templateDir, "package.json"),
+      JSON.stringify(
+        {
+          peerDependencies: {
+            "@hexalith/shell-api": "workspace:*",
+            "@hexalith/cqrs-client": "workspace:*",
+            "@hexalith/ui": "workspace:*",
+          },
+        },
+        null,
+        2,
+      ),
+    );
+
+    await scaffold({
+      moduleName: "my-orders",
+      outputDir,
+      templateDir,
+      monorepoRoot,
+    });
+
+    const packageJson = JSON.parse(
+      await readFile(join(outputDir, "package.json"), "utf-8"),
+    ) as {
+      peerDependencies: Record<string, string>;
+    };
+
+    expect(packageJson.peerDependencies["@hexalith/shell-api"]).toBe("^0.1.0");
+    expect(packageJson.peerDependencies["@hexalith/cqrs-client"]).toBe("^0.1.0");
+    expect(packageJson.peerDependencies["@hexalith/ui"]).toBe("^0.1.0");
   });
 
   it("creates a standalone stylelint config for scaffolded modules", async () => {

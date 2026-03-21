@@ -1,6 +1,6 @@
 # Story 4.4: Scaffolded Tests & Test Fixtures
 
-Status: ready-for-dev
+Status: in-progress
 
 ## Story
 
@@ -18,14 +18,14 @@ So that I have a working test foundation and can run tests from minute one.
 
 4. **AC4 — Playwright component test passes with a11y check.** Given the scaffold generates Playwright component test files (`.spec.tsx`), when a developer runs Playwright tests, then at least one component test passes validating the scaffold renders correctly, and the test includes an axe-core accessibility check.
 
-5. **AC5 — Contract tests catch mock divergence.** Given tests use the mock implementations, when the mock behavior diverges from real implementations, then the contract test suites from `@hexalith/cqrs-client` catch the divergence. *Note: This AC is satisfied by the existing contract test suites in `packages/cqrs-client/src/mocks/__contracts__/` — no new contract tests are created in this story.*
+5. **AC5 — Contract tests catch mock divergence.** Given tests use the mock implementations, when the mock behavior diverges from real implementations, then the contract test suites from `@hexalith/cqrs-client` catch the divergence. _Note: This AC is satisfied by the existing contract test suites in `packages/cqrs-client/src/mocks/__contracts__/` — no new contract tests are created in this story._
 
-*FRs covered: FR3*
+_FRs covered: FR3_
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create test setup file with jsdom polyfills (AC: #1, #3)
-  - [ ] 1.1: Create `templates/module/src/test-setup.ts` — polyfills required by `@hexalith/ui` components in jsdom:
+- [x] Task 1: Create test setup file with jsdom polyfills (AC: #1, #3)
+  - [x] 1.1: Create `templates/module/src/test-setup.ts` — polyfills required by `@hexalith/ui` components in jsdom:
     - Import `cleanup` from `@testing-library/react` and `afterEach` from `vitest`
     - Import `@testing-library/jest-dom/vitest` for DOM matchers (`.toBeInTheDocument()`, etc.)
     - Polyfill `HTMLElement.prototype.hasPointerCapture`, `.setPointerCapture`, `.releasePointerCapture` (required by Radix UI popovers/dialogs)
@@ -44,7 +44,8 @@ So that I have a working test foundation and can run tests from minute one.
       Verify first if the polyfill is needed (it may work without it on Node 20+). If it IS needed and missing, `ExampleCreatePage` throws `TypeError: crypto.randomUUID is not a function` when the form submits.
     - Call `cleanup()` in `afterEach`
     - Follow the exact same pattern as `packages/ui/src/test-setup.ts` — keep it consistent
-  - [ ] 1.2: Update `templates/module/vitest.config.ts`:
+  - [x] 1.2: Update `templates/module/vitest.config.ts`:
+
     ```typescript
     import { defineConfig } from "vitest/config";
 
@@ -74,11 +75,12 @@ So that I have a working test foundation and can run tests from minute one.
       },
     });
     ```
+
     This matches the `packages/ui/vitest.config.ts` dual-project pattern: `.test.ts` for pure unit tests (no DOM), `.test.tsx` for component tests with jsdom. CSS modules use `non-scoped` so class names are predictable in tests.
     **Root workspace config risk:** The root `vitest.config.ts` uses `projects: ["packages/*", "apps/*", "tools/*"]`. The `tools/*` pattern matches `tools/create-hexalith-module/` (which has its own vitest config for scaffold tests), NOT `tools/create-hexalith-module/templates/module/` (which has no `package.json` at the `templates/` level and is not a workspace package). Vitest does not support nested `projects` inside `projects`. **Verify** that the template's vitest config is NOT picked up by the root workspace. If it is, remove the `projects` field from the template config and use a flat config with `environment: "jsdom"` for all tests instead.
 
-- [ ] Task 2: Create `renderWithProviders` test utility (AC: #3)
-  - [ ] 2.1: Create `templates/module/src/testing/renderWithProviders.tsx`:
+- [x] Task 2: Create `renderWithProviders` test utility (AC: #3)
+  - [x] 2.1: Create `templates/module/src/testing/renderWithProviders.tsx`:
     - Import `render` and `RenderOptions` from `@testing-library/react`
     - Import `MockShellProvider` from `@hexalith/shell-api`
     - Import `CqrsProvider` from `@hexalith/cqrs-client`
@@ -89,7 +91,10 @@ So that I have a working test foundation and can run tests from minute one.
     - Import `exampleDetails` from `../data/sampleData`
     - Define `RenderWithProvidersOptions` type extending `RenderOptions`:
       ```typescript
-      interface RenderWithProvidersOptions extends Omit<RenderOptions, "wrapper"> {
+      interface RenderWithProvidersOptions extends Omit<
+        RenderOptions,
+        "wrapper"
+      > {
         initialRoute?: string;
         queryBus?: MockQueryBus;
         commandBus?: MockCommandBus;
@@ -111,6 +116,7 @@ So that I have a working test foundation and can run tests from minute one.
       - **Key format:** `"${tenant}:${domain}:${queryType}:${aggregateId ?? ""}:${entityId ?? ""}"`. Tenant comes from MockShellProvider default = `"test-tenant"`. Empty aggregateId/entityId produce trailing `:`
     - Create a `createConfiguredCommandBus` function returning `new MockCommandBus({ delay: 50, defaultBehavior: "success" })`
     - Export `renderWithProviders` function:
+
       ```typescript
       export function renderWithProviders(
         ui: ReactElement,
@@ -152,12 +158,13 @@ So that I have a working test foundation and can run tests from minute one.
         };
       }
       ```
+
     - **Provider nesting order must match dev-host and real shell:** MockShellProvider → CqrsProvider → ToastProvider → MemoryRouter
     - Uses `MemoryRouter` instead of `BrowserRouter` because tests don't have a real URL bar. `initialRoute` lets tests set the current URL path (e.g., `"/abc-123"` for detail page)
     - Returns `queryBus` and `commandBus` references so test assertions can inspect calls: `commandBus.getCalls()`, `commandBus.getLastCall()`
 
-- [ ] Task 3: Create ExampleListPage test (AC: #1, #2)
-  - [ ] 3.1: Create `templates/module/src/pages/ExampleListPage.test.tsx`:
+- [x] Task 3: Create ExampleListPage test (AC: #1, #2)
+  - [x] 3.1: Create `templates/module/src/pages/ExampleListPage.test.tsx`:
     - Use `describe("ExampleListPage", () => { it(...) })` nesting — scaffold tests are teaching artifacts that set the convention for all future module tests. This matches the `packages/ui` component test pattern.
     - Import `describe`, `it`, `expect`, `vi` from `vitest`
     - Import `screen`, `waitFor` from `@testing-library/react`
@@ -182,8 +189,8 @@ So that I have a working test foundation and can run tests from minute one.
       - Render `<ExampleListPage />` and wait for error
       - Expect "Failed to load items" text to appear
 
-- [ ] Task 4: Create ExampleDetailPage test (AC: #1, #2)
-  - [ ] 4.1: Create `templates/module/src/pages/ExampleDetailPage.test.tsx`:
+- [x] Task 4: Create ExampleDetailPage test (AC: #1, #2)
+  - [x] 4.1: Create `templates/module/src/pages/ExampleDetailPage.test.tsx`:
     - Import `renderWithProviders` from `../testing/renderWithProviders`
     - Import `ExampleDetailPage` from `./ExampleDetailPage`
     - Import `exampleDetails` from `../data/sampleData`
@@ -201,8 +208,8 @@ So that I have a working test foundation and can run tests from minute one.
       - Set error for detail query key
       - Verify "Failed to load item" appears
 
-- [ ] Task 5: Create ExampleCreatePage test (AC: #1, #2)
-  - [ ] 5.1: Create `templates/module/src/pages/ExampleCreatePage.test.tsx`:
+- [x] Task 5: Create ExampleCreatePage test (AC: #1, #2)
+  - [x] 5.1: Create `templates/module/src/pages/ExampleCreatePage.test.tsx`:
     - Import `renderWithProviders` from `../testing/renderWithProviders`
     - Import `ExampleCreatePage` from `./ExampleCreatePage`
     - Import `screen`, `waitFor` from `@testing-library/react`
@@ -227,15 +234,18 @@ So that I have a working test foundation and can run tests from minute one.
       - Verify the submit button becomes disabled and shows "Sending..." or "Confirming..."
     - **AC3 note (three-phase command lifecycle):** The `idle → sending → polling → completed` lifecycle is validated structurally — `useCommandPipeline` produces the correct status sequence by design (tested in `packages/cqrs-client`'s own hook tests). The scaffold test verifies the form triggers the pipeline and the pipeline completes. Testing intermediate status text transitions requires precise timing control which conflicts with the "no fake timers" constraint (anti-pattern #2). The scaffold tests verify the pipeline works end-to-end; the lifecycle phases are covered by the cqrs-client package's own test suite.
 
-- [ ] Task 6: Create Playwright component test with a11y check (AC: #4)
-  - [ ] 6.0: Create Playwright CT harness files (required by `@playwright/experimental-ct-react`):
+- [x] Task 6: Create Playwright component test with a11y check (AC: #4)
+  - [x] 6.0: Create Playwright CT harness files (required by `@playwright/experimental-ct-react`):
     - Create `templates/module/playwright/index.html`:
       ```html
       <!DOCTYPE html>
       <html lang="en">
         <head>
           <meta charset="UTF-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0"
+          />
           <title>Testing</title>
         </head>
         <body>
@@ -245,6 +255,7 @@ So that I have a working test foundation and can run tests from minute one.
       </html>
       ```
     - Create `templates/module/playwright/index.tsx`:
+
       ```typescript
       import { beforeMount } from "@playwright/experimental-ct-react/hooks";
       import { MockShellProvider } from "@hexalith/shell-api";
@@ -301,10 +312,13 @@ So that I have a working test foundation and can run tests from minute one.
         );
       });
       ```
+
     - **CRITICAL:** Without these harness files, Playwright CT cannot mount components and `pnpm test:ct` will fail immediately. This follows the exact pattern from `packages/ui/playwright/index.tsx` but adds CQRS mock bus injection since the scaffold's pages use `useQuery` and `useCommandPipeline`.
     - The harness wraps ALL mounted components with providers — so the `.spec.tsx` tests do NOT need to hand-roll providers inside `mount()`.
     - **Vite resolution risk:** The harness imports `@hexalith/*` by package name. Playwright CT uses Vite under the hood to bundle the harness. In the monorepo, pnpm workspace links resolve these. But if Vite can't resolve them in the `playwright/` directory context, add `resolve.alias` entries to `playwright-ct.config.ts` pointing to workspace source paths, or switch to relative imports (e.g., `../../packages/shell-api/src`) like `packages/ui/playwright/index.tsx` does for tokens. Verify Vite resolution works before writing the `.spec.tsx` test.
-  - [ ] 6.1: Create `templates/module/playwright-ct.config.ts` — Playwright component test configuration:
+
+  - [x] 6.1: Create `templates/module/playwright-ct.config.ts` — Playwright component test configuration:
+
     ```typescript
     import { defineConfig, devices } from "@playwright/experimental-ct-react";
 
@@ -322,13 +336,16 @@ So that I have a working test foundation and can run tests from minute one.
       ],
     });
     ```
+
     Use port `3101` (different from UI package's `3100`) to avoid conflicts.
-  - [ ] 6.2: Create `templates/module/src/pages/ExampleListPage.spec.tsx`:
+
+  - [x] 6.2: Create `templates/module/src/pages/ExampleListPage.spec.tsx`:
     - Import `test`, `expect` from `@playwright/experimental-ct-react`
     - Import `AxeBuilder` from `@axe-core/playwright`
     - Import `ExampleListPage` from `./ExampleListPage`
     - **Note:** The `playwright/index.tsx` harness (Task 6.0) wraps ALL mounted components with providers via `beforeMount`. This means `.spec.tsx` tests can simply `mount(<ExampleListPage />)` — no manual provider wrapping needed inside the test.
     - **Test: renders scaffold correctly and has no a11y violations**
+
       ```typescript
       test("ExampleListPage has no accessibility violations", async ({ mount, page }) => {
         // Providers are injected by playwright/index.tsx beforeMount hook
@@ -346,26 +363,27 @@ So that I have a working test foundation and can run tests from minute one.
         expect(results.violations).toEqual([]);
       });
       ```
-  - [ ] 6.3: Update `templates/module/package.json` — add Playwright-related devDependencies:
+
+  - [x] 6.3: Update `templates/module/package.json` — add Playwright-related devDependencies:
     ```json
     "@playwright/experimental-ct-react": "^1.50.0",
     "@axe-core/playwright": "^4.10.0"
     ```
     Add script: `"test:ct": "playwright test -c playwright-ct.config.ts"`
 
-- [ ] Task 7: Update vitest.config.ts and package.json for test setup (AC: #1)
-  - [ ] 7.1: The vitest.config.ts update is handled in Task 1.2
-  - [ ] 7.2: Verify `templates/module/package.json` has all required test deps (most already exist from Story 4.1):
+- [x] Task 7: Update vitest.config.ts and package.json for test setup (AC: #1)
+  - [x] 7.1: The vitest.config.ts update is handled in Task 1.2
+  - [x] 7.2: Verify `templates/module/package.json` has all required test deps (most already exist from Story 4.1):
     - `@testing-library/react: "^16.0.0"` (exists)
     - `@testing-library/jest-dom: "^6.0.0"` (exists)
     - `jsdom: "^25.0.0"` (exists)
     - `vitest: "^3.0.0"` (exists)
     - Add `@testing-library/user-event: "^14.0.0"` (needed for form interaction tests in Task 5)
     - Add `@testing-library/dom: "^10.0.0"` (now a peer dep of `@testing-library/react` v16 — pnpm strict mode requires explicit install)
-  - [ ] 7.3: Add `"test:watch": "vitest"` script to `templates/module/package.json` for developer convenience (watch mode)
+  - [x] 7.3: Add `"test:watch": "vitest"` script to `templates/module/package.json` for developer convenience (watch mode)
 
-- [ ] Task 8: Update tsconfig.templates.json to include test files (AC: #1)
-  - [ ] 8.1: Update `tools/create-hexalith-module/tsconfig.templates.json` — add test files and testing directory to the `include` array:
+- [x] Task 8: Update tsconfig.templates.json to include test files (AC: #1)
+  - [x] 8.1: Update `tools/create-hexalith-module/tsconfig.templates.json` — add test files and testing directory to the `include` array:
     ```json
     "include": [
       "templates/module/src/**/*.ts",
@@ -391,20 +409,20 @@ So that I have a working test foundation and can run tests from minute one.
     ```
     **Note:** The exact paths to `.d.ts` files depend on the installed package versions. Verify the actual paths by running `find ../../node_modules -name "index.d.ts" -path "*/@testing-library/react/*"` (or equivalent). If the paths are wrong, `tsc` will fail with "Cannot find module" errors for test imports. The `@hexalith/*`, `react-router`, and `zod` paths already exist and work — extend the same pattern.
     **Without these paths, ALL test files will fail type-checking** even though they work fine in Vitest (which uses its own module resolution). This is a hard blocker — do this BEFORE writing test files to get early feedback.
-  - [ ] 8.2: Run `pnpm exec tsc -p tools/create-hexalith-module/tsconfig.templates.json` to verify all template files (including test files) compile cleanly. If test imports fail, fix the paths in 8.1 first
+  - [x] 8.2: Run `pnpm exec tsc -p tools/create-hexalith-module/tsconfig.templates.json` to verify all template files (including test files) compile cleanly. If test imports fail, fix the paths in 8.1 first
 
-- [ ] **DEFINITION OF DONE GATE — All previous tasks (1-8) must pass these verification checks before the story is complete. Do NOT mark the story as done until every check below passes.**
+- [x] **DEFINITION OF DONE GATE — All previous tasks (1-8) must pass these verification checks before the story is complete. Do NOT mark the story as done until every check below passes.**
 
-- [ ] Task 9: Verification (AC: #1-#5)
-  - [ ] 9.1: Verify `pnpm test` from the monorepo root does NOT execute the template test files at `tools/create-hexalith-module/templates/module/src/**/*.test.tsx` directly. The root vitest config uses `projects: ["packages/*", "apps/*", "tools/*"]` which matches `tools/create-hexalith-module/` (the scaffold tool's own tests), NOT the nested `templates/module/` directory (which is not a workspace package). If the template `.test.tsx` files ARE picked up by the root config, they will fail because they lack workspace resolution context. Confirm: run `pnpm test` from root and check the test output does NOT include `ExampleListPage.test.tsx` etc. The template tests should only run when `pnpm test` is invoked from within a scaffolded module
-  - [ ] 9.2: Verify all `.test.tsx` files pass in Vitest without modifications
-  - [ ] 9.3: Verify the scaffold integration test (`tools/create-hexalith-module/src/integration.test.ts`) still passes — the new test files and testing directory should be picked up by the dynamic file comparison
-  - [ ] 9.4: Verify no `@radix-ui/*` direct imports, no `oidc-client-ts`, no `ky`, no `@tanstack/*` direct imports in test files — only `@hexalith/*` packages
-  - [ ] 9.5: Verify the `renderWithProviders` utility uses `MockShellProvider` (not hand-rolled providers)
-  - [ ] 9.6: Verify the `Example` prefix naming convention is consistent in all test files
-  - [ ] 9.7: Verify Playwright CT test passes and reports no a11y violations. **Prerequisite:** Run `npx playwright install chromium` first if Chromium is not already installed. This is a one-time setup step that should be noted in the template's README or package.json scripts (e.g., `"test:ct:install": "playwright install chromium"`)
-  - [ ] 9.8: Verify the scaffold engine (`tools/create-hexalith-module/src/scaffold.ts`) copies the `playwright/` directory to the generated module output. The existing integration test (`integration.test.ts`) dynamically compares all files in `templates/module/` to scaffold output — so `playwright/index.html` and `playwright/index.tsx` should be caught if missing. But verify the scaffold's directory traversal doesn't have an exclusion filter for `playwright/` or hidden directories. Run the integration test after adding the new files.
-  - [ ] 9.9: **(AC5 note)** Contract tests for mock/real parity already exist in `packages/cqrs-client/src/mocks/__contracts__/`. This story does NOT create new contract tests — it relies on the existing `commandBusContractTests` and `queryBusContractTests` suites that validate MockCommandBus/MockQueryBus behavior matches the real implementations. The scaffold's tests use these same mock classes, so contract test parity is inherited.
+- [x] Task 9: Verification (AC: #1-#5)
+  - [x] 9.1: Verify `pnpm test` from the monorepo root does NOT execute the template test files at `tools/create-hexalith-module/templates/module/src/**/*.test.tsx` directly. The root vitest config uses `projects: ["packages/*", "apps/*", "tools/*"]` which matches `tools/create-hexalith-module/` (the scaffold tool's own tests), NOT the nested `templates/module/` directory (which is not a workspace package). If the template `.test.tsx` files ARE picked up by the root config, they will fail because they lack workspace resolution context. Confirm: run `pnpm test` from root and check the test output does NOT include `ExampleListPage.test.tsx` etc. The template tests should only run when `pnpm test` is invoked from within a scaffolded module
+  - [x] 9.2: Verify all `.test.tsx` files pass in Vitest without modifications
+  - [x] 9.3: Verify the scaffold integration test (`tools/create-hexalith-module/src/integration.test.ts`) still passes — the new test files and testing directory should be picked up by the dynamic file comparison
+  - [x] 9.4: Verify no `@radix-ui/*` direct imports, no `oidc-client-ts`, no `ky`, no `@tanstack/*` direct imports in test files — only `@hexalith/*` packages
+  - [x] 9.5: Verify the `renderWithProviders` utility uses `MockShellProvider` (not hand-rolled providers)
+  - [x] 9.6: Verify the `Example` prefix naming convention is consistent in all test files
+  - [x] 9.7: Verify Playwright CT test passes and reports no a11y violations. **Prerequisite:** Run `npx playwright install chromium` first if Chromium is not already installed. This is a one-time setup step that should be noted in the template's README or package.json scripts (e.g., `"test:ct:install": "playwright install chromium"`)
+  - [x] 9.8: Verify the scaffold engine (`tools/create-hexalith-module/src/scaffold.ts`) copies the `playwright/` directory to the generated module output. The existing integration test (`integration.test.ts`) dynamically compares all files in `templates/module/` to scaffold output — so `playwright/index.html` and `playwright/index.tsx` should be caught if missing. But verify the scaffold's directory traversal doesn't have an exclusion filter for `playwright/` or hidden directories. Run the integration test after adding the new files.
+  - [x] 9.9: **(AC5 note)** Contract tests for mock/real parity already exist in `packages/cqrs-client/src/mocks/__contracts__/`. This story does NOT create new contract tests — it relies on the existing `commandBusContractTests` and `queryBusContractTests` suites that validate MockCommandBus/MockQueryBus behavior matches the real implementations. The scaffold's tests use these same mock classes, so contract test parity is inherited.
 
 ## Dev Notes
 
@@ -413,6 +431,7 @@ So that I have a working test foundation and can run tests from minute one.
 **This story creates test files, test fixtures, and a renderWithProviders utility inside the scaffold template, plus one Playwright CT test with axe-core a11y check.**
 
 **This story IS:**
+
 - Test setup file with jsdom polyfills for `@hexalith/ui` Radix-based components
 - `renderWithProviders` utility wrapping components in MockShellProvider + CqrsProvider + mock buses + MemoryRouter
 - Vitest tests for ExampleListPage (loading, data fetch, empty, and error states)
@@ -423,6 +442,7 @@ So that I have a working test foundation and can run tests from minute one.
 - Package.json updates for missing test deps (@testing-library/user-event, Playwright, axe-core)
 
 **This story is NOT:**
+
 - Creating new page components (Story 4.2 — done)
 - Wiring the dev-host (Story 4.3 — in-progress, but CqrsProvider mock bus injection is done)
 - Creating contract test suites (already exist in `packages/cqrs-client/src/mocks/__contracts__/`)
@@ -460,12 +480,12 @@ So that I have a working test foundation and can run tests from minute one.
 
 ```typescript
 interface MockShellProviderProps {
-  authContext?: AuthContextValue;     // defaults via createMockAuthContext()
+  authContext?: AuthContextValue; // defaults via createMockAuthContext()
   tenantContext?: TenantContextValue; // defaults via createMockTenantContext()
   connectionHealthContext?: ConnectionHealthContextValue;
   formDirtyContext?: FormDirtyContextValue;
-  theme?: Theme;       // "light" | "dark", defaults to "light"
-  locale?: string;     // defaults to "en-US"
+  theme?: Theme; // "light" | "dark", defaults to "light"
+  locale?: string; // defaults to "en-US"
   defaultCurrency?: string;
   children: ReactNode;
 }
@@ -481,7 +501,7 @@ interface CqrsProviderProps {
   tokenGetter: () => Promise<string | null>;
   children: ReactNode;
   signalRHub?: ISignalRHub;
-  queryBus?: IQueryBus;     // When provided, queries delegate here instead of HTTP
+  queryBus?: IQueryBus; // When provided, queries delegate here instead of HTTP
   commandBus?: ICommandBus; // When provided, commands delegate here instead of HTTP
 }
 ```
@@ -553,10 +573,16 @@ useCommandPipeline() → {
 **Sample data (from `templates/module/src/data/sampleData.ts`):**
 
 ```typescript
-export const exampleItems: ExampleItem[];      // 12 items validated against schema
-export const exampleDetails: ExampleDetail[];  // 12 detail records (items + notes + createdBy)
-export const EXAMPLE_LIST_QUERY = { domain: "__MODULE_NAME__", queryType: "ExampleList" } as const;
-export const EXAMPLE_DETAIL_QUERY = { domain: "__MODULE_NAME__", queryType: "ExampleDetail" } as const;
+export const exampleItems: ExampleItem[]; // 12 items validated against schema
+export const exampleDetails: ExampleDetail[]; // 12 detail records (items + notes + createdBy)
+export const EXAMPLE_LIST_QUERY = {
+  domain: "__MODULE_NAME__",
+  queryType: "ExampleList",
+} as const;
+export const EXAMPLE_DETAIL_QUERY = {
+  domain: "__MODULE_NAME__",
+  queryType: "ExampleDetail",
+} as const;
 ```
 
 **Test setup patterns (from `packages/ui/src/test-setup.ts`):**
@@ -568,7 +594,9 @@ HTMLElement.prototype.setPointerCapture = () => {};
 HTMLElement.prototype.releasePointerCapture = () => {};
 HTMLElement.prototype.scrollIntoView = () => {};
 globalThis.ResizeObserver = class ResizeObserver {
-  observe() {} unobserve() {} disconnect() {}
+  observe() {}
+  unobserve() {}
+  disconnect() {}
 };
 afterEach(() => cleanup());
 ```
@@ -612,20 +640,21 @@ Contract tests are parameterized suites (`commandBusContractTests`, `queryBusCon
 
 If tests fail with cryptic errors, check these common jsdom issues first:
 
-| Error | Cause | Fix |
-|-------|-------|-----|
-| `TypeError: element.scrollIntoView is not a function` | Missing jsdom polyfill | Add `HTMLElement.prototype.scrollIntoView = () => {};` to `test-setup.ts` |
-| `TypeError: element.hasPointerCapture is not a function` | Radix UI popovers/dialogs need pointer capture | Add pointer capture polyfills to `test-setup.ts` |
-| `ReferenceError: ResizeObserver is not defined` | Radix components use ResizeObserver | Add `globalThis.ResizeObserver` polyfill to `test-setup.ts` |
-| `TypeError: window.matchMedia is not a function` | Theme detection in components | Add `window.matchMedia` polyfill to `test-setup.ts` |
-| `Warning: An update to X inside a test was not wrapped in act(...)` | Async state update after unmount | Ensure `cleanup()` runs in `afterEach` and `await waitFor` completes before test ends |
-| `MockQueryBus returns 404 / no data renders` | Response key mismatch | Check the exact key format: `tenant:domain:queryType:aggregateId:entityId`. Log the key in MockQueryBus or check `mockQueryBus.getCalls()` to see what key was requested vs what was registered |
-| `Form submit handler never fires` | Radix form validation not triggered by synthetic events | Inspect DOM with `screen.debug()`, verify `userEvent` interactions match Radix component structure |
-| `TypeError: crypto.randomUUID is not a function` | jsdom doesn't expose Node's `crypto.randomUUID()` | Add conditional polyfill in `test-setup.ts` (see Task 1.1) |
+| Error                                                               | Cause                                                   | Fix                                                                                                                                                                                             |
+| ------------------------------------------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TypeError: element.scrollIntoView is not a function`               | Missing jsdom polyfill                                  | Add `HTMLElement.prototype.scrollIntoView = () => {};` to `test-setup.ts`                                                                                                                       |
+| `TypeError: element.hasPointerCapture is not a function`            | Radix UI popovers/dialogs need pointer capture          | Add pointer capture polyfills to `test-setup.ts`                                                                                                                                                |
+| `ReferenceError: ResizeObserver is not defined`                     | Radix components use ResizeObserver                     | Add `globalThis.ResizeObserver` polyfill to `test-setup.ts`                                                                                                                                     |
+| `TypeError: window.matchMedia is not a function`                    | Theme detection in components                           | Add `window.matchMedia` polyfill to `test-setup.ts`                                                                                                                                             |
+| `Warning: An update to X inside a test was not wrapped in act(...)` | Async state update after unmount                        | Ensure `cleanup()` runs in `afterEach` and `await waitFor` completes before test ends                                                                                                           |
+| `MockQueryBus returns 404 / no data renders`                        | Response key mismatch                                   | Check the exact key format: `tenant:domain:queryType:aggregateId:entityId`. Log the key in MockQueryBus or check `mockQueryBus.getCalls()` to see what key was requested vs what was registered |
+| `Form submit handler never fires`                                   | Radix form validation not triggered by synthetic events | Inspect DOM with `screen.debug()`, verify `userEvent` interactions match Radix component structure                                                                                              |
+| `TypeError: crypto.randomUUID is not a function`                    | jsdom doesn't expose Node's `crypto.randomUUID()`       | Add conditional polyfill in `test-setup.ts` (see Task 1.1)                                                                                                                                      |
 
 ### Previous Story Intelligence (Stories 4.1, 4.2, 4.3)
 
 **Story 4.1 (done) established:**
+
 - CLI scaffold engine in `tools/create-hexalith-module/`
 - Template files in `tools/create-hexalith-module/templates/module/`
 - `tsconfig.templates.json` for template type-checking
@@ -633,6 +662,7 @@ If tests fail with cryptic errors, check these common jsdom issues first:
 - Integration test verifying scaffold output compiles via `tsc --noEmit`
 
 **Story 4.2 (done) established:**
+
 - `src/schemas/exampleSchemas.ts` — Zod schemas: `ExampleItemSchema`, `ExampleDetailSchema`, `CreateExampleCommandSchema`
 - `src/pages/ExampleListPage.tsx` — useQuery + Table + loading/error/empty states
 - `src/pages/ExampleDetailPage.tsx` — useQuery + DetailView with `:id` route param
@@ -643,12 +673,14 @@ If tests fail with cryptic errors, check these common jsdom issues first:
 - `src/css-modules.d.ts` — CSS module type declarations
 
 **Key learnings from 4.2:**
+
 - Shell uses `react-router` v7 (unified package, import from `"react-router"` not `"react-router-dom"`)
 - `SubmitCommandInput` uses `commandType`, `domain`, `payload` (NOT `commandName`, `aggregateName`, `body`)
 - CSS design tokens use numeric suffixes (`--spacing-2`, `--spacing-4`), not named ones (`--spacing-xs`)
 - `SpacingScale` type uses numeric strings (`'0'`-`'8'`), not named tokens
 
 **Story 4.3 (in-progress) established:**
+
 - CqrsProvider now accepts optional `queryBus` and `commandBus` props
 - `createMockAwareFetchClient` adapter delegates to mock buses when provided
 - Mock adapter handles `/api/v1/queries` (via `postForQuery`), `/api/v1/commands` (via `post`), and `/api/v1/commands/status/*` (via `get`)
@@ -709,8 +741,54 @@ The `templates/module/` directory is the scaffold blueprint — files here are c
 
 ### Agent Model Used
 
+Claude Opus 4.6 (1M context)
+
 ### Debug Log References
+
+- tsc compilation initially failed for `.spec.tsx` (missing `@playwright/experimental-ct-react` and `@axe-core/playwright` path mappings) — resolved by adding paths to `tsconfig.templates.json`
+- `renderWithProviders` return type inference failed (TS2742: reference to `pretty-format`) — resolved by adding explicit `RenderResult & { queryBus; commandBus }` return type annotation
+- Template `.test.tsx` files were initially picked up by the scaffold tool's own vitest config — resolved by adding `exclude: ["templates/**"]` to `tools/create-hexalith-module/vitest.config.ts`
+- Integration test `tsc --noEmit` check failed for scaffolded test files (missing test dep path mappings) — resolved by adding test dependency paths to integration test's inline tsconfig
 
 ### Completion Notes List
 
+- Created `test-setup.ts` with all jsdom polyfills matching `packages/ui/src/test-setup.ts` pattern, plus `matchMedia` and `crypto.randomUUID` polyfills
+- Created `renderWithProviders` test utility with MockShellProvider → CqrsProvider → ToastProvider → MemoryRouter nesting, pre-configured MockQueryBus/MockCommandBus with sample data
+- Created ExampleListPage.test.tsx: 4 tests (loading, data fetch, empty state, error state)
+- Created ExampleDetailPage.test.tsx: 3 tests (detail data rendering, loading skeleton, error state)
+- Created ExampleCreatePage.test.tsx: 3 tests (form rendering, command submission via useCommandPipeline, disabled button during submission)
+- Created Playwright CT harness (playwright/index.html, playwright/index.tsx) with full provider + mock bus setup
+- Created ExampleListPage.spec.tsx: 1 Playwright CT test with axe-core a11y check
+- Updated vitest.config.ts to dual project strategy (unit + component with jsdom)
+- Updated package.json with @testing-library/user-event, @testing-library/dom, @playwright/experimental-ct-react, @axe-core/playwright devDeps plus test:ct and test:watch scripts
+- Updated tsconfig.templates.json with test dependency path mappings
+- Updated scaffold tool's vitest.config.ts to exclude templates/ directory
+- Updated integration test with test dependency path mappings for scaffolded output tsc check
+- All 37 scaffold tool tests pass (including integration test with type-check)
+- No regressions in monorepo test suite (only pre-existing CssLayerSmoke timeout in @hexalith/ui)
+
+### Change Log
+
+- 2026-03-21: Story 4.4 implementation — scaffolded tests and test fixtures
+
 ### File List
+
+New files:
+
+- tools/create-hexalith-module/templates/module/src/test-setup.ts
+- tools/create-hexalith-module/templates/module/src/testing/renderWithProviders.tsx
+- tools/create-hexalith-module/templates/module/src/pages/ExampleListPage.test.tsx
+- tools/create-hexalith-module/templates/module/src/pages/ExampleDetailPage.test.tsx
+- tools/create-hexalith-module/templates/module/src/pages/ExampleCreatePage.test.tsx
+- tools/create-hexalith-module/templates/module/src/pages/ExampleListPage.spec.tsx
+- tools/create-hexalith-module/templates/module/playwright/index.html
+- tools/create-hexalith-module/templates/module/playwright/index.tsx
+- tools/create-hexalith-module/templates/module/playwright-ct.config.ts
+
+Modified files:
+
+- tools/create-hexalith-module/templates/module/vitest.config.ts
+- tools/create-hexalith-module/templates/module/package.json
+- tools/create-hexalith-module/tsconfig.templates.json
+- tools/create-hexalith-module/vitest.config.ts
+- tools/create-hexalith-module/src/integration.test.ts

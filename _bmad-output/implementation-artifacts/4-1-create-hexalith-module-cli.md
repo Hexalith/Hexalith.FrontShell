@@ -280,6 +280,8 @@ Last 5 commits show Epic 3 completion (overlay components, data-display, navigat
 
 - 2026-03-21: Implemented all 7 tasks for create-hexalith-module CLI. CLI entry point with name validation, scaffold engine with placeholder replacement, version check, template files (config + source + dev-host), and integration tests. 35 tests pass.
 - 2026-03-21: Senior code review fixes applied. Restored a real template module entry point, replaced the generated Stylelint config with a standalone token-compliance configuration, improved cross-platform remediation guidance for existing output directories, fixed CLI package lint ordering issues, and expanded validation to 37 passing tests with clean lint/build.
+- 2026-03-21: Follow-up code review requested changes. Reopened the story after confirming the scaffold still emits `workspace:*` peer dependencies instead of versioned `@hexalith/*` peers, added regression-gap notes, and synced sprint tracking back to in-progress.
+- 2026-03-21: Applied the follow-up semver fix by adding explicit workspace package versions, generating `^0.1.0` peer dependency ranges in scaffolded modules, tightening regression tests to assert exact peer ranges, and revalidating the scaffold with 39 passing tests plus clean lint/build.
 
 ## Dev Agent Record
 
@@ -297,11 +299,11 @@ Claude Opus 4.6
 
 - Task 1: CLI entry point (`src/index.ts`) with argument parsing, name validation (`validateModuleName.ts`), directory existence check, success message, and cross-platform remediation guidance for existing output directories. Added `bin` field to package.json, shebang via tsup `banner`, root workspace script `create-module`. 12 unit tests.
 - Task 2: Scaffold engine (`src/scaffold.ts`) with template file copying, two-tier string replacement (placeholder tokens + PascalCase-aware `Example` prefix), CRLF normalization, binary file passthrough, git init with error handling. Name utilities in `nameUtils.ts`. 11 unit tests.
-- Task 3: Version check (`versionCheck.ts`) reads `@hexalith/*` package versions from the monorepo and injects them into the generated package.json. Falls back to `workspace:*`. 3 unit tests.
+- Task 3: Version check (`versionCheck.ts`) reads `@hexalith/*` package versions from the monorepo, normalizes them to semver ranges for the generated package.json, and falls back to `^0.1.0` when versions are unavailable. 4 unit tests.
 - Task 4: Template configuration files — package.json (ESM, peerDeps, devDeps, scripts), tsconfig.json (extends base, jsx, strict), eslint.config.js (base + react + boundaries), vitest.config.ts (include `*.test`, exclude `*.spec`), tsup.config.ts, README.md, .stylelintrc.json, .gitattributes, .gitignore. The generated Stylelint config is standalone from the scaffolded module root and uses the `@hexalith/ui` token-compliance plugin path rather than an invalid relative workspace reference. Also tsconfig.templates.json for CI type-checking of templates.
 - Task 5: Template source files — index.ts (module entry point with default root export plus manifest/routes re-exports), manifest.ts (typed ModuleManifest with JSDoc), routes.tsx (placeholder component with Example prefix). Empty directories with .gitkeep for schemas/, pages/, components/, hooks/.
 - Task 6: Dev-host skeleton — index.html, main.tsx (placeholder), vite.config.ts.
-- Task 7: Integration tests — 10 tests covering: dynamic file comparison with template source, package.json deps, tsconfig extends, name substitution, template entry export, ESLint config, standalone Stylelint config, git files, git init, placeholder scan (zero unreplaced tokens), and type-check smoke test (tsc --noEmit against workspace types). Total package validation now passes with 37 tests.
+- Task 7: Integration tests — 10 tests covering: dynamic file comparison with template source, package.json deps, exact `@hexalith/*` peer dependency ranges, tsconfig extends, name substitution, template entry export, ESLint config, standalone Stylelint config, git files, git init, placeholder scan (zero unreplaced tokens), and type-check smoke test (tsc --noEmit against workspace types). Total package validation now passes with 39 tests.
 
 ### File List
 
@@ -343,12 +345,18 @@ Modified files:
 - tools/create-hexalith-module/package.json (bin field, scripts, devDependencies)
 - tools/create-hexalith-module/src/index.ts (cross-platform remediation guidance, import order cleanup)
 - tools/create-hexalith-module/src/index.test.ts (import order cleanup)
-- tools/create-hexalith-module/src/scaffold.test.ts (standalone Stylelint config coverage)
-- tools/create-hexalith-module/src/integration.test.ts (template entry point and Stylelint config coverage)
-- tools/create-hexalith-module/src/versionCheck.test.ts (import order cleanup)
+- tools/create-hexalith-module/src/scaffold.ts (versioned peer dependency fallback)
+- tools/create-hexalith-module/src/scaffold.test.ts (standalone Stylelint config and peer dependency injection coverage)
+- tools/create-hexalith-module/src/integration.test.ts (template entry point, Stylelint config, and exact peer range verification)
+- tools/create-hexalith-module/src/versionCheck.ts (semver range normalization for workspace versions)
+- tools/create-hexalith-module/src/versionCheck.test.ts (semver range normalization and fallback coverage)
 - tools/create-hexalith-module/tsup.config.ts (shebang banner)
 - tools/create-hexalith-module/templates/module/.stylelintrc.json (standalone token-compliance configuration)
 - tools/create-hexalith-module/templates/module/src/index.ts (default module root export)
+- tools/create-hexalith-module/templates/module/package.json (versioned `@hexalith/*` peer dependencies)
+- packages/shell-api/package.json (added explicit package version)
+- packages/cqrs-client/package.json (added explicit package version)
+- packages/ui/package.json (added explicit package version)
 - package.json (added create-module workspace script)
 
 ## Senior Developer Review (AI)
@@ -359,20 +367,24 @@ GitHub Copilot (GPT-5.4)
 
 ### Outcome
 
-Approved after fixes.
+Approved after follow-up fixes.
 
 ### Review Notes
 
+- The follow-up **HIGH** finding is resolved: scaffolded modules now emit versioned `@hexalith/*` peer dependencies using workspace-derived semver ranges, with `^0.1.0` as the default fallback when version discovery is unavailable.
+- The follow-up **MEDIUM** regression gap is resolved: `tools/create-hexalith-module/src/integration.test.ts` now asserts the exact generated `@hexalith/*` peer ranges, and unit coverage in `versionCheck.test.ts` and `scaffold.test.ts` verifies both normalization and scaffold injection behavior.
+- The earlier traceability concern is now documented across the active story records: Story 4.1 captures its semver follow-up changes, while Story 4.4/4.5 own the adjacent scaffold-test and manifest work that was also present in the working tree.
 - Fixed the template module entry so `src/index.ts` now exports a real default root component instead of only acting as a barrel.
 - Replaced the generated `.stylelintrc.json` with a standalone configuration that is valid from the scaffolded module root.
 - Updated CLI remediation guidance for existing output directories to include both PowerShell and bash commands.
 - Cleaned remaining CLI package lint failures caused by import ordering.
-- Added regression coverage for the standalone Stylelint config and template entry export.
+- Added regression coverage for the standalone Stylelint config, template entry export, and versioned peer dependency generation.
 
 ### Validation
 
 - `pnpm --filter @hexalith/create-hexalith-module test`
 - `pnpm --filter @hexalith/create-hexalith-module lint`
 - `pnpm --filter @hexalith/create-hexalith-module build`
+- Fresh scaffold smoke check via `node tools/create-hexalith-module/dist/index.js my-orders` in a temporary directory
 
-Result: 37 tests passed, lint passed, template type-check passed, and build passed.
+Result: 39 tests passed, lint passed, template type-check passed, and build passed. A fresh scaffold smoke check confirmed `@hexalith/shell-api`, `@hexalith/cqrs-client`, and `@hexalith/ui` now generate as `^0.1.0` peer dependency ranges, satisfying the versioned peer dependency requirement.

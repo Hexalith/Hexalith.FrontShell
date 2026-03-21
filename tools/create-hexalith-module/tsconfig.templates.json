@@ -15,7 +15,13 @@
         "../../node_modules/.pnpm/vite@6.4.1_@types+node@25.5.0/node_modules/vite/dist/node/index.d.ts"
       ],
       "react-router": ["../../apps/shell/node_modules/react-router/dist/development/index.d.ts"],
-      "zod": ["../../node_modules/.pnpm/zod@3.25.76/node_modules/zod/index.d.cts"]
+      "zod": ["../../node_modules/.pnpm/zod@3.25.76/node_modules/zod/index.d.cts"],
+      "vitest": ["../../node_modules/vitest/dist/index.d.ts"],
+      "@testing-library/react": ["../../node_modules/.pnpm/node_modules/@testing-library/react/types/index.d.ts"],
+      "@testing-library/jest-dom/vitest": ["../../node_modules/.pnpm/node_modules/@testing-library/jest-dom/vitest.d.ts"],
+      "@testing-library/user-event": ["../../node_modules/.pnpm/node_modules/@testing-library/user-event/dist/types/index.d.ts"],
+      "@playwright/experimental-ct-react": ["../../node_modules/.pnpm/node_modules/@playwright/experimental-ct-react/index.d.ts"],
+      "@axe-core/playwright": ["../../node_modules/.pnpm/node_modules/@axe-core/playwright/dist/index.d.ts"]
     }
   },
   "include": [
