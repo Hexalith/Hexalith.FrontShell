@@ -1,5 +1,5 @@
 // jsdom does not implement window.matchMedia — provide a stub for ThemeProvider
-Object.defineProperty(window, "matchMedia", {
+if (typeof window !== "undefined") Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: (query: string) => ({
     matches: false,

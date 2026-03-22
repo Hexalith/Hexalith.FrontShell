@@ -1,14 +1,14 @@
-import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import React from "react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { describe, it, expect, afterEach, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { MockShellProvider } from "@hexalith/shell-api";
 import type { NavigationItem } from "@hexalith/ui";
 
-import type { SidebarNavigationItem } from "../modules/navigationBuilder";
-
 import { Sidebar } from "./Sidebar";
+
+import type { SidebarNavigationItem } from "../modules/navigationBuilder";
 
 // Mock useNavigate to track navigation calls
 const mockNavigate = vi.fn();
@@ -97,9 +97,6 @@ describe("Sidebar", () => {
     fireEvent.click(adminHeader);
     // The Tenants item should be hidden (Radix Collapsible hides content)
     // Radix Collapsible sets data-state="closed" on the content
-    const collapsibleContent = adminHeader
-      .closest("[data-state]")
-      ?.parentElement?.querySelector("[data-state]");
     // After clicking, the trigger should have data-state="closed"
     expect(adminHeader.closest("[data-state]")?.getAttribute("data-state")).toBe(
       "closed",

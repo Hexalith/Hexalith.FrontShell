@@ -5,6 +5,7 @@ import styles from "./ShellLayout.module.css";
 import { Sidebar } from "./Sidebar";
 import { StatusBar } from "./StatusBar";
 import { TopBar } from "./TopBar";
+import { ScrollRestoration } from "../navigation/ScrollRestoration";
 
 function getInitialCollapsed(): boolean {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
@@ -62,6 +63,7 @@ export function ShellLayout(): React.JSX.Element {
         tabIndex={-1}
         aria-label="Content"
       >
+        <ScrollRestoration />
         <Outlet />
       </main>
       <div className={styles.statusbar}>

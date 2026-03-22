@@ -1,7 +1,7 @@
-import { renderHook } from "@testing-library/react";
 import React from "react";
+import { renderHook } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { useActiveModule } from "./useActiveModule";
 

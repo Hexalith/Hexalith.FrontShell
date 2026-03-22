@@ -12,6 +12,8 @@ import {
   LocaleProvider,
 } from "@hexalith/shell-api";
 
+import { VersionGuard } from "../navigation/VersionGuard";
+
 export interface ShellProvidersProps {
   oidcConfig: {
     authority: string;
@@ -51,13 +53,15 @@ function InnerProviders({
       tokenGetter={tokenGetter}
       signalRHub={signalRHub}
     >
-      <ConnectionHealthProvider backendUrl={backendUrl}>
-        <FormDirtyProvider>
-          <ThemeProvider>
-            <LocaleProvider>{children}</LocaleProvider>
-          </ThemeProvider>
-        </FormDirtyProvider>
-      </ConnectionHealthProvider>
+      <VersionGuard>
+        <ConnectionHealthProvider backendUrl={backendUrl}>
+          <FormDirtyProvider>
+            <ThemeProvider>
+              <LocaleProvider>{children}</LocaleProvider>
+            </ThemeProvider>
+          </FormDirtyProvider>
+        </ConnectionHealthProvider>
+      </VersionGuard>
     </CqrsProvider>
   );
 }

@@ -4,12 +4,12 @@ import {
   useConnectionHealth,
   useFormDirty,
   useTenant,
+  type ConnectionHealth,
 } from "@hexalith/shell-api";
-import type { ConnectionHealth } from "@hexalith/shell-api";
 
-import { useActiveModule } from "../hooks/useActiveModule";
 import { DisconnectionBanner } from "./DisconnectionBanner";
 import styles from "./StatusBar.module.css";
+import { useActiveModule } from "../hooks/useActiveModule";
 
 const TRUNCATION_LIMIT = 20;
 

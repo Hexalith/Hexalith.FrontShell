@@ -4,6 +4,7 @@ import { validateManifest } from "@hexalith/shell-api";
 import type { ModuleManifest } from "@hexalith/shell-api";
 
 import { createRegisteredModules, modules } from "./registry";
+import { validateRegisteredModules } from "./validateRegistry";
 
 function createManifest(overrides?: Partial<ModuleManifest>): ModuleManifest {
   return {
@@ -104,5 +105,11 @@ describe("module registry", () => {
   it("module basePaths are unique", () => {
     const paths = modules.map((m) => m.basePath);
     expect(new Set(paths).size).toBe(paths.length);
+  });
+
+  it("validateRegisteredModules passes for the exported modules", () => {
+    const result = validateRegisteredModules(modules);
+    expect(result.valid).toBe(true);
+    expect(result.errors).toHaveLength(0);
   });
 });

@@ -1,6 +1,6 @@
 # Story 5.4: Navigation State Preservation & Caching
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -26,18 +26,18 @@ so that returning to a module feels instant and I don't lose my place.
 
 7. **AC7 — Browser back/forward works correctly.** Given browser back/forward navigation is used, when the user presses the browser back button, then the shell router manages history entries correctly and the previous module's state is restored (cached data + scroll position + filter/sort params).
 
-*FRs covered: FR26*
+_FRs covered: FR26_
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Add timestamp tracking to ETag cache (AC: #1, #2)
-  - [ ] 1.1: Update `packages/cqrs-client/src/queries/etagCache.ts`:
+- [x] Task 1: Add timestamp tracking to ETag cache (AC: #1, #2)
+  - [x] 1.1: Update `packages/cqrs-client/src/queries/etagCache.ts`:
     - Extend `CacheEntry` with `timestamp: number` (Date.now() at storage time)
     - Add `getAge(key: string): number | undefined` method to `ETagCache` interface — returns milliseconds since entry was stored, or `undefined` if key not found
     - Update `set()` to record `Date.now()` as `timestamp`
     - Add `isFresh(key: string, maxAgeMs: number): boolean` method — returns `true` if entry exists and age < maxAgeMs
     - Existing `get()` and `clear()` methods unchanged
-  - [ ] 1.2: Update `packages/cqrs-client/src/queries/etagCache.test.ts` **(file already exists — ADD tests, do not create)**:
+  - [x] 1.2: Update `packages/cqrs-client/src/queries/etagCache.test.ts` **(file already exists — ADD tests, do not create)**:
     - **Use `vi.useFakeTimers()` for all timestamp/freshness tests** — real `Date.now()` comparisons are flaky in CI. Call `vi.advanceTimersByTime(ms)` to simulate cache aging. Restore with `vi.useRealTimers()` in `afterEach`
     - Test: `set()` records timestamp
     - Test: `getAge()` returns age in ms for existing entry (advance fake timers by 3000ms, assert age ≈ 3000)
@@ -47,8 +47,8 @@ so that returning to a module feels instant and I don't lose my place.
     - Test: `isFresh()` returns `false` for missing key
     - Test: `clear()` removes all entries (existing test, verify still passes)
 
-- [ ] Task 2: Implement stale-while-revalidate in useQuery (AC: #1, #2, #3)
-  - [ ] 2.1: Update `packages/cqrs-client/src/queries/useQuery.ts`:
+- [x] Task 2: Implement stale-while-revalidate in useQuery (AC: #1, #2, #3)
+  - [x] 2.1: Update `packages/cqrs-client/src/queries/useQuery.ts`:
     - Add `FRESH_THRESHOLD_MS = 5 * 60 * 1000` constant (5 minutes)
     - On mount (initial fetch in `useEffect`): check `etagCache.isFresh(cacheKey, FRESH_THRESHOLD_MS)` BEFORE fetching
       - If **fresh cache hit** → `setData(cached.data)`, `setIsLoading(false)`, do NOT fetch (data is fresh, no skeleton)
@@ -58,7 +58,7 @@ so that returning to a module feels instant and I don't lose my place.
       - `isLoading` = true only on first-ever load (no cached data available)
       - `isRefreshing` = true when revalidating stale cached data in background
     - Export `FRESH_THRESHOLD_MS` for use in tests and documentation
-  - [ ] 2.2: Update `packages/cqrs-client/src/queries/useQuery.test.ts`:
+  - [x] 2.2: Update `packages/cqrs-client/src/queries/useQuery.test.ts`:
     - **Use `vi.useFakeTimers()` for stale-while-revalidate tests** — control cache aging precisely. Same pattern as etagCache tests
     - ADD test: fresh cache hit → `isLoading` is `false` immediately, `data` is cached value, no network request made
     - ADD test: stale cache hit → `isLoading` is `false`, `data` is cached value, `isRefreshing` is `true`, background fetch occurs
@@ -67,8 +67,8 @@ so that returning to a module feels instant and I don't lose my place.
     - ADD test: background revalidation updates data in-place when fresh response received
     - UPDATE existing tests: add `isRefreshing: false` assertion where `UseQueryResult` is checked (non-breaking — isRefreshing is false in all current test scenarios)
 
-- [ ] Task 3: Create scroll position manager (AC: #4, #7)
-  - [ ] 3.1: Create `apps/shell/src/navigation/scrollManager.ts`:
+- [x] Task 3: Create scroll position manager (AC: #4, #7)
+  - [x] 3.1: Create `apps/shell/src/navigation/scrollManager.ts`:
     - Export `ScrollManager` interface:
       - `save(routeKey: string): void` — reads `window.scrollY` (read-only property) and stores the value for the given route key
       - `restore(routeKey: string): void` — calls `window.scrollTo(0, savedPosition)` (instant, no smooth scroll) for the given route. Uses `requestAnimationFrame` to defer the scroll until after the next paint. If no saved position, scrolls to top (0)
@@ -76,12 +76,18 @@ so that returning to a module feels instant and I don't lose my place.
     - Export `createScrollManager(): ScrollManager` — uses in-memory `Map<string, number>`
     - Route key should be the pathname portion of the URL (not including search params), e.g., `/tenants` or `/orders/123`
     - **CRITICAL scroll timing**: `requestAnimationFrame` defers scroll until the next paint frame. For cached module return visits (data already in ETag cache, no Suspense fallback), one rAF is sufficient because the DOM renders synchronously from cached data. For first visits (lazy-loaded chunks), scroll position is 0 (top) anyway — no timing issue. The edge case where content height changes during background revalidation (AC2) is acceptable — the user was at position X when they left, we restore to X, and if the content reflows slightly during background refresh, the browser handles it naturally
-  - [ ] 3.2: Create `apps/shell/src/navigation/scrollManager.test.ts`:
+  - [x] 3.2: Create `apps/shell/src/navigation/scrollManager.test.ts`:
     - **Mock pattern for jsdom (no real layout/scrolling):**
       ```typescript
       // In beforeEach:
-      Object.defineProperty(window, 'scrollY', { value: 0, writable: true, configurable: true });
-      const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+      Object.defineProperty(window, "scrollY", {
+        value: 0,
+        writable: true,
+        configurable: true,
+      });
+      const scrollToSpy = vi
+        .spyOn(window, "scrollTo")
+        .mockImplementation(() => {});
       // To simulate user scroll: (window as any).scrollY = 500;
       ```
     - Test: `save()` captures current `window.scrollY` value
@@ -90,8 +96,8 @@ so that returning to a module feels instant and I don't lose my place.
     - Test: `clear()` removes all saved positions
     - Test: multiple routes maintain independent positions
 
-- [ ] Task 4: Create ScrollRestoration component and wire into ShellLayout (AC: #4, #7)
-  - [ ] 4.1: Create `apps/shell/src/navigation/ScrollRestoration.tsx`:
+- [x] Task 4: Create ScrollRestoration component and wire into ShellLayout (AC: #4, #7)
+  - [x] 4.1: Create `apps/shell/src/navigation/ScrollRestoration.tsx`:
     - Functional component using `useLocation` from `react-router`
     - On location change (pathname changes):
       - Save scroll position for the PREVIOUS pathname before navigation
@@ -99,32 +105,32 @@ so that returning to a module feels instant and I don't lose my place.
     - Use `useRef` to track previous pathname
     - Use `useLayoutEffect` or `useEffect` + `requestAnimationFrame` for restore timing
     - Import `createScrollManager` — create a module-level singleton (lives for the session lifetime)
-  - [ ] 4.2: Create `apps/shell/src/navigation/ScrollRestoration.test.tsx`:
+  - [x] 4.2: Create `apps/shell/src/navigation/ScrollRestoration.test.tsx`:
     - **Mock scroll APIs** (same pattern as scrollManager tests): `Object.defineProperty(window, 'scrollY', ...)` and `vi.spyOn(window, 'scrollTo')`
     - **Wrap tests in `MemoryRouter`** (component uses `useLocation` from `react-router`)
     - Test: saves scroll position on pathname change
     - Test: restores scroll position for previously visited route
     - Test: scrolls to top for new routes
     - Test: handles browser back/forward navigation (pathname change triggers save/restore)
-  - [ ] 4.3: Update `apps/shell/src/layout/ShellLayout.tsx`:
+  - [x] 4.3: Update `apps/shell/src/layout/ShellLayout.tsx`:
     - Import `ScrollRestoration` from `../navigation/ScrollRestoration`
     - Add `<ScrollRestoration />` inside the `<main>` element, before `<Outlet />`
     - Do NOT wrap `<Outlet />` — ScrollRestoration is a sibling, not a wrapper
 
-- [ ] Task 5: Implement app version mismatch detection and cache clearing (AC: #6)
-  - [ ] 5.1: Update `index.html` (`apps/shell/index.html`):
+- [x] Task 5: Implement app version mismatch detection and cache clearing (AC: #6)
+  - [x] 5.1: Update `index.html` (`apps/shell/index.html`):
     - Add `<meta name="hexalith-shell-version" content="%VITE_APP_VERSION%" />` in `<head>`
     - The `%VITE_APP_VERSION%` placeholder is replaced at build time by Vite's `define` or `envPrefix`
-  - [ ] 5.2: Update `vite.config.ts` (`apps/shell/vite.config.ts`):
+  - [x] 5.2: Update `vite.config.ts` (`apps/shell/vite.config.ts`):
     - Add `define: { 'import.meta.env.VITE_APP_VERSION': JSON.stringify(process.env.npm_package_version ?? 'dev') }` (reads version from shell's package.json)
     - OR use Vite's built-in env replacement: add `VITE_APP_VERSION` to `.env` file with the version value
     - **Preferred approach**: Use `vite-plugin-html` or inline `define` to replace the meta tag content at build time. Simplest: hardcode the replacement in `vite.config.ts` using `process.env.npm_package_version`
-  - [ ] 5.3: Create `apps/shell/src/navigation/versionCheck.ts`:
+  - [x] 5.3: Create `apps/shell/src/navigation/versionCheck.ts`:
     - Export `getShellVersion(): string` — reads `<meta name="hexalith-shell-version">` content from DOM
     - Export `checkVersionMismatch(): boolean` — compares current version in sessionStorage (`hexalith-shell-version`) against the `<meta>` tag version. Returns `true` if mismatch detected (new deployment)
     - Export `recordCurrentVersion(): void` — stores the meta tag version in sessionStorage
     - On mismatch: caller should clear the ETag cache and scroll manager, then record the new version
-  - [ ] 5.4: Create `apps/shell/src/navigation/versionCheck.test.ts`:
+  - [x] 5.4: Create `apps/shell/src/navigation/versionCheck.test.ts`:
     - **Add `beforeEach(() => sessionStorage.clear())` to prevent test pollution** — jsdom's sessionStorage persists across tests in the same file
     - **Mock meta tag in DOM**: create a meta element via `document.createElement('meta')`, set its attributes, and append to `document.head`. Clean up in afterEach by removing it
     - Test: `getShellVersion()` reads from meta tag
@@ -132,7 +138,7 @@ so that returning to a module feels instant and I don't lose my place.
     - Test: `checkVersionMismatch()` returns `true` when versions differ
     - Test: `checkVersionMismatch()` returns `true` on first visit (no stored version)
     - Test: `recordCurrentVersion()` stores version in sessionStorage
-  - [ ] 5.5: Create `apps/shell/src/navigation/useVersionCheck.ts` hook and wire into provider tree:
+  - [x] 5.5: Create `apps/shell/src/navigation/useVersionCheck.ts` hook and wire into provider tree:
     - **Do NOT wire into `App.tsx` directly** — `etagCache.clear()` requires `useQueryClient()` which is only available inside `CqrsProvider`
     - Create a `useVersionCheck(etagCache: ETagCache, scrollManager: ScrollManager)` hook:
       - On mount: if `checkVersionMismatch()` is true, call `etagCache.clear()`, `scrollManager.clear()`, `recordCurrentVersion()`
@@ -152,37 +158,38 @@ so that returning to a module feels instant and I don't lose my place.
       ```
     - **Note**: This moves `ShellProviders.tsx` from "DO NOT modify" to "Files to MODIFY". Update the file lists accordingly
 
-- [ ] Task 6: Create barrel export for navigation directory (AC: all)
-  - [ ] 6.1: Create `apps/shell/src/navigation/index.ts`:
+- [x] Task 6: Create barrel export for navigation directory (AC: all)
+  - [x] 6.1: Create `apps/shell/src/navigation/index.ts`:
     - Re-export `ScrollRestoration` from `./ScrollRestoration`
     - Re-export `VersionGuard` from `./VersionGuard`
     - Re-export `checkVersionMismatch`, `recordCurrentVersion`, `getShellVersion` from `./versionCheck`
     - Re-export `ScrollManager`, `createScrollManager` from `./scrollManager`
     - Re-export `useVersionCheck` from `./useVersionCheck`
 
-- [ ] **DEFINITION OF DONE GATE — All previous tasks must pass verification:**
+- [x] **DEFINITION OF DONE GATE — All previous tasks must pass verification:**
 
-- [ ] Task 7: Verification (AC: #1-#7)
-  - [ ] 7.1: All tests pass: `pnpm -F shell test` AND `pnpm -F cqrs-client test`
-  - [ ] 7.2: Shell builds successfully: `pnpm -F shell build`
-  - [ ] 7.3: Return visit with fresh cache (< 5 min) renders instantly — no skeleton, no loading state
-  - [ ] 7.4: Return visit with stale cache (> 5 min) renders cached data immediately + shows refresh indicator
-  - [ ] 7.5: First visit shows content-aware skeleton (minimum 300ms)
-  - [ ] 7.6: Scroll position is saved on navigation away and restored on return
-  - [ ] 7.7: Filter/sort state in URL params survives module switch and browser refresh
-  - [ ] 7.8: App version mismatch clears ETag cache and scroll positions
-  - [ ] 7.9: Browser back/forward restores previous module state
-  - [ ] 7.10: Imports use `react-router` (NOT `react-router-dom`)
-  - [ ] 7.11: No `enum` types used — union types only
-  - [ ] 7.12: No direct `@radix-ui/*` imports in shell code
-  - [ ] 7.13: `isRefreshing` field added to `UseQueryResult` is backward-compatible (false for non-stale scenarios)
-  - [ ] 7.14: `@hexalith/cqrs-client` package.json version bumped (minor) for public API addition
+- [x] Task 7: Verification (AC: #1-#7)
+  - [x] 7.1: All tests pass: `pnpm -F shell test` AND `pnpm -F cqrs-client test`
+  - [x] 7.2: Shell builds successfully: `pnpm -F shell build`
+  - [x] 7.3: Return visit with fresh cache (< 5 min) renders instantly — no skeleton, no loading state
+  - [x] 7.4: Return visit with stale cache (> 5 min) renders cached data immediately + shows refresh indicator
+  - [x] 7.5: First visit shows content-aware skeleton (minimum 300ms)
+  - [x] 7.6: Scroll position is saved on navigation away and restored on return
+  - [x] 7.7: Filter/sort state in URL params survives module switch and browser refresh
+  - [x] 7.8: App version mismatch clears ETag cache and scroll positions
+  - [x] 7.9: Browser back/forward restores previous module state
+  - [x] 7.10: Imports use `react-router` (NOT `react-router-dom`)
+  - [x] 7.11: No `enum` types used — union types only
+  - [x] 7.12: No direct `@radix-ui/*` imports in shell code
+  - [x] 7.13: `isRefreshing` field added to `UseQueryResult` is backward-compatible (false for non-stale scenarios)
+  - [x] 7.14: `@hexalith/cqrs-client` package.json version bumped (minor) for public API addition
 
 ## Dev Notes
 
 ### Dependency Gate
 
 **Stories 5-1 (done), 5-2 (review), and 5-3 (ready-for-dev) should be stable before starting.** This story builds on:
+
 - `ModuleErrorBoundary.tsx` and `ModuleSkeleton.tsx` from 5-1 (unchanged — skeleton behavior for first-visit is already handled by Suspense + ModuleSkeleton)
 - `routeBuilder.ts` from 5-1 (wraps modules in ErrorBoundary > Suspense > Component — unchanged)
 - `useActiveModule` hook from 5-2 (sidebar and status bar continue working during navigation transitions)
@@ -191,6 +198,7 @@ so that returning to a module feels instant and I don't lose my place.
 ### Scope Boundaries — What This Story IS and IS NOT
 
 **This story IS:**
+
 - Adding timestamp tracking to the ETag cache for stale-while-revalidate behavior
 - Adding `isRefreshing` to `UseQueryResult` so modules can show inline refresh indicators for stale data
 - Creating a scroll position manager that saves/restores scroll per route
@@ -199,6 +207,7 @@ so that returning to a module feels instant and I don't lose my place.
 - Ensuring filter/sort state in URL search params survives module switches (React Router already handles this — verification, not implementation)
 
 **This story is NOT:**
+
 - Implementing filter/sort state storage mechanisms in modules — modules own their URL param usage via `useSearchParams` from react-router. The shell preserves the URL; module code manages what's in it
 - Adding form-in-progress caching — `FormDirtyProvider` from `@hexalith/shell-api` already handles "unsaved changes" warnings. Form data is NOT cached across navigation (by design — see UX spec)
 - Auto-retry with background polling for degraded services (Story 5.6 / Phase 2)
@@ -225,10 +234,12 @@ The architecture doc confirms `@hexalith/cqrs-client` depends on `@tanstack/reac
 ### Package Dependency Notes
 
 **Changes span two packages:**
+
 - `packages/cqrs-client` — ETag cache timestamp, useQuery stale-while-revalidate, isRefreshing field
 - `apps/shell` — scroll restoration, version check, ShellLayout wiring
 
 **No new dependencies needed.** All features use built-in browser APIs and existing React patterns:
+
 - `sessionStorage` for version tracking
 - `window.scrollY` / `window.scrollTo` for scroll position
 - `requestAnimationFrame` for scroll restore timing
@@ -236,11 +247,13 @@ The architecture doc confirms `@hexalith/cqrs-client` depends on `@tanstack/reac
 
 ### AC2 Refresh Indicator Responsibility
 
-**The shell provides `isRefreshing`; modules consume it.** The "small inline refresh indicator" in AC2 is rendered by the *module*, not the shell. The shell's role is exposing `isRefreshing: boolean` in the `UseQueryResult<T>` hook return. Module developers use it like:
+**The shell provides `isRefreshing`; modules consume it.** The "small inline refresh indicator" in AC2 is rendered by the _module_, not the shell. The shell's role is exposing `isRefreshing: boolean` in the `UseQueryResult<T>` hook return. Module developers use it like:
+
 ```typescript
 const { data, isLoading, isRefreshing } = useQuery(schema, params);
 // Module renders: {isRefreshing && <RefreshIndicator />}
 ```
+
 The Tenants reference module should demonstrate this pattern when it adopts `isRefreshing` (can be done in this story or as a follow-up). The shell cannot render the indicator because it doesn't know the module's page header structure.
 
 ### Architecture Constraints — MUST Follow
@@ -268,6 +281,7 @@ The Tenants reference module should demonstrate this pattern when it adopts `isR
 ### Existing Codebase Context — MUST Reference
 
 **Files to MODIFY:**
+
 - `packages/cqrs-client/src/queries/etagCache.ts` — add timestamp, getAge, isFresh
 - `packages/cqrs-client/src/queries/etagCache.test.ts` — add timestamp/freshness tests **(file already exists)**
 - `packages/cqrs-client/src/queries/useQuery.ts` — stale-while-revalidate logic, isRefreshing field
@@ -277,6 +291,7 @@ The Tenants reference module should demonstrate this pattern when it adopts `isR
 - `apps/shell/vite.config.ts` — define VITE_APP_VERSION
 
 **Files to CREATE:**
+
 - `apps/shell/src/navigation/scrollManager.ts` — scroll position save/restore
 - `apps/shell/src/navigation/scrollManager.test.ts` — tests
 - `apps/shell/src/navigation/ScrollRestoration.tsx` — React component for scroll management
@@ -288,6 +303,7 @@ The Tenants reference module should demonstrate this pattern when it adopts `isR
 - `apps/shell/src/navigation/index.ts` — barrel export
 
 **Files that are source of truth (DO NOT modify):**
+
 - `packages/cqrs-client/src/queries/QueryProvider.tsx` — provides ETag cache via context, already clears cache on tenant switch
 - `packages/cqrs-client/src/CqrsProvider.tsx` — wraps ConnectionStateProvider > SignalRProvider > QueryProvider
 - `apps/shell/src/modules/routeBuilder.ts` — module wrapping: ModuleErrorBoundary > Suspense > Component
@@ -297,6 +313,7 @@ The Tenants reference module should demonstrate this pattern when it adopts `isR
 ### Key Existing Code Patterns
 
 **Current ETag cache (to be enhanced with timestamps):**
+
 ```typescript
 // packages/cqrs-client/src/queries/etagCache.ts — CURRENT
 export interface CacheEntry<T = unknown> {
@@ -309,6 +326,7 @@ export interface CacheEntry<T = unknown> {
 ```
 
 **Current useQuery initial fetch (to be enhanced with stale-while-revalidate):**
+
 ```typescript
 // packages/cqrs-client/src/queries/useQuery.ts — CURRENT behavior:
 // On mount: setIsLoading(true) → fetch → setData → setIsLoading(false)
@@ -322,6 +340,7 @@ export interface CacheEntry<T = unknown> {
 ```
 
 **Current UseQueryResult (to be extended):**
+
 ```typescript
 export interface UseQueryResult<T> {
   data: T | undefined;
@@ -334,6 +353,7 @@ export interface UseQueryResult<T> {
 ```
 
 **ShellLayout main content area (ScrollRestoration goes here):**
+
 ```tsx
 // apps/shell/src/layout/ShellLayout.tsx — CURRENT
 <main className={styles.main} id="main-content" tabIndex={-1} aria-label="Content">
@@ -348,6 +368,7 @@ export interface UseQueryResult<T> {
 ```
 
 **URL search params for filter/sort (module responsibility, not shell):**
+
 ```typescript
 // Modules use react-router's useSearchParams:
 import { useSearchParams } from "react-router";
@@ -375,15 +396,18 @@ const [searchParams, setSearchParams] = useSearchParams();
 ### Previous Story Intelligence (Stories 5-1, 5-2, 5-3)
 
 **Story 5-1 (done):** Created module infrastructure:
+
 - `ModuleErrorBoundary.tsx`, `ModuleSkeleton.tsx`, `routeBuilder.ts`, `registry.ts`
 - Key: ModuleSkeleton provides content-aware loading for first visit — this story ensures it's NOT shown on return visits
 
 **Story 5-2 (review):** Created navigation:
+
 - `useActiveModule` hook, sidebar with module navigation, status bar with active module display
 - Key: Sidebar navigation triggers route changes. This story manages the state preservation around those route changes
 - Debug note: Tests required `MemoryRouter` wrapper for hooks using `useLocation`. ScrollRestoration tests will also need `MemoryRouter`
 
 **Story 5-3 (ready-for-dev):** Created error isolation:
+
 - Enhanced `ModuleErrorBoundary` with error classification, `ShellErrorBoundary`, structured error events
 - Key: Error boundaries are independent of navigation caching. A module that errored and then retried successfully should have its data cached normally
 
@@ -400,6 +424,7 @@ e28db39 chore: update subproject commit reference for Hexalith.Tenants
 ### Project Structure Notes
 
 **Files to create:**
+
 ```
 apps/shell/src/
 ├── navigation/
@@ -415,6 +440,7 @@ apps/shell/src/
 ```
 
 **Files to modify:**
+
 ```
 packages/cqrs-client/
 ├── package.json                    # Minor version bump (isRefreshing API addition)
@@ -436,6 +462,7 @@ apps/shell/
 ### Commit Strategy
 
 Recommended commit order:
+
 1. Enhance ETag cache with timestamp tracking + tests — foundational change, no consumers yet
 2. Add stale-while-revalidate to useQuery + isRefreshing + tests — builds on timestamp cache
 3. Create scroll manager + ScrollRestoration + tests — standalone shell feature
@@ -467,10 +494,60 @@ All can be committed together as one cohesive commit — they form one logical f
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.6 (1M context)
 
 ### Debug Log References
 
+- Shell tests showed `Not implemented: Window's scrollTo() method` warnings in jsdom — expected and harmless (scroll APIs not natively implemented in jsdom)
+- Initial stale-while-revalidate tests timed out due to `waitFor` polling being incompatible with `vi.useFakeTimers()` — resolved by using `act` + `vi.advanceTimersByTimeAsync` exclusively with fake timers
+- First stale-while-revalidate test approach (unmount/remount) failed because each `renderHook` creates a new `QueryProvider` with a fresh `ETagCache` — resolved by using param switching within a single render to keep the same cache instance
+- `useQueryClient` was not exported from `@hexalith/cqrs-client` public API — added export to `index.ts` and rebuilt package before shell tests passed
+- `ETagCache` type and `FRESH_THRESHOLD_MS` also needed public export for shell to reference
+- Code review found scroll restoration was saving positions after route entry instead of on route exit — fixed by moving scroll persistence into the route effect cleanup and strengthening navigation assertions in the test suite
+- Code review found the shell version meta tag always built to `dev` because the shell package lacked a version and HTML replacement was not wired robustly — fixed by adding a shell package version and explicit HTML version transform in `vite.config.ts`
+
 ### Completion Notes List
 
+- Task 1: Enhanced `ETagCache` with `timestamp: number` field, `getAge(key)`, and `isFresh(key, maxAgeMs)` methods. `set()` records `Date.now()` as timestamp. 7 new tests added using `vi.useFakeTimers()`.
+- Task 2: Implemented stale-while-revalidate in `useQuery`. On mount: fresh cache skips network entirely, stale cache shows cached data immediately with background revalidation, no cache shows loading skeleton. Added `isRefreshing: boolean` to `UseQueryResult<T>` (defaults `false`). 4 new tests plus `isRefreshing` assertion added to existing shape test.
+- Task 3: Created `ScrollManager` interface and `createScrollManager()` factory. Uses in-memory `Map<string, number>`. `save()` reads `window.scrollY`, `restore()` defers `window.scrollTo` via `requestAnimationFrame`. 5 tests.
+- Task 4: Created `ScrollRestoration` React component using `useLocation` from `react-router`. Saves scroll for previous pathname and restores for new pathname on location change. Module-level singleton `scrollManager`. Wired into `ShellLayout.tsx` as sibling before `<Outlet />`. 3 tests.
+- Task 5: Created version mismatch detection system: `versionCheck.ts` (reads `<meta>` tag, compares with `sessionStorage`), `useVersionCheck.ts` hook (clears ETag cache + scroll positions on mismatch), `VersionGuard.tsx` (thin wrapper calling hook). Added `<meta name="hexalith-shell-version">` to `index.html`, `VITE_APP_VERSION` define to `vite.config.ts`. Wired `VersionGuard` into `ShellProviders` inside `CqrsProvider`. 7 tests.
+- Task 6: Created barrel export `index.ts` for the `navigation` directory.
+- Task 7: All tests pass (342 cqrs-client + 166 shell = 508 total). Shell builds successfully. `isRefreshing` is backward-compatible. Package version bumped 0.1.0 -> 0.2.0. All imports use `react-router` (not `react-router-dom`). No `enum` types. No direct `@radix-ui/*` imports.
+- Code review follow-up fixes: corrected scroll save timing to persist on navigation away, replaced the weak scroll restoration test with real navigation/back assertions, added a version to `apps/shell/package.json`, and ensured the build injects the real shell version into `index.html`.
+
+### Change Log
+
+- 2026-03-22: Implemented navigation state preservation and caching (Story 5-4). Added stale-while-revalidate caching, scroll position management, and app version mismatch detection.
+- 2026-03-22: Addressed code review findings for Story 5.4. Fixed scroll restoration timing, strengthened navigation restoration tests, and ensured shell version metadata is injected with the real package version.
+
 ### File List
+
+**Modified:**
+
+- `apps/shell/package.json` — added shell package version so deployment metadata can track real shell releases
+- `packages/cqrs-client/package.json` — version bump 0.1.0 -> 0.2.0
+- `packages/cqrs-client/src/index.ts` — added exports: ETagCache type, useQueryClient, FRESH_THRESHOLD_MS
+- `packages/cqrs-client/src/queries/etagCache.ts` — added timestamp, getAge, isFresh
+- `packages/cqrs-client/src/queries/etagCache.test.ts` — added 7 timestamp/freshness tests
+- `packages/cqrs-client/src/queries/useQuery.ts` — stale-while-revalidate, isRefreshing, FRESH_THRESHOLD_MS
+- `packages/cqrs-client/src/queries/useQuery.test.ts` — added 5 stale-while-revalidate tests + isRefreshing assertions
+- `apps/shell/index.html` — added version meta tag
+- `apps/shell/vite.config.ts` — added shell version resolution and HTML replacement for `VITE_APP_VERSION`
+- `apps/shell/src/layout/ShellLayout.tsx` — added ScrollRestoration component
+- `apps/shell/src/navigation/ScrollRestoration.test.tsx` — strengthened route navigation/back restoration assertions
+- `apps/shell/src/navigation/ScrollRestoration.tsx` — save scroll state on route exit and restore on route entry
+- `apps/shell/src/providers/ShellProviders.tsx` — added VersionGuard inside CqrsProvider
+
+**Created:**
+
+- `apps/shell/src/navigation/index.ts` — barrel export
+- `apps/shell/src/navigation/scrollManager.ts` — scroll position save/restore
+- `apps/shell/src/navigation/scrollManager.test.ts` — 5 tests
+- `apps/shell/src/navigation/ScrollRestoration.tsx` — React component for scroll management
+- `apps/shell/src/navigation/ScrollRestoration.test.tsx` — 3 tests
+- `apps/shell/src/navigation/versionCheck.ts` — app version mismatch detection
+- `apps/shell/src/navigation/versionCheck.test.ts` — 7 tests
+- `apps/shell/src/navigation/useVersionCheck.ts` — version check hook
+- `apps/shell/src/navigation/VersionGuard.tsx` — thin wrapper calling useVersionCheck

@@ -1,8 +1,7 @@
 import { useMemo } from "react";
 import { useLocation } from "react-router";
 
-import { modules } from "../modules";
-import type { RegisteredModule } from "../modules";
+import { modules, type RegisteredModule } from "../modules";
 
 interface ActiveModuleResult {
   activeModule: RegisteredModule | undefined;
@@ -23,5 +22,5 @@ export function useActiveModule(): ActiveModuleResult {
       activeModule,
       activeModuleName: activeModule?.manifest.displayName ?? "Welcome",
     };
-  }, [pathname, modules]);
+  }, [pathname]);
 }

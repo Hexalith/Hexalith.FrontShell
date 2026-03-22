@@ -544,9 +544,25 @@ describe("useQuery", () => {
 
     expect(result.current).toHaveProperty("data");
     expect(result.current).toHaveProperty("isLoading");
+    expect(result.current).toHaveProperty("isRefreshing");
     expect(result.current).toHaveProperty("error");
     expect(result.current).toHaveProperty("refetch");
     expect(Array.isArray(result.current)).toBe(false);
+  });
+
+  it("isRefreshing defaults to false", async () => {
+    const { result } = renderHook(
+      () => useQuery(TestSchema, defaultParams),
+      { wrapper: createWrapper(mockFetchClient) },
+    );
+
+    expect(result.current.isRefreshing).toBe(false);
+
+    await waitFor(() => {
+      expect(result.current.data).toBeDefined();
+    });
+
+    expect(result.current.isRefreshing).toBe(false);
   });
 
   it("does not cache when response has no ETag", async () => {
@@ -1643,6 +1659,238 @@ describe("ETag If-None-Match across refetch sources", () => {
 
     const fourthCallOptions = postForQuery.mock.calls[3]?.[1];
     expect(fourthCallOptions?.headers?.["If-None-Match"]).toBe('"shared-v2"');
+  });
+});
+
+describe("useQuery stale-while-revalidate", () => {
+  const paramsA: QueryParams = { domain: "Orders", queryType: "GetOrder", aggregateId: "ord-1" };
+  const paramsB: QueryParams = { domain: "Orders", queryType: "GetOrder", aggregateId: "ord-2" };
+
+  beforeEach(() => {
+    mockActiveTenant = "test-tenant";
+    mockCommandEventBus = createMockEventBus();
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it("fresh cache hit renders data immediately with no network request", async () => {
+    const postForQuery = vi.fn()
+      .mockResolvedValueOnce(
+        makeQueryResponse(
+          { correlationId: "q-1", payload: { id: "a", name: "dataA" } },
+          '"etag-a"',
+        ),
+      )
+      .mockResolvedValueOnce(
+        makeQueryResponse(
+          { correlationId: "q-2", payload: { id: "b", name: "dataB" } },
+          '"etag-b"',
+        ),
+      );
+    const client = createMockFetchClient(postForQuery);
+
+    const { result, rerender } = renderHook(
+      ({ params }) => useQuery(TestSchema, params),
+      {
+        initialProps: { params: paramsA },
+        wrapper: createWrapper(client),
+      },
+    );
+
+    // Populate cache for paramsA
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.data).toEqual({ id: "a", name: "dataA" });
+    expect(postForQuery).toHaveBeenCalledTimes(1);
+
+    // Switch to paramsB (populates different cache entry)
+    rerender({ params: paramsB });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.data).toEqual({ id: "b", name: "dataB" });
+    expect(postForQuery).toHaveBeenCalledTimes(2);
+
+    // Advance 1 minute (paramsA cache still fresh < 5 min)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000);
+    });
+
+    // Switch back to paramsA — fresh cache, no new fetch
+    rerender({ params: paramsA });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(result.current.data).toEqual({ id: "a", name: "dataA" });
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.isRefreshing).toBe(false);
+    expect(postForQuery).toHaveBeenCalledTimes(2); // No additional fetch
+  });
+
+  it("stale cache hit renders cached data and revalidates in background", async () => {
+    const postForQuery = vi.fn()
+      .mockResolvedValueOnce(
+        makeQueryResponse(
+          { correlationId: "q-1", payload: { id: "a", name: "old" } },
+          '"etag-old"',
+        ),
+      )
+      .mockResolvedValueOnce(
+        makeQueryResponse(
+          { correlationId: "q-2", payload: { id: "b", name: "dataB" } },
+          '"etag-b"',
+        ),
+      )
+      .mockResolvedValueOnce(
+        makeQueryResponse(
+          { correlationId: "q-3", payload: { id: "a", name: "fresh" } },
+          '"etag-fresh"',
+        ),
+      );
+    const client = createMockFetchClient(postForQuery);
+
+    const { result, rerender } = renderHook(
+      ({ params }) => useQuery(TestSchema, params),
+      {
+        initialProps: { params: paramsA },
+        wrapper: createWrapper(client),
+      },
+    );
+
+    // Populate cache for paramsA
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.data).toEqual({ id: "a", name: "old" });
+    expect(postForQuery).toHaveBeenCalledTimes(1);
+
+    // Switch to paramsB
+    rerender({ params: paramsB });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.data).toEqual({ id: "b", name: "dataB" });
+    expect(postForQuery).toHaveBeenCalledTimes(2);
+
+    // Advance past freshness threshold (6 minutes)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(6 * 60 * 1000);
+    });
+
+    // Switch back to paramsA — stale cache, show old data + revalidate
+    rerender({ params: paramsA });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    // Data available immediately from stale cache, no loading
+    expect(result.current.isLoading).toBe(false);
+
+    // Background revalidation completes
+    expect(postForQuery).toHaveBeenCalledTimes(3);
+    expect(result.current.data).toEqual({ id: "a", name: "fresh" });
+    expect(result.current.isRefreshing).toBe(false);
+  });
+
+  it("no cache shows loading state", async () => {
+    const postForQuery = vi.fn().mockResolvedValue(
+      makeQueryResponse({
+        correlationId: "q-nocache",
+        payload: { id: "a", name: "b" },
+      }),
+    );
+    const client = createMockFetchClient(postForQuery);
+
+    const { result } = renderHook(
+      () => useQuery(TestSchema, defaultParams),
+      { wrapper: createWrapper(client) },
+    );
+
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.isRefreshing).toBe(false);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(result.current.data).toEqual({ id: "a", name: "b" });
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.isRefreshing).toBe(false);
+  });
+
+  it("background revalidation updates data in-place when fresh response received", async () => {
+    let resolveThirdFetch!: (value: unknown) => void;
+
+    const postForQuery = vi.fn()
+      .mockResolvedValueOnce(
+        makeQueryResponse(
+          { correlationId: "q-1", payload: { id: "a", name: "initial" } },
+          '"etag-1"',
+        ),
+      )
+      .mockResolvedValueOnce(
+        makeQueryResponse(
+          { correlationId: "q-2", payload: { id: "b", name: "dataB" } },
+          '"etag-b"',
+        ),
+      )
+      .mockImplementationOnce(
+        () => new Promise((resolve) => { resolveThirdFetch = resolve; }),
+      );
+    const client = createMockFetchClient(postForQuery);
+
+    const { result, rerender } = renderHook(
+      ({ params }) => useQuery(TestSchema, params),
+      {
+        initialProps: { params: paramsA },
+        wrapper: createWrapper(client),
+      },
+    );
+
+    // Populate cache for paramsA
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.data).toEqual({ id: "a", name: "initial" });
+
+    // Switch to paramsB
+    rerender({ params: paramsB });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.data).toEqual({ id: "b", name: "dataB" });
+
+    // Make paramsA stale
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(6 * 60 * 1000);
+    });
+
+    // Switch back to paramsA — stale cache triggers background revalidation
+    rerender({ params: paramsA });
+
+    // Stale data shown immediately (from cache)
+    expect(result.current.data).toEqual({ id: "a", name: "initial" });
+    expect(result.current.isLoading).toBe(false);
+
+    // Resolve background fetch
+    await act(async () => {
+      resolveThirdFetch(
+        makeQueryResponse(
+          { correlationId: "q-3", payload: { id: "a", name: "refreshed" } },
+          '"etag-2"',
+        ),
+      );
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(result.current.isRefreshing).toBe(false);
+    expect(result.current.data).toEqual({ id: "a", name: "refreshed" });
   });
 });
 

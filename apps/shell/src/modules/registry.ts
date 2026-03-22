@@ -3,6 +3,8 @@ import type React from "react";
 
 import type { ModuleManifest } from "@hexalith/shell-api";
 
+import { validateRegisteredModules } from "./validateRegistry";
+
 interface ModuleEntryExports {
   default: React.ComponentType;
 }
@@ -62,7 +64,21 @@ export function createRegisteredModules(
     .sort((left, right) => left.basePath.localeCompare(right.basePath));
 }
 
-export const modules = createRegisteredModules(
+const rawModules = createRegisteredModules(
   discoveredManifests,
   discoveredModuleLoaders,
 );
+
+const validationResult = validateRegisteredModules(rawModules);
+if (validationResult.warnings.length > 0) {
+  for (const warning of validationResult.warnings) {
+    console.warn(`[module-registry] ${warning}`);
+  }
+}
+if (!validationResult.valid) {
+  throw new Error(
+    `Module registry validation failed:\n${validationResult.errors.join("\n")}`,
+  );
+}
+
+export const modules = rawModules;

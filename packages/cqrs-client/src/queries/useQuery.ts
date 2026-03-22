@@ -37,9 +37,12 @@ export interface QueryOptions {
 export interface UseQueryResult<T> {
   data: T | undefined;
   isLoading: boolean;
+  isRefreshing: boolean;
   error: HexalithError | null;
   refetch: () => void;
 }
+
+export const FRESH_THRESHOLD_MS = 5 * 60 * 1000;
 
 const BACKOFF_SCHEDULE = [1000, 3000, 5000, 10000, 30000] as const;
 
@@ -85,6 +88,7 @@ export function useQuery<T>(
 
   const [data, setData] = useState<T | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<HexalithError | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -118,7 +122,25 @@ export function useQuery<T>(
       // Prevent concurrent requests (don't stack retries with polling)
       if (isFetchingRef.current && !isInitial) return;
 
-      if (isInitial) setIsLoading(true);
+      // Stale-while-revalidate: on initial mount, check cache before fetching
+      if (isInitial) {
+        const cacheKeyForCheck = buildCacheKey(activeTenant, queryParams);
+        const cachedEntry = etagCache.get(cacheKeyForCheck);
+        if (cachedEntry) {
+          // Cache exists — serve cached data immediately
+          setData(cachedEntry.data as T);
+          setIsLoading(false);
+          if (etagCache.isFresh(cacheKeyForCheck, FRESH_THRESHOLD_MS)) {
+            // Fresh cache — skip network request entirely
+            return;
+          }
+          // Stale cache — show cached data but revalidate in background
+          setIsRefreshing(true);
+        } else {
+          // No cache — show loading state
+          setIsLoading(true);
+        }
+      }
       isFetchingRef.current = true;
 
       // Abort previous request
@@ -183,6 +205,7 @@ export function useQuery<T>(
         }
 
         setError(null);
+        setIsRefreshing(false);
       } catch (err) {
         clearTimeout(timeoutId);
         isFetchingRef.current = false;
@@ -217,6 +240,7 @@ export function useQuery<T>(
         }
       } finally {
         if (isInitial) setIsLoading(false);
+        setIsRefreshing(false);
       }
     },
     // paramsKey (string) instead of queryParams (object) prevents infinite re-renders
@@ -275,5 +299,5 @@ export function useQuery<T>(
     fetchData(false);
   }, [fetchData]);
 
-  return { data, isLoading, error, refetch };
+  return { data, isLoading, isRefreshing, error, refetch };
 }

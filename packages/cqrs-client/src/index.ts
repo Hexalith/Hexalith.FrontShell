@@ -61,13 +61,14 @@ export type {
 } from "./connection/ConnectionStateProvider";
 
 // Queries
-export { useQuery } from "./queries/useQuery";
-export { QueryProvider } from "./queries/QueryProvider";
+export { useQuery, FRESH_THRESHOLD_MS } from "./queries/useQuery";
+export { QueryProvider, useQueryClient } from "./queries/QueryProvider";
 export type {
   QueryParams,
   QueryOptions,
   UseQueryResult,
 } from "./queries/useQuery";
+export type { ETagCache } from "./queries/etagCache";
 
 // SignalR / real-time notifications
 export { SignalRHub } from "./notifications/SignalRHub";

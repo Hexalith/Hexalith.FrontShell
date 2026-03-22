@@ -1,7 +1,7 @@
-import { render, screen, cleanup, fireEvent, act } from "@testing-library/react";
 import React from "react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { describe, it, expect, afterEach, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   MockShellProvider,
