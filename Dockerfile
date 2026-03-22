@@ -7,7 +7,7 @@ WORKDIR /app
 
 COPY . .
 RUN corepack enable && pnpm install --frozen-lockfile
-RUN pnpm build --filter=shell
+RUN pnpm turbo build --filter=@hexalith/shell
 
 FROM nginx:alpine
 COPY --from=builder /app/apps/shell/dist /usr/share/nginx/html

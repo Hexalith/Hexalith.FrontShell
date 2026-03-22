@@ -5,5 +5,13 @@ export default defineConfig({
     include: ["**/*.test.ts", "**/*.test.tsx"],
     environment: "jsdom",
     passWithNoTests: true,
+    coverage: {
+      thresholds: {
+        branches: 95,
+        functions: 95,
+        lines: 95,
+        statements: 95,
+      },
+    },
   },
 });

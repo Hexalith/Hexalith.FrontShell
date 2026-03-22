@@ -440,6 +440,9 @@ dist/
 # Vitest
 coverage/
 
+# Design System Health report (generated)
+health-report.json
+
 # Storybook
 storybook-static/
 

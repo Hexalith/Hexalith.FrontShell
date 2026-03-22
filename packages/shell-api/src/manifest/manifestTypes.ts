@@ -16,6 +16,7 @@ export interface ModuleManifestV1 {
   version: string;
   routes: ModuleRoute[];
   navigation: ModuleNavigation[];
+  migrationStatus?: 'native' | 'coexisting' | 'migrating';
 }
 
 export type ModuleManifest = ModuleManifestV1;

@@ -10,12 +10,16 @@
  * separate parallel steps — this gate does NOT re-invoke lint or test:ct.
  */
 
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { resolve, join, relative } from 'node:path';
+
+import { validateContrastMatrix } from '../src/utils/contrastMatrix.js';
 
 const SRC_DIR = resolve(import.meta.dirname, '..', 'src');
 const TOKENS_DIR = resolve(SRC_DIR, 'tokens');
 const COMPONENTS_DIR = resolve(SRC_DIR, 'components');
+const REPO_ROOT = resolve(import.meta.dirname, '..', '..');
+const MODULES_DIR = resolve(REPO_ROOT, 'modules');
 
 // ─── Check 1: Token Compliance ───
 
@@ -136,6 +140,20 @@ function checkTokenParity(): { pass: boolean; details: string[] } {
   return { pass: details.length === 0, details };
 }
 
+// ─── Check 2b: Contrast Matrix ───
+
+function checkContrastMatrix(): { pass: boolean; details: string[] } {
+  const { results, pass } = validateContrastMatrix();
+  const details = results
+    .filter((result) => !result.pass)
+    .map(
+      (result) =>
+        `  ${result.theme}: ${result.pair} ${result.ratio}:1 (required ${result.required}:1)`,
+    );
+
+  return { pass, details };
+}
+
 // ─── Check 3: Prop Budget ───
 
 const COMPLEX_COMPONENTS = new Set([
@@ -209,9 +227,73 @@ function checkPropBudget(): { pass: boolean; details: string[] } {
   return { pass, details };
 }
 
+// ─── External Gate Status ───
+
+type ExternalGateStatus = 'pass' | 'fail' | 'skipped';
+
+function resolveExternalGateStatus(value: string | undefined): ExternalGateStatus {
+  if (value === 'success') {
+    return 'pass';
+  }
+
+  if (value === 'failure') {
+    return 'fail';
+  }
+
+  return 'skipped';
+}
+
+// ─── Migration Status Detection ───
+
+function findManifestFiles(dir: string): string[] {
+  if (!statSync(dir, { throwIfNoEntry: false })?.isDirectory()) {
+    return [];
+  }
+
+  const files: string[] = [];
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry);
+    const stat = statSync(full);
+    if (stat.isDirectory()) {
+      files.push(...findManifestFiles(full));
+    } else if (entry === 'manifest.ts') {
+      files.push(full);
+    }
+  }
+
+  return files;
+}
+
+function detectCoexistingModules(): string[] {
+  const manifestFiles = findManifestFiles(MODULES_DIR);
+  return manifestFiles
+    .filter((file) => /migrationStatus\s*:\s*['"]coexisting['"]/.test(readFileSync(file, 'utf8')))
+    .map((file) => relative(REPO_ROOT, file));
+}
+
 // ─── Main ───
 
+interface HealthReport {
+  score: number;
+  total: number;
+  violations: number;
+  tokenParity: 'pass' | 'fail';
+  contrastMatrix: 'pass' | 'fail';
+  propBudget: 'pass' | 'fail';
+  accessibility: ExternalGateStatus;
+  importBoundaries: ExternalGateStatus;
+  inlineStyleBan: ExternalGateStatus;
+  warnOnly: boolean;
+  coexistingModules: string[];
+  details: string[];
+}
+
 function main() {
+  const coexistingModules = detectCoexistingModules();
+  const warnOnly = process.argv.includes('--warn-only') || coexistingModules.length > 0;
+  const lintStatus = resolveExternalGateStatus(process.env.LINT_STATUS);
+  const a11yStatus = resolveExternalGateStatus(process.env.A11Y_STATUS);
+
   console.log('Design System Health Gate');
   console.log('========================\n');
 
@@ -219,7 +301,7 @@ function main() {
 
   const compliance = checkTokenCompliance();
   const score = compliance.total > 0
-    ? Math.round(((compliance.total - compliance.violations) / compliance.total) * 100)
+    ? parseFloat(((compliance.total - compliance.violations) / compliance.total * 100).toFixed(1))
     : 100;
   const compliancePass = score === 100;
   console.log(`1. Token Compliance: ${compliancePass ? 'PASS' : 'FAIL'} (${score}% — ${compliance.total - compliance.violations}/${compliance.total} declarations compliant)`);
@@ -237,17 +319,64 @@ function main() {
   }
   if (!parity.pass) allPass = false;
 
+  const contrast = checkContrastMatrix();
+  console.log(`\n3. Contrast Matrix: ${contrast.pass ? 'PASS' : 'FAIL'}`);
+  if (contrast.details.length > 0) {
+    for (const d of contrast.details) console.log(d);
+  }
+  if (!contrast.pass) allPass = false;
+
   const propBudget = checkPropBudget();
-  console.log(`\n3. Prop Budget: ${propBudget.pass ? 'PASS' : 'FAIL'}`);
+  console.log(`\n4. Prop Budget: ${propBudget.pass ? 'PASS' : 'FAIL'}`);
   if (propBudget.details.length > 0) {
     for (const d of propBudget.details) console.log(d);
   }
   if (!propBudget.pass) allPass = false;
 
-  console.log(`\n${'─'.repeat(40)}`);
-  console.log(`Design System Health: ${allPass ? 'PASS' : 'FAIL'}`);
+  console.log(`\n5. Accessibility (Playwright CT): ${a11yStatus.toUpperCase()}`);
+  console.log(`6. Import Boundaries (via lint): ${lintStatus.toUpperCase()}`);
+  console.log(`7. Inline Style Ban (via lint): ${lintStatus.toUpperCase()}`);
 
-  if (!allPass) {
+  if (a11yStatus === 'fail' || lintStatus === 'fail') {
+    allPass = false;
+  }
+
+  if (coexistingModules.length > 0) {
+    console.log(`\nCoexisting modules detected (${coexistingModules.length}) — running in warn-only mode:`);
+    for (const modulePath of coexistingModules) {
+      console.log(`  ${modulePath}`);
+    }
+  }
+
+  console.log(`\n${'─'.repeat(40)}`);
+  console.log(`Design System Health: ${allPass ? 'PASS' : 'FAIL'}${warnOnly ? ' (warn-only mode)' : ''}`);
+
+  // Write machine-readable JSON report
+  const report: HealthReport = {
+    score,
+    total: compliance.total,
+    violations: compliance.violations,
+    tokenParity: parity.pass ? 'pass' : 'fail',
+    contrastMatrix: contrast.pass ? 'pass' : 'fail',
+    propBudget: propBudget.pass ? 'pass' : 'fail',
+    accessibility: a11yStatus,
+    importBoundaries: lintStatus,
+    inlineStyleBan: lintStatus,
+    warnOnly,
+    coexistingModules,
+    details: [
+      ...compliance.details,
+      ...parity.details,
+      ...contrast.details,
+      ...propBudget.details,
+    ],
+  };
+
+  const reportPath = resolve(import.meta.dirname, '..', 'health-report.json');
+  writeFileSync(reportPath, JSON.stringify(report, null, 2) + '\n');
+  console.log(`\nJSON report written to health-report.json`);
+
+  if (!allPass && !warnOnly) {
     process.exit(1);
   }
 }

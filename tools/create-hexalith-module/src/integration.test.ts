@@ -134,7 +134,7 @@ describe("integration: scaffold smoke test", () => {
 
     expect(existsSync(join(outputDir, "eslint.config.js"))).toBe(true);
     const eslintContent = await readFile(join(outputDir, "eslint.config.js"), "utf-8");
-    expect(eslintContent).toContain("module-boundaries");
+    expect(eslintContent).toContain("module-isolation");
   });
 
   it("includes .gitignore and .gitattributes", async () => {

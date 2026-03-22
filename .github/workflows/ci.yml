@@ -1,7 +1,10 @@
 # Hexalith FrontShell CI Pipeline
 #
 # Triggers on pull requests (opened/synchronize) and pushes to main.
-# Runs: checkout (with submodules) → pnpm install → build → lint → test
+# Full gate sequence: checkout → install → manifest typecheck → build → lint →
+# test with coverage → scaffold smoke → storybook → playwright CT → design system health
+#
+# Main branch additionally: Docker image build, build time regression, artifact upload
 #
 # SETUP:
 # 1. Turborepo Remote Caching (optional, improves speed):
@@ -27,8 +30,8 @@ jobs:
     name: Build, Lint & Test
     runs-on: ubuntu-latest
     env:
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN || '' }}
-      TURBO_TEAM: ${{ vars.TURBO_TEAM || '' }}
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
 
     steps:
       - name: Checkout
@@ -49,6 +52,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # ─── Manifest Type Check (fail early on manifest type errors) ───
+      # Two-tier validation: (1) TypeScript type-check here, (2) semantic validation via Vite plugin at build
+      - name: Manifest Type Check
+        run: cd apps/shell && pnpm tsc --project tsconfig.build.json --noEmit
+
       # ─── Build ───
       - name: Build
         id: build
@@ -59,11 +67,20 @@ jobs:
 
       # ─── Lint ───
       - name: Lint
+        id: lint
         run: pnpm lint
 
-      # ─── Test ───
-      - name: Test
-        run: pnpm turbo test
+      # ─── Test with Coverage ───
+      # Vitest thresholds (per-package vitest.config.ts) fail the step if below threshold.
+      # Foundation packages (shell-api, cqrs-client, ui): 95% threshold
+      # Apps and tools: 80% threshold
+      - name: Test with Coverage
+        run: pnpm turbo test -- --coverage
+
+      # ─── Scaffold Smoke Test ───
+      # Verifies create-hexalith-module produces compilable, testable output
+      - name: Scaffold Smoke Test
+        run: bash scripts/scaffold-smoke-test.sh
 
       # ─── Storybook Build ───
       - name: Build Storybook
@@ -74,11 +91,25 @@ jobs:
         run: pnpx playwright install --with-deps chromium
 
       - name: Playwright Component Tests
+        id: playwright_ct
         run: pnpm --filter @hexalith/ui test:ct
 
       # ─── Design System Health Gate ───
+      # Outputs health-report.json for PR step summary
       - name: Design System Health
-        run: pnpm --filter @hexalith/ui health
+        if: always()
+        env:
+          LINT_STATUS: ${{ steps.lint.outcome }}
+          A11Y_STATUS: ${{ steps.playwright_ct.outcome }}
+        run: |
+          pnpm --filter @hexalith/ui health
+          bash scripts/post-health-comment.sh
+
+      # ─── Turborepo Remote Cache Status ───
+      - name: Report Remote Cache Status
+        if: env.TURBO_TOKEN != ''
+        run: |
+          echo "Turborepo remote caching is active (team: $TURBO_TEAM)" >> "$GITHUB_STEP_SUMMARY"
 
       # ─── Build duration tracking & regression detection ───
       - name: Restore build time history
@@ -129,6 +160,14 @@ jobs:
         with:
           path: .build-times.json
           key: build-times-${{ runner.os }}-main-${{ github.sha }}
+
+      # ─── Docker Image Build (main only) ───
+      # Build and verify the Docker image. Push to registry is out of scope (future story).
+      - name: Build Docker Image
+        if: github.ref == 'refs/heads/main' && success()
+        run: |
+          docker build -t hexalith-frontshell:${{ github.sha }} .
+          docker tag hexalith-frontshell:${{ github.sha }} hexalith-frontshell:latest
 
       # ─── Artifact upload (main only) ───
       - name: Upload production build
