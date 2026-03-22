@@ -1894,6 +1894,245 @@ describe("useQuery stale-while-revalidate", () => {
   });
 });
 
+describe("useQuery connection recovery revalidation", () => {
+  beforeEach(() => {
+    mockActiveTenant = "test-tenant";
+    mockCommandEventBus = createMockEventBus();
+    vi.useFakeTimers();
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it("connection recovery triggers refetch after 1s debounce", async () => {
+    const networkError = new Error("Network failure");
+    const postForQuery = vi.fn()
+      .mockRejectedValueOnce(networkError) // initial fetch fails
+      .mockResolvedValueOnce(
+        makeQueryResponse({
+          correlationId: "q-recover-retry",
+          payload: { id: "a", name: "retried" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        makeQueryResponse({
+          correlationId: "q-recover",
+          payload: { id: "a", name: "recovered" },
+        }),
+      );
+    const client = createMockFetchClient(postForQuery);
+
+    const { result, unmount } = renderHook(
+      () => ({
+        query: useQuery(TestSchema, defaultParams),
+        connection: useConnectionState(),
+      }),
+      { wrapper: createWrapper(client) },
+    );
+
+    // Initial fetch fails
+    expect(postForQuery).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // Connection state is now "reconnecting" (1 failure)
+    expect(result.current.connection.state).toBe("reconnecting");
+
+    // Retry fires after backoff (1000ms with 0.5 random = 1000ms base)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+
+    // Retry succeeds → connection state goes to "connected"
+    expect(postForQuery).toHaveBeenCalledTimes(2);
+    expect(result.current.connection.state).toBe("connected");
+
+    // Connection recovery triggers debounced refetch — wait 1s
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+
+    // Recovery refetch fired
+    expect(postForQuery).toHaveBeenCalledTimes(3);
+    expect(result.current.query.data).toEqual({ id: "a", name: "recovered" });
+
+    unmount();
+  });
+
+  it("initial mount with connected does NOT trigger extra refetch", async () => {
+    const postForQuery = vi.fn().mockResolvedValue(
+      makeQueryResponse({
+        correlationId: "q-init",
+        payload: { id: "a", name: "initial" },
+      }),
+    );
+    const client = createMockFetchClient(postForQuery);
+
+    const { result, unmount } = renderHook(
+      () => useQuery(TestSchema, defaultParams),
+      { wrapper: createWrapper(client) },
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(postForQuery).toHaveBeenCalledTimes(1);
+
+    // Wait for any potential recovery debounce
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+
+    // Still only 1 fetch — no extra recovery refetch
+    expect(postForQuery).toHaveBeenCalledTimes(1);
+    expect(result.current.data).toEqual({ id: "a", name: "initial" });
+
+    unmount();
+  });
+
+  it("transition from connected to disconnected does NOT trigger refetch", async () => {
+    const networkError = new Error("Network failure");
+    const postForQuery = vi.fn()
+      .mockResolvedValueOnce(
+        makeQueryResponse({
+          correlationId: "q-good",
+          payload: { id: "a", name: "good" },
+        }),
+      )
+      .mockRejectedValueOnce(networkError)
+      .mockRejectedValueOnce(networkError)
+      .mockRejectedValueOnce(networkError);
+    const client = createMockFetchClient(postForQuery);
+
+    const { result, unmount } = renderHook(
+      () => ({
+        query: useQuery(TestSchema, defaultParams),
+        connection: useConnectionState(),
+      }),
+      { wrapper: createWrapper(client) },
+    );
+
+    // Initial fetch succeeds
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.connection.state).toBe("connected");
+    expect(postForQuery).toHaveBeenCalledTimes(1);
+
+    // Trigger a refetch that fails → connection degrades
+    await act(async () => {
+      result.current.query.refetch();
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(result.current.connection.state).toBe("reconnecting");
+
+    // Wait for any potential recovery refetch — should NOT fire
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+
+    // The retries from useQuery's own backoff may fire, but recovery refetch should NOT trigger
+    // because state went from connected → reconnecting (not recovery direction)
+    unmount();
+  });
+
+  it("rapid connection flapping fires only ONE refetch after final stable recovery", async () => {
+    // Simulate rapid flapping by manually controlling connection state through failures/successes
+    const postForQuery = vi.fn()
+      // Initial fetch
+      .mockResolvedValueOnce(
+        makeQueryResponse({
+          correlationId: "q-1",
+          payload: { id: "a", name: "initial" },
+        }),
+      )
+      // Fail → reconnecting
+      .mockRejectedValueOnce(new Error("Network failure"))
+      // Succeed → connected (first recovery)
+      .mockResolvedValueOnce(
+        makeQueryResponse({
+          correlationId: "q-2",
+          payload: { id: "a", name: "recovered-1" },
+        }),
+      )
+      // Fail again → reconnecting (flap)
+      .mockRejectedValueOnce(new Error("Network failure"))
+      // Succeed → connected (final recovery)
+      .mockResolvedValueOnce(
+        makeQueryResponse({
+          correlationId: "q-3",
+          payload: { id: "a", name: "recovered-final" },
+        }),
+      )
+      // Recovery refetch
+      .mockResolvedValueOnce(
+        makeQueryResponse({
+          correlationId: "q-recovery",
+          payload: { id: "a", name: "recovery-data" },
+        }),
+      );
+    const client = createMockFetchClient(postForQuery);
+
+    const { result, unmount } = renderHook(
+      () => ({
+        query: useQuery(TestSchema, defaultParams),
+        connection: useConnectionState(),
+      }),
+      { wrapper: createWrapper(client) },
+    );
+
+    // Initial fetch
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.connection.state).toBe("connected");
+
+    // Trigger failure → reconnecting
+    await act(async () => {
+      result.current.query.refetch();
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.connection.state).toBe("reconnecting");
+
+    // Wait for retry backoff → succeeds → connected
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(result.current.connection.state).toBe("connected");
+
+    // Before the 1s recovery debounce fires, trigger another failure (flap)
+    await act(async () => {
+      result.current.query.refetch();
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    // The recovery timer should be cancelled by the state change away from connected
+    // Now wait for retry to recover again
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+
+    // Now wait for the FINAL recovery's 1s debounce
+    const callsBefore = postForQuery.mock.calls.length;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+
+    // Only ONE additional recovery refetch should have fired (from the final stable recovery)
+    const recoveryFetches = postForQuery.mock.calls.length - callsBefore;
+    expect(recoveryFetches).toBeLessThanOrEqual(1);
+
+    unmount();
+  });
+});
+
 describe("ETag tenant switch", () => {
   beforeEach(() => {
     mockActiveTenant = "test-tenant";

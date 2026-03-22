@@ -1,6 +1,6 @@
 import React from "react";
 
-import { ModuleErrorBoundary, ModuleSkeleton } from "../errors";
+import { ModuleErrorBoundary, ModuleRenderGuard, ModuleSkeleton } from "../errors";
 
 import type { RegisteredModule } from "./registry";
 import type { RouteObject } from "react-router";
@@ -21,7 +21,12 @@ export function buildModuleRoutes(
       React.createElement(
         React.Suspense,
         { fallback: React.createElement(ModuleSkeleton) },
-        React.createElement(mod.component),
+        // MUST be inside Suspense — guard checks post-load render, not pre-load suspension
+        React.createElement(
+          ModuleRenderGuard,
+          { moduleName: mod.manifest.displayName },
+          React.createElement(mod.component),
+        ),
       ),
     ),
   }));

@@ -2,7 +2,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useTenant } from "@hexalith/shell-api";
 
-import { useConnectionReporter } from "../connection/ConnectionStateProvider";
+import {
+  useConnectionReporter,
+  useConnectionState,
+} from "../connection/ConnectionStateProvider";
 import {
   ApiError,
   AuthError,
@@ -82,6 +85,7 @@ export function useQuery<T>(
   const { fetchClient, etagCache, onDomainInvalidation } = useQueryClient();
   const { activeTenant } = useTenant();
   const { reportSuccess, reportFailure } = useConnectionReporter();
+  const { state: connectionState } = useConnectionState();
 
   // Subscribe to real-time projection changes via SignalR (no-op if no SignalRProvider)
   useProjectionSubscription(queryParams.domain, activeTenant ?? "");
@@ -294,6 +298,44 @@ export function useQuery<T>(
     });
     return unsubscribe;
   }, [enabled, onDomainInvalidation, queryParams.domain, activeTenant, fetchData]);
+
+  // Connection recovery revalidation — refetch stale projections when connection recovers
+  const prevConnectionStateRef = useRef(connectionState);
+  const recoveryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const prevState = prevConnectionStateRef.current;
+    prevConnectionStateRef.current = connectionState; // Update ref BEFORE logic
+
+    // Cancel any pending recovery refetch if state changed
+    if (recoveryTimerRef.current) {
+      clearTimeout(recoveryTimerRef.current);
+      recoveryTimerRef.current = null;
+    }
+
+    // Only trigger on recovery transition (disconnected/reconnecting → connected)
+    if (prevState !== "connected" && connectionState === "connected") {
+      // Debounce — wait 1s for stable connection before refetching
+      recoveryTimerRef.current = setTimeout(() => {
+        // Guard — skip if already loading to prevent duplicate requests
+        if (!isFetchingRef.current) {
+          // Recovery refetch ignores cache freshness — data fetched during
+          // degraded state may be unreliable despite recent timestamp
+          fetchData(false);
+        }
+      }, 1000);
+    }
+
+    return () => {
+      if (recoveryTimerRef.current) {
+        clearTimeout(recoveryTimerRef.current); // Cleanup on unmount
+      }
+    };
+  }, [connectionState, fetchData]);
+
+  // NOTE: React's effect scheduling staggers recovery refetches naturally
+  // across ~50-100ms. Measure actual concurrent request counts at 20+ queries
+  // before adding explicit jitter — implicit stagger may be sufficient.
 
   const refetch = useCallback(() => {
     fetchData(false);

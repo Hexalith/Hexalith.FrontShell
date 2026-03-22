@@ -39,6 +39,10 @@ project_key: NOKEY
 tracking_system: file-system
 story_location: "{project-root}/_bmad-output/implementation-artifacts"
 last_updated: "2026-03-22"
+# Story 5-6 code review passed and moved to done 2026-03-22
+# Story 5-6 implemented and moved to review 2026-03-22
+# Story 6-1 context created 2026-03-22
+# Story 5-6 started implementation 2026-03-22
 # Story 5-5 code review passed and moved to done 2026-03-22
 # Story 5-5 review follow-up fixed and moved back to review 2026-03-22
 # Story 5-5 reviewed and moved back to in-progress 2026-03-22
@@ -113,12 +117,12 @@ development_status:
   5-3-module-error-isolation-and-recovery: done
   5-4-navigation-state-preservation-and-caching: done
   5-5-build-time-manifest-validation-and-dependency-detection: done
-  5-6-runtime-module-validation-and-connection-indicators: ready-for-dev
+  5-6-runtime-module-validation-and-connection-indicators: done
   epic-5-retrospective: optional
 
   # Epic 6: Build Pipeline, Quality Gates & Reference Module
-  epic-6: backlog
-  6-1-full-ci-pipeline-and-quality-gates: backlog
+  epic-6: in-progress
+  6-1-full-ci-pipeline-and-quality-gates: ready-for-dev
   6-2-module-publishing-via-git-integration: backlog
   6-3-tenants-reference-module-cqrs-integration: backlog
   6-4-tenants-reference-module-ui-and-shell-integration: backlog

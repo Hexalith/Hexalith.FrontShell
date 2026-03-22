@@ -1,8 +1,8 @@
-import { lazy } from "react";
 import type React from "react";
 
 import type { ModuleManifest } from "@hexalith/shell-api";
 
+import { lazyWithRetry } from "./lazyWithRetry";
 import { validateRegisteredModules } from "./validateRegistry";
 
 interface ModuleEntryExports {
@@ -52,7 +52,7 @@ export function createRegisteredModules(
 
       return {
         manifest,
-        component: lazy(async () => {
+        component: lazyWithRetry(async () => {
           const moduleEntry = await loadModule();
 
           return { default: moduleEntry.default };

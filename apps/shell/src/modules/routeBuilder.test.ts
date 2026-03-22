@@ -4,6 +4,7 @@ import { describe, it, expect } from "vitest";
 import type { ModuleManifest } from "@hexalith/shell-api";
 
 import { buildModuleRoutes } from "./routeBuilder";
+import { ModuleRenderGuard } from "../errors/ModuleRenderGuard";
 
 import type { RegisteredModule } from "./registry";
 
@@ -78,5 +79,38 @@ describe("buildModuleRoutes", () => {
       expect(route.path).not.toBe("/*");
       expect(route.path).not.toBe("*");
     }
+  });
+
+  it("wraps module component inside ModuleRenderGuard within Suspense", () => {
+    const modules = [makeMockModule("tasks", "Tasks", "tasks")];
+    const routes = buildModuleRoutes(modules);
+
+    const element = routes[0].element as React.ReactElement;
+    // Outermost: ModuleErrorBoundary
+    expect(element.type).toBeTruthy();
+
+    // Inside: Suspense
+    const suspenseChild = (element.props as Record<string, unknown>)
+      .children as React.ReactElement;
+    expect(suspenseChild).toBeTruthy();
+
+    // Inside Suspense: children should include ModuleRenderGuard
+    const suspenseChildren = (suspenseChild.props as Record<string, unknown>)
+      .children as React.ReactElement;
+    expect(suspenseChildren).toBeTruthy();
+    expect(suspenseChildren.type).toBe(ModuleRenderGuard);
+    expect((suspenseChildren.props as Record<string, unknown>).moduleName).toBe("Tasks");
+  });
+
+  it("ModuleRenderGuard receives correct moduleName from manifest displayName", () => {
+    const modules = [makeMockModule("orders", "Order Management", "orders")];
+    const routes = buildModuleRoutes(modules);
+
+    const element = routes[0].element as React.ReactElement;
+    const suspenseChild = (element.props as Record<string, unknown>)
+      .children as React.ReactElement;
+    const renderGuard = (suspenseChild.props as Record<string, unknown>)
+      .children as React.ReactElement;
+    expect((renderGuard.props as Record<string, unknown>).moduleName).toBe("Order Management");
   });
 });

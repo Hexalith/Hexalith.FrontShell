@@ -5,3 +5,6 @@ export { buildModuleRoutes } from "./routeBuilder";
 
 export { buildNavigationItems } from "./navigationBuilder";
 export type { SidebarNavigationItem } from "./navigationBuilder";
+
+export { lazyWithRetry, retryImport } from "./lazyWithRetry";
+export type { LazyWithRetryOptions } from "./lazyWithRetry";
