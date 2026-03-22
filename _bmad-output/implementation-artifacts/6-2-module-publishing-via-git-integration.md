@@ -241,6 +241,46 @@ Recent commits show active work on:
 9. **DO change `packages/ui/package.json` `main` field** to `./dist/index.js` — It currently points to `./src/index.ts` which won't exist in the published tarball. The `exports` map drives resolution for modern bundlers and Vite HMR, so changing `main` won't break local dev. The `main` field is only a fallback for legacy `require()` resolution.
 10. **DO NOT remove `private: true` from root `package.json`** — Only remove it from the three foundation packages
 
+### Ongoing Maintenance Notes
+
+- **Template peerDependency versions must be updated** whenever foundation packages bump versions. After bumping `packages/shell-api/package.json` version, also update the matching peerDependency in `tools/create-hexalith-module/templates/module/package.json`. No automation exists for this — it's a manual step.
+- **Publish workflow must be updated** when new `@hexalith/*` foundation packages are added in future epics. The package list is explicit in `publish.yml`.
+
+### Key Code Snippets
+
+Exact values the dev agent should use (copy-paste ready):
+
+**publishConfig (all three foundation packages):**
+```json
+"publishConfig": {
+  "registry": "https://npm.pkg.github.com",
+  "access": "public"
+}
+```
+
+**repository (all three foundation packages):**
+```json
+"repository": {
+  "type": "git",
+  "url": "https://github.com/Hexalith/Hexalith.FrontShell.git",
+  "directory": "packages/<package-name>"
+}
+```
+
+**Expected .npmrc (complete file after changes):**
+```
+strict-peer-dependencies=true
+ignore-scripts=true
+@hexalith:registry=https://npm.pkg.github.com
+```
+
+**publish.yml permissions block:**
+```yaml
+permissions:
+  contents: read
+  packages: write
+```
+
 ### Project Structure Notes
 
 - Foundation packages live in `packages/` — they are workspace packages built by Turborepo
