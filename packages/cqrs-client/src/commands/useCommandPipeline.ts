@@ -3,7 +3,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useTenant } from "@hexalith/shell-api";
 
 import { useCqrs } from "../CqrsProvider";
-import { type HexalithError } from "../errors";
+import { ApiError, HexalithError } from "../errors";
 import { useCommandStatus } from "./useCommandStatus";
 import { useSubmitCommand } from "./useSubmitCommand";
 
@@ -21,7 +21,7 @@ export interface UseCommandPipelineResult {
 export function useCommandPipeline(): UseCommandPipelineResult {
   const { fetchClient, commandEventBus } = useCqrs("useCommandPipeline");
   const { activeTenant } = useTenant();
-  const { submit } = useSubmitCommand();
+  const { submit, error: submitError } = useSubmitCommand();
 
   const [pipelineStatus, setPipelineStatus] = useState<PipelineStatus>("idle");
   const [correlationId, setCorrelationId] = useState<string | null>(null);
@@ -70,6 +70,18 @@ export function useCommandPipeline(): UseCommandPipelineResult {
     commandEventBus,
   ]);
 
+  useEffect(() => {
+    if (!submitError) {
+      return;
+    }
+
+    setError(submitError);
+
+    if (pipelineStatus === "sending") {
+      setPipelineStatus("failed");
+    }
+  }, [pipelineStatus, submitError]);
+
   const send = useCallback(
     async (command: SubmitCommandInput) => {
       setError(null);
@@ -82,17 +94,14 @@ export function useCommandPipeline(): UseCommandPipelineResult {
         tenant: activeTenant ?? "",
       };
 
-      try {
-        const response = await submit(command);
-        setCorrelationId(response.correlationId);
-        setPipelineStatus("polling");
-      } catch (err) {
+      const response = await submit(command);
+      if (!response) {
         setPipelineStatus("failed");
-        if (err instanceof Error) {
-          setError(err as HexalithError);
-        }
-        throw err;
+        return;
       }
+
+      setCorrelationId(response.correlationId);
+      setPipelineStatus("polling");
     },
     [submit, activeTenant],
   );
@@ -109,10 +118,14 @@ export function useCommandPipeline(): UseCommandPipelineResult {
       setCorrelationId(response.correlationId);
     } catch (err) {
       setPipelineStatus("failed");
-      if (err instanceof Error) {
-        setError(err as HexalithError);
-      }
-      throw err;
+      const mappedError =
+        err instanceof HexalithError
+          ? err
+          : new ApiError(
+              0,
+              err instanceof Error ? err.message : err,
+            );
+      setError(mappedError);
     }
   }, [correlationId, fetchClient]);
 

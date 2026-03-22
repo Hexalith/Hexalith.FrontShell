@@ -1,7 +1,6 @@
 import React from "react";
 
-import { ModuleErrorBoundary } from "../errors/ModuleErrorBoundary";
-import { ModuleSkeleton } from "../errors/ModuleSkeleton";
+import { ModuleErrorBoundary, ModuleSkeleton } from "../errors";
 
 import type { RegisteredModule } from "./registry";
 import type { RouteObject } from "react-router";

@@ -2,6 +2,13 @@ import React from "react";
 
 import { ErrorDisplay } from "@hexalith/ui";
 
+import {
+  classifyError,
+  getErrorDisplayMessage,
+  createModuleErrorEvent,
+  emitModuleErrorEvent,
+} from "./moduleErrorEvents";
+
 interface ModuleErrorBoundaryProps {
   name: string;
   children: React.ReactNode;
@@ -25,16 +32,16 @@ export class ModuleErrorBoundary extends React.Component<
   }
 
   override componentDidCatch(error: Error, info: React.ErrorInfo): void {
-    console.error(
-      `[ModuleErrorBoundary] Module "${this.props.name}" crashed`,
-      {
-        module: this.props.name,
-        error: error.message,
-        stack: error.stack,
-        componentStack: info.componentStack,
-        timestamp: new Date().toISOString(),
-      },
-    );
+    try {
+      const event = createModuleErrorEvent(
+        this.props.name,
+        error,
+        info.componentStack ?? undefined,
+      );
+      emitModuleErrorEvent(event);
+    } catch {
+      console.error("[ModuleErrorBoundary] Failed to emit error event");
+    }
   }
 
   private handleRetry = (): void => {
@@ -43,10 +50,12 @@ export class ModuleErrorBoundary extends React.Component<
 
   override render(): React.ReactNode {
     if (this.state.error) {
+      const classification = classifyError(this.state.error);
+      const title = getErrorDisplayMessage(classification, this.props.name);
       return (
         <ErrorDisplay
           error={this.state.error}
-          title={`Unable to load ${this.props.name}`}
+          title={title}
           onRetry={this.handleRetry}
         />
       );

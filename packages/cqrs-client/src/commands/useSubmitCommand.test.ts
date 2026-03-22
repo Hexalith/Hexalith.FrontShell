@@ -3,7 +3,7 @@ import { renderHook, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { CqrsProvider } from "../CqrsProvider";
-import { AuthError, ForbiddenError } from "../errors";
+import { ApiError, AuthError, ForbiddenError } from "../errors";
 import { useSubmitCommand } from "./useSubmitCommand";
 import { MockSignalRHub } from "../mocks/MockSignalRHub";
 
@@ -108,7 +108,7 @@ describe("useSubmitCommand", () => {
     });
   });
 
-  it("throws ForbiddenError when no active tenant", async () => {
+  it("returns null and sets ForbiddenError when no active tenant", async () => {
     mockUseTenant.mockReturnValue({
       activeTenant: null,
       availableTenants: [],
@@ -119,14 +119,16 @@ describe("useSubmitCommand", () => {
       wrapper: createWrapper(),
     });
 
-    await expect(
-      act(async () => {
-        await result.current.submit(testCommand);
-      }),
-    ).rejects.toThrow(ForbiddenError);
+    let submitResult: SubmitCommandResponse | null | undefined;
+    await act(async () => {
+      submitResult = await result.current.submit(testCommand);
+    });
+
+    expect(submitResult).toBeNull();
+    expect(result.current.error).toBeInstanceOf(ForbiddenError);
   });
 
-  it("error response sets error state AND re-throws", async () => {
+  it("error response sets error state and returns null", async () => {
     const authError = new AuthError("Session expired");
     mockPost.mockRejectedValueOnce(authError);
 
@@ -134,20 +136,16 @@ describe("useSubmitCommand", () => {
       wrapper: createWrapper(),
     });
 
-    let thrown: unknown;
+    let submitResult: SubmitCommandResponse | null | undefined;
     await act(async () => {
-      try {
-        await result.current.submit(testCommand);
-      } catch (e) {
-        thrown = e;
-      }
+      submitResult = await result.current.submit(testCommand);
     });
 
-    expect(thrown).toBeInstanceOf(AuthError);
+    expect(submitResult).toBeNull();
     expect(result.current.error).toBeInstanceOf(AuthError);
   });
 
-  it("401 sets error to AuthError AND throws", async () => {
+  it("401 sets error to AuthError and returns null", async () => {
     const authError = new AuthError("Authentication required");
     mockPost.mockRejectedValueOnce(authError);
 
@@ -155,20 +153,16 @@ describe("useSubmitCommand", () => {
       wrapper: createWrapper(),
     });
 
-    let thrown: unknown;
+    let submitResult: SubmitCommandResponse | null | undefined;
     await act(async () => {
-      try {
-        await result.current.submit(testCommand);
-      } catch (e) {
-        thrown = e;
-      }
+      submitResult = await result.current.submit(testCommand);
     });
 
-    expect(thrown).toBeInstanceOf(AuthError);
+    expect(submitResult).toBeNull();
     expect(result.current.error).toBeInstanceOf(AuthError);
   });
 
-  it("403 sets error to ForbiddenError AND throws", async () => {
+  it("403 sets error to ForbiddenError and returns null", async () => {
     const forbiddenError = new ForbiddenError("Access forbidden");
     mockPost.mockRejectedValueOnce(forbiddenError);
 
@@ -176,33 +170,28 @@ describe("useSubmitCommand", () => {
       wrapper: createWrapper(),
     });
 
-    let thrown: unknown;
+    let submitResult: SubmitCommandResponse | null | undefined;
     await act(async () => {
-      try {
-        await result.current.submit(testCommand);
-      } catch (e) {
-        thrown = e;
-      }
+      submitResult = await result.current.submit(testCommand);
     });
 
-    expect(thrown).toBeInstanceOf(ForbiddenError);
+    expect(submitResult).toBeNull();
     expect(result.current.error).toBeInstanceOf(ForbiddenError);
   });
 
-  it("non-HexalithError is re-thrown but not stored in error state", async () => {
+  it("non-HexalithError is mapped to ApiError and returns null", async () => {
     mockPost.mockRejectedValueOnce(new Error("Network failure"));
 
     const { result } = renderHook(() => useSubmitCommand(), {
       wrapper: createWrapper(),
     });
 
-    await expect(
-      act(async () => {
-        await result.current.submit(testCommand);
-      }),
-    ).rejects.toThrow("Network failure");
+    let submitResult: SubmitCommandResponse | null | undefined;
+    await act(async () => {
+      submitResult = await result.current.submit(testCommand);
+    });
 
-    // Not a HexalithError, so error state is not set
-    expect(result.current.error).toBeNull();
+    expect(submitResult).toBeNull();
+    expect(result.current.error).toBeInstanceOf(ApiError);
   });
 });

@@ -3,13 +3,13 @@ import { useState, useCallback } from "react";
 import { useTenant } from "@hexalith/shell-api";
 
 import { useCqrs } from "../CqrsProvider";
-import { ForbiddenError, HexalithError } from "../errors";
+import { ApiError, ForbiddenError, HexalithError } from "../errors";
 
 import type { SubmitCommandInput } from "./types";
 import type { SubmitCommandResponse } from "../core/types";
 
 export interface UseSubmitCommandResult {
-  submit: (command: SubmitCommandInput) => Promise<SubmitCommandResponse>;
+  submit: (command: SubmitCommandInput) => Promise<SubmitCommandResponse | null>;
   correlationId: string | null;
   error: HexalithError | null;
 }
@@ -23,9 +23,11 @@ export function useSubmitCommand(): UseSubmitCommandResult {
   const submit = useCallback(
     async (command: SubmitCommandInput) => {
       if (!activeTenant) {
-        throw new ForbiddenError(
+        const tenantError = new ForbiddenError(
           "No active tenant selected — cannot submit command without tenant context",
         );
+        setError(tenantError);
+        return null;
       }
       setError(null);
       setCorrelationId(null);
@@ -38,10 +40,16 @@ export function useSubmitCommand(): UseSubmitCommandResult {
         setCorrelationId(response.correlationId);
         return response;
       } catch (err) {
-        if (err instanceof HexalithError) {
-          setError(err);
-        }
-        throw err;
+        const mappedError =
+          err instanceof HexalithError
+            ? err
+            : new ApiError(
+                0,
+                err instanceof Error ? err.message : err,
+              );
+
+        setError(mappedError);
+        return null;
       }
     },
     [fetchClient, activeTenant],

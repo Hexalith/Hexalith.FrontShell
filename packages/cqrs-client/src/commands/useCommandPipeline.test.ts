@@ -7,7 +7,6 @@ import { ApiError } from "../errors";
 import { useCommandPipeline } from "./useCommandPipeline";
 import { MockSignalRHub } from "../mocks/MockSignalRHub";
 
-
 import type { SubmitCommandInput } from "./types";
 import type {
   CommandStatusResponse,
@@ -300,18 +299,12 @@ describe("useCommandPipeline", () => {
     const apiError = new ApiError(409, { detail: "Not replayable" });
     mockPost.mockRejectedValueOnce(apiError);
 
-    let thrown: unknown;
     await act(async () => {
-      try {
-        await result.current.replay!();
-      } catch (error) {
-        thrown = error;
-      }
+      await result.current.replay!();
     });
 
-    expect(thrown).toBe(apiError);
     expect(result.current.status).toBe("failed");
-    expect(result.current.error).toBeTruthy();
+    expect(result.current.error).toBe(apiError);
   });
 
   it("send() resets state machine", async () => {
@@ -352,24 +345,17 @@ describe("useCommandPipeline", () => {
     expect(result.current.status).toBe("polling");
   });
 
-  it("submit error transitions to failed", async () => {
+  it("submit error transitions to failed without throwing", async () => {
     mockPost.mockRejectedValueOnce(new Error("Network failure"));
 
     const { result } = renderHook(() => useCommandPipeline(), {
       wrapper: createWrapper(),
     });
 
-    let thrown: unknown;
     await act(async () => {
-      try {
-        await result.current.send(testCommand);
-      } catch (error) {
-        thrown = error;
-      }
+      await result.current.send(testCommand);
     });
 
-    expect(thrown).toBeInstanceOf(Error);
-    expect((thrown as Error).message).toBe("Network failure");
     expect(result.current.status).toBe("failed");
     expect(result.current.error).toBeTruthy();
     expect(result.current.replay).toBeNull();

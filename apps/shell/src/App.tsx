@@ -2,6 +2,7 @@ import React from "react";
 import { createBrowserRouter, RouterProvider } from "react-router";
 
 import { AuthGate } from "./auth/AuthGate";
+import { ShellErrorBoundary } from "./errors/ShellErrorBoundary";
 import { ShellLayout } from "./layout/ShellLayout";
 import { modules, buildModuleRoutes } from "./modules";
 import { NotFoundPage } from "./pages/NotFoundPage";
@@ -52,14 +53,16 @@ export default function App({ config }: AppProps): React.JSX.Element {
   );
 
   return (
-    <ShellProviders
-      oidcConfig={oidcConfig}
-      backendUrl={config.commandApiBaseUrl}
-      tenantClaimName={config.tenantClaimName}
-    >
-      <AuthGate>
-        <RouterProvider router={router} />
-      </AuthGate>
-    </ShellProviders>
+    <ShellErrorBoundary>
+      <ShellProviders
+        oidcConfig={oidcConfig}
+        backendUrl={config.commandApiBaseUrl}
+        tenantClaimName={config.tenantClaimName}
+      >
+        <AuthGate>
+          <RouterProvider router={router} />
+        </AuthGate>
+      </ShellProviders>
+    </ShellErrorBoundary>
   );
 }
