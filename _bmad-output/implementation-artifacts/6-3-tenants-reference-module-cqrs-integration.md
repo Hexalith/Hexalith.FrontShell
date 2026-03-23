@@ -1,6 +1,6 @@
 # Story 6.3: Tenants Reference Module — CQRS Integration
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -43,9 +43,9 @@ So that we prove `useCommandPipeline` and `useQuery` work with real domain types
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1: Create Tenants module directory and package structure** (AC: #1, #4)
-  - [ ] 1.1 Create `modules/hexalith-tenants/` directory with standard module structure (mirroring the scaffold template at `tools/create-hexalith-module/templates/module/`)
-  - [ ] 1.2 Create `modules/hexalith-tenants/package.json` with:
+- [x] **Task 1: Create Tenants module directory and package structure** (AC: #1, #4)
+  - [x] 1.1 Create `modules/hexalith-tenants/` directory with standard module structure (mirroring the scaffold template at `tools/create-hexalith-module/templates/module/`)
+  - [x] 1.2 Create `modules/hexalith-tenants/package.json` with:
     - `"name": "@hexalith/tenants"`
     - `"private": true`
     - `"version": "0.1.0"`
@@ -54,34 +54,34 @@ So that we prove `useCommandPipeline` and `useQuery` work with real domain types
     - peerDependencies: `@hexalith/shell-api ^0.1.0`, `@hexalith/cqrs-client ^0.2.0`, `@hexalith/ui ^0.1.0`, `react ^19.0.0`, `react-dom ^19.0.0`, `react-router ^7.6.0`, `zod ^3.0.0`
     - devDependencies: `@hexalith/shell-api`, `@hexalith/cqrs-client`, `@hexalith/ui`, `@testing-library/react`, `@testing-library/jest-dom`, `vitest`, `jsdom`, `react`, `react-dom`, `react-router`, `zod`, `typescript`
     - scripts: `build`, `dev`, `lint`, `test`, `test:watch`
-  - [ ] 1.3 Create `modules/hexalith-tenants/tsconfig.json` extending from `@hexalith/tsconfig/base.json` (with `jsx: react-jsx` configured inline, matching the scaffold template)
-  - [ ] 1.4 Create `modules/hexalith-tenants/tsup.config.ts` with entry `['src/index.ts']`, ESM format, `.d.ts` generation
-  - [ ] 1.5 Create `modules/hexalith-tenants/vitest.config.ts` with jsdom environment, coverage thresholds at 80%
-  - [ ] 1.6 Create `modules/hexalith-tenants/eslint.config.js` extending `@hexalith/eslint-config`
-  - [ ] 1.7 **Checkpoint:** Run `pnpm install` from workspace root — verify pnpm resolves the module's peerDependencies to local workspace packages. Run `pnpm turbo build --filter=@hexalith/tenants` — verify clean compilation. Fix any issues before proceeding.
+  - [x] 1.3 Create `modules/hexalith-tenants/tsconfig.json` extending from `@hexalith/tsconfig/base.json` (with `jsx: react-jsx` configured inline, matching the scaffold template)
+  - [x] 1.4 Create `modules/hexalith-tenants/tsup.config.ts` with entry `['src/index.ts']`, ESM format, `.d.ts` generation
+  - [x] 1.5 Create `modules/hexalith-tenants/vitest.config.ts` with jsdom environment, coverage thresholds at 80%
+  - [x] 1.6 Create `modules/hexalith-tenants/eslint.config.js` extending `@hexalith/eslint-config`
+  - [x] 1.7 **Checkpoint:** Run `pnpm install` from workspace root — verify pnpm resolves the module's peerDependencies to local workspace packages. Run `pnpm turbo build --filter=@hexalith/tenants` — verify clean compilation. Fix any issues before proceeding.
 
-- [ ] **Task 2: Create Zod schemas and domain types** (AC: #1)
-  - [ ] 2.1 Create `modules/hexalith-tenants/src/schemas/tenantSchemas.ts`:
+- [x] **Task 2: Create Zod schemas and domain types** (AC: #1)
+  - [x] 2.1 Create `modules/hexalith-tenants/src/schemas/tenantSchemas.ts`:
     - `TenantItemSchema` — `z.object({ id: z.string().uuid(), name: z.string().min(1).max(200), code: z.string().regex(/^[a-z0-9-]+$/), status: z.enum(['Active', 'Inactive', 'Disabled']), createdAt: z.string().datetime(), updatedAt: z.string().datetime() })`
     - `TenantListSchema` — `z.array(TenantItemSchema)` (response wrapper for the list query)
     - `TenantDetailSchema` — extends TenantItemSchema with `.extend({ description: z.string().optional(), contactEmail: z.string().email().optional(), createdBy: z.string(), notes: z.string().max(2000).optional() })`
     - Export inferred types: `type TenantItem = z.infer<typeof TenantItemSchema>`, etc.
-  - [ ] 2.2 Create command input schemas in the same file:
+  - [x] 2.2 Create command input schemas in the same file:
     - `CreateTenantCommandSchema` — `z.object({ name: z.string().min(1, 'Tenant name is required').max(200), code: z.string().regex(/^[a-z0-9-]+$/, 'Lowercase alphanumeric and hyphens only').min(1).max(50), description: z.string().max(500).optional(), contactEmail: z.string().email('Invalid email').optional() })`
-    - `UpdateTenantCommandSchema` — `z.object({ name: z.string().min(1).max(200), description: z.string().max(500).optional(), contactEmail: z.string().email().optional() })` *(forward-compatibility for story 6-4 — not wired to UI in this story)*
-    - `DisableTenantCommandSchema` — `z.object({ reason: z.string().min(1, 'Reason is required').max(500) })` *(forward-compatibility for story 6-4 — not wired to UI in this story)*
-  - [ ] 2.3 Export all schemas and inferred types from the schemas file
+    - `UpdateTenantCommandSchema` — `z.object({ name: z.string().min(1).max(200), description: z.string().max(500).optional(), contactEmail: z.string().email().optional() })` _(forward-compatibility for story 6-4 — not wired to UI in this story)_
+    - `DisableTenantCommandSchema` — `z.object({ reason: z.string().min(1, 'Reason is required').max(500) })` _(forward-compatibility for story 6-4 — not wired to UI in this story)_
+  - [x] 2.3 Export all schemas and inferred types from the schemas file
 
-- [ ] **Task 3: Create sample data and query parameters** (AC: #4)
-  - [ ] 3.1 Create `modules/hexalith-tenants/src/data/sampleData.ts`:
+- [x] **Task 3: Create sample data and query parameters** (AC: #4)
+  - [x] 3.1 Create `modules/hexalith-tenants/src/data/sampleData.ts`:
     - `TENANT_LIST_QUERY` — `{ domain: 'Tenants', queryType: 'GetTenantList' }` (QueryParams shape)
     - `buildTenantDetailQuery(id: string)` — returns `{ domain: 'Tenants', queryType: 'GetTenantDetail', aggregateId: id }`
     - `sampleTenants` — array of 8-10 realistic `TenantItem` records with professional names (e.g., "Acme Corporation", "TechVentures Inc.", "GlobalTrade Solutions") and mixed statuses
     - `sampleTenantDetails` — mapped from sampleTenants with added description, contactEmail, createdBy, notes
     - All sample data must pass Zod schema validation — use `Schema.parse()` to verify at module level
 
-- [ ] **Task 4: Create test utility (renderWithProviders)** (AC: #4)
-  - [ ] 4.1 Create `modules/hexalith-tenants/src/testing/renderWithProviders.tsx`:
+- [x] **Task 4: Create test utility (renderWithProviders)** (AC: #4)
+  - [x] 4.1 Create `modules/hexalith-tenants/src/testing/renderWithProviders.tsx`:
     - Follow the exact pattern from `tools/create-hexalith-module/templates/module/src/testing/renderWithProviders.tsx`
     - Provider stack: `MockShellProvider` → `CqrsProvider` (with mock buses AND `MockSignalRHub`) → `ToastProvider` → `MemoryRouter`
     - **CRITICAL:** Must pass `signalRHub={new MockSignalRHub()}` to `CqrsProvider` — omitting it causes connection state hooks to fail
@@ -107,8 +107,8 @@ So that we prove `useCommandPipeline` and `useQuery` work with real domain types
       </MockShellProvider>
       ```
 
-- [ ] **Task 5: Create TenantListPage** (AC: #2)
-  - [ ] 5.1 Create `modules/hexalith-tenants/src/pages/TenantListPage.tsx`:
+- [x] **Task 5: Create TenantListPage** (AC: #2)
+  - [x] 5.1 Create `modules/hexalith-tenants/src/pages/TenantListPage.tsx`:
     - Use `useQuery(TenantListSchema, TENANT_LIST_QUERY)` for data fetching
     - Render `<PageLayout>` with title "Tenants"
     - Render `<Table>` with columns: name, code, status (custom cell renderer — no Badge component exists), createdAt (formatted)
@@ -129,9 +129,9 @@ So that we prove `useCommandPipeline` and `useQuery` work with real domain types
     - Error: `<ErrorDisplay error={error} onRetry={refetch} />`
     - Empty: `<EmptyState title="No tenants yet" description="Create your first tenant to get started." action={{ label: "Create Tenant", onClick: () => navigate('create') }} />`
     - "Create Tenant" button in `PageLayout` actions slot
-    - **CRITICAL: All navigation must use relative paths** — `navigate('create')`, `navigate(\`detail/${id}\`)`, `navigate('..')` — never absolute `/` paths (module routes are prefixed by shell)
-  - [ ] 5.2 Create `modules/hexalith-tenants/src/pages/TenantListPage.module.css` for any page-specific styles
-  - [ ] 5.3 Create `modules/hexalith-tenants/src/pages/TenantListPage.test.tsx`:
+    - **CRITICAL: All navigation must use relative paths** — `navigate('create')`, `navigate(\`detail/${id}\`)`, `navigate('..')`— never absolute`/` paths (module routes are prefixed by shell)
+  - [x] 5.2 Create `modules/hexalith-tenants/src/pages/TenantListPage.module.css` for any page-specific styles
+  - [x] 5.3 Create `modules/hexalith-tenants/src/pages/TenantListPage.test.tsx`:
     - Test loading state renders Skeleton
     - Test data renders table with correct columns
     - Test empty state renders EmptyState component
@@ -140,8 +140,8 @@ So that we prove `useCommandPipeline` and `useQuery` work with real domain types
     - Test "Create Tenant" button navigates to /create
     - Use `renderWithProviders()` for all tests
 
-- [ ] **Task 6: Create TenantDetailPage** (AC: #2)
-  - [ ] 6.1 Create `modules/hexalith-tenants/src/pages/TenantDetailPage.tsx`:
+- [x] **Task 6: Create TenantDetailPage** (AC: #2)
+  - [x] 6.1 Create `modules/hexalith-tenants/src/pages/TenantDetailPage.tsx`:
     - Use `useParams<{ id: string }>()` to extract tenant ID
     - Use `useQuery(TenantDetailSchema, buildTenantDetailQuery(id), { enabled: !!id })` for data
     - Render `<DetailView>` with `DetailSection[]`:
@@ -165,16 +165,16 @@ So that we prove `useCommandPipeline` and `useQuery` work with real domain types
     - Action buttons: Back only (`navigate(-1)`). Do NOT render Edit or Disable buttons — those are story 6-4 scope. Adding visible-but-nonfunctional buttons creates confusing UX and unnecessary test overhead.
     - Loading: `<Skeleton variant="detail" />`
     - Error: `<ErrorDisplay error={error} onRetry={refetch} />`
-  - [ ] 6.2 Create `modules/hexalith-tenants/src/pages/TenantDetailPage.module.css`
-  - [ ] 6.3 Create `modules/hexalith-tenants/src/pages/TenantDetailPage.test.tsx`:
+  - [x] 6.2 Create `modules/hexalith-tenants/src/pages/TenantDetailPage.module.css`
+  - [x] 6.3 Create `modules/hexalith-tenants/src/pages/TenantDetailPage.test.tsx`:
     - Test loading state
     - Test detail view renders all sections correctly
     - Test back button navigates
     - Test error state
     - Test with disabled: false — enable test when `id` is undefined
 
-- [ ] **Task 7: Create TenantCreatePage** (AC: #3)
-  - [ ] 7.1 Create `modules/hexalith-tenants/src/pages/TenantCreatePage.tsx`:
+- [x] **Task 7: Create TenantCreatePage** (AC: #3)
+  - [x] 7.1 Create `modules/hexalith-tenants/src/pages/TenantCreatePage.tsx`:
     - Use `useCommandPipeline()` for command submission
     - Render `<Form>` with `CreateTenantCommandSchema` for validation
     - Fields: name (Input), code (Input), description (TextArea, optional), contactEmail (Input, optional)
@@ -192,7 +192,7 @@ So that we prove `useCommandPipeline` and `useQuery` work with real domain types
     - On `rejected`: show `CommandRejectedError` message inline via `<ErrorDisplay>`
     - On `failed`/`timedOut`: show error with retry option via `replay()`
     - Cancel button navigates back without submitting
-  - [ ] 7.2 Create `modules/hexalith-tenants/src/pages/TenantCreatePage.test.tsx`:
+  - [x] 7.2 Create `modules/hexalith-tenants/src/pages/TenantCreatePage.test.tsx`:
     - Test form renders with correct fields
     - Test form validation (empty name, invalid code format, invalid email)
     - Test successful command submission (mock success behavior)
@@ -200,19 +200,15 @@ So that we prove `useCommandPipeline` and `useQuery` work with real domain types
     - Test cancel navigates back
     - Configure `MockCommandBus` behaviors via `configureNextSend()`
 
-- [ ] **Task 8: Create manifest, routes, and module entry** (AC: #1)
-  - [ ] 8.1 Create `modules/hexalith-tenants/src/manifest.ts`:
+- [x] **Task 8: Create manifest, routes, and module entry** (AC: #1)
+  - [x] 8.1 Create `modules/hexalith-tenants/src/manifest.ts`:
     ```typescript
     export const manifest: ModuleManifest = {
       manifestVersion: 1,
       name: "tenants",
       displayName: "Tenants",
       version: "0.1.0",
-      routes: [
-        { path: "/" },
-        { path: "/detail/:id" },
-        { path: "/create" },
-      ],
+      routes: [{ path: "/" }, { path: "/detail/:id" }, { path: "/create" }],
       navigation: [
         {
           label: "Tenants",
@@ -223,7 +219,7 @@ So that we prove `useCommandPipeline` and `useQuery` work with real domain types
       ],
     };
     ```
-  - [ ] 8.2 Create `modules/hexalith-tenants/src/routes.tsx`:
+  - [x] 8.2 Create `modules/hexalith-tenants/src/routes.tsx`:
     - Export `TenantRootPage` default component with Suspense boundary
     - Export `routes` array mapping paths to lazy-loaded page components:
       - `/` → `TenantListPage`
@@ -231,55 +227,59 @@ So that we prove `useCommandPipeline` and `useQuery` work with real domain types
       - `/create` → `TenantCreatePage`
     - Use `React.lazy()` for page imports
     - Use `<Skeleton>` from `@hexalith/ui` as Suspense fallback
-  - [ ] 8.3 Create `modules/hexalith-tenants/src/index.ts`:
+  - [x] 8.3 Create `modules/hexalith-tenants/src/index.ts`:
     - Default export: `TenantRootPage` (from routes)
     - Named exports: `manifest`, `routes`
     - Type exports: `TenantItem`, `TenantDetail`, `CreateTenantInput`, `UpdateTenantInput`, `DisableTenantInput`
     - Schema exports: all Zod schemas
 
-- [ ] **Task 9: Create dev-host for standalone development** (AC: #4)
-  - [ ] 9.1 Create `modules/hexalith-tenants/dev-host/` directory with:
+- [x] **Task 9: Create dev-host for standalone development** (AC: #4)
+  - [x] 9.1 Create `modules/hexalith-tenants/dev-host/` directory with:
     - `index.html` — standard Vite HTML entry
     - `main.tsx` — renders module inside MockShellProvider + CqrsProvider (mock buses + `MockSignalRHub`) + ToastProvider + BrowserRouter (same provider stack as `renderWithProviders`)
     - `vite.config.ts` — extends from parent vitest config, resolves `@hexalith/*` imports
-  - [ ] 9.2 Pre-configure mock data in dev-host main.tsx so the module renders with sample tenants
+  - [x] 9.2 Pre-configure mock data in dev-host main.tsx so the module renders with sample tenants
 
-- [ ] **Task 10: Verify full integration** (AC: all)
-  - [ ] 10.1 Run `pnpm install` — verify workspace resolution
-  - [ ] 10.2 Run `pnpm turbo build --filter=@hexalith/tenants` — verify clean build
-  - [ ] 10.3 Run `pnpm turbo test --filter=@hexalith/tenants` — verify all tests pass
-  - [ ] 10.4 Run `pnpm turbo lint --filter=@hexalith/tenants` — verify no lint errors (including module isolation rules)
-  - [ ] 10.5 Run `pnpm turbo build` (full workspace) — verify the shell discovers and validates the Tenants manifest
-  - [ ] 10.6 Run `pnpm turbo test` (full workspace) — verify no regressions
-  - [ ] 10.7 Run `pnpm turbo lint` (full workspace) — verify no boundary violations
+- [x] **Task 10: Verify full integration** (AC: all)
+  - [x] 10.1 Run `pnpm install` — verify workspace resolution
+  - [x] 10.2 Run `pnpm turbo build --filter=@hexalith/tenants` — verify clean build
+  - [x] 10.3 Run `pnpm turbo test --filter=@hexalith/tenants` — verify all tests pass (14/14)
+  - [x] 10.4 Run `pnpm turbo lint --filter=@hexalith/tenants` — verify no lint errors (including module isolation rules)
+  - [x] 10.5 Run `pnpm turbo build` (full workspace) — verify the shell discovers and validates the Tenants manifest
+  - [x] 10.6 Run `pnpm turbo test` (full workspace) — verify no regressions (only pre-existing CssLayerSmoke.test.ts timeout in @hexalith/ui)
+  - [x] 10.7 Run `pnpm turbo lint` (full workspace) — verify no boundary violations
 
 ## Dev Notes
 
 ### What Already Exists (DO NOT recreate)
 
 **CQRS infrastructure is complete:**
+
 - `@hexalith/cqrs-client` provides: `useQuery`, `useCommandPipeline`, `useSubmitCommand`, `useCommandStatus`, `useConnectionState`, `CqrsProvider`, `MockCommandBus`, `MockQueryBus`, `MockSignalRHub` (must be passed to CqrsProvider in tests)
 - `@hexalith/shell-api` provides: `useAuth`, `useTenant`, `MockShellProvider`, `createMockAuthContext`, `createMockTenantContext`, manifest types
 - `@hexalith/ui` provides: `Table` (+ `TableColumn` type), `DetailView` (+ `DetailSection`, `DetailField` types), `Form`, `FormField`, `Button`, `Input`, `Select`, `TextArea`, `Checkbox`, `DatePicker`, `PageLayout`, `Stack`, `Inline`, `Divider`, `Skeleton`, `EmptyState`, `ErrorDisplay`, `ErrorBoundary`, `Toast`, `ToastProvider`, `useToast` (returns `{ toast, dismiss }` — NOT `addToast`), `Modal`, `AlertDialog`, `Tooltip`, `DropdownMenu`, `Popover`, `Sidebar`, `Tabs`
 - **No `Badge` component exists** — render status using CSS class-based `<span>` with CSS module styles (e.g., `.statusActive { color: var(--color-success); }`)
 
-
 **Shell module loading is complete:**
+
 - `apps/shell/src/modules/registry.ts` uses `import.meta.glob("../../../../modules/*/src/manifest.ts")` to discover modules
 - `apps/shell/src/modules/routeBuilder.ts` wraps each module in `ModuleErrorBoundary → Suspense → ModuleRenderGuard`
 - `apps/shell/src/modules/navigationBuilder.ts` builds sidebar items from manifests
 - `apps/shell/src/build/manifestValidationPlugin.ts` validates manifests at build time
 
 **Module scaffold template exists at `tools/create-hexalith-module/templates/module/`:**
+
 - **PRIMARY IMPLEMENTATION METHOD: Copy and adapt from the template.** Open `ExampleCreatePage.tsx`, `ExampleListPage.tsx`, `ExampleDetailPage.tsx` and rename `Example` → `Tenant`, swap in tenant schemas/data. The template has `useCallback` wrapping, `PageLayout`, `<ErrorDisplay>` above form, `<Inline>` button layout, and status messages that the code patterns in this story simplify. **Follow the template conventions — the code patterns below are reference summaries, not complete implementations.**
 - Also copy: `exampleSchemas.ts`, `sampleData.ts`, `renderWithProviders.tsx`, `routes.tsx`, `manifest.ts`, `index.ts`
 - Template test files (`*.test.tsx`) show the exact testing patterns including MockQueryBus delay, empty response setup, and route wrapping
 
 **Empty module directories already exist:**
+
 - `modules/hexalith-demo-tasks/` (empty) and `modules/hexalith-test-orders/` (empty)
 - Create the Tenants module as `modules/hexalith-tenants/` (NOT in the existing `modules/hexalith-demo-tasks/` or `modules/hexalith-test-orders/`)
 
 **The Hexalith.Tenants .NET backend submodule:**
+
 - EXISTS at repo root as `Hexalith.Tenants/` — this is the .NET backend project, NOT the frontend module
 - `.gitmodules` references `https://github.com/Hexalith/Hexalith.Tenants.git` at path `Hexalith.Tenants`
 - DO NOT modify this submodule — it is a separate concern from the frontend Tenants module
@@ -287,11 +287,13 @@ So that we prove `useCommandPipeline` and `useQuery` work with real domain types
 ### Architecture Compliance
 
 **Hook API — CRITICAL: Use the correct hook names:**
+
 - `useQuery<T>()` — NOT `useProjection`. The epics file says "useProjection" but the actual codebase API is `useQuery` from `@hexalith/cqrs-client`
 - `useCommandPipeline()` — NOT `useCommand`. The actual codebase API is `useCommandPipeline`
 - These hooks internally use TanStack Query and the CQRS transport layer
 
 **useQuery signature:**
+
 ```typescript
 const { data, isLoading, isRefreshing, error, refetch } = useQuery<T>(
   schema: z.ZodType<T>,       // Zod schema — MUST be stable reference (define at module scope)
@@ -301,6 +303,7 @@ const { data, isLoading, isRefreshing, error, refetch } = useQuery<T>(
 ```
 
 **useCommandPipeline signature:**
+
 ```typescript
 const { send, status, error, correlationId, replay } = useCommandPipeline();
 // status: "idle" | "sending" | "polling" | "completed" | "rejected" | "failed" | "timedOut"
@@ -309,11 +312,13 @@ const { send, status, error, correlationId, replay } = useCommandPipeline();
 ```
 
 **Module boundary rules** [Source: architecture.md, Lines 1538-1567]:
+
 - Modules may ONLY import: `@hexalith/shell-api`, `@hexalith/cqrs-client`, `@hexalith/ui`, `zod`
 - Modules CANNOT import: `@radix-ui/*`, `oidc-client-ts`, `ky`, `@tanstack/react-query`, other `modules/*`
 - No deep imports: `@hexalith/*/src/**` is blocked by ESLint
 
 **Loading state pattern** (MANDATORY):
+
 ```typescript
 if (isLoading) return <Skeleton variant="table" rows={8} />;
 if (error) return <ErrorDisplay error={error} onRetry={refetch} />;
@@ -321,16 +326,19 @@ if (error) return <ErrorDisplay error={error} onRetry={refetch} />;
 ```
 
 **Error handling pattern:**
+
 - Business errors (`CommandRejectedError`) → handle inline with user message
 - Infrastructure errors (network, auth, 500s) → let bubble to `ModuleErrorBoundary`
 - Never `try/catch` around `useQuery`/`useCommandPipeline` — they surface errors via return value
 
 **Date handling:**
+
 - API dates are ISO 8601 strings — use `z.string().datetime()` in Zod schemas
 - Display via `new Intl.DateTimeFormat().format(new Date(isoString))` in cell renderers and detail field values
 - Avoid creating `Date` objects in reactive expressions or render bodies outside of cell/field renderers
 
 **Import ordering:**
+
 ```typescript
 // 1. React
 // 2. External libraries (zod, react-router)
@@ -340,6 +348,7 @@ if (error) return <ErrorDisplay error={error} onRetry={refetch} />;
 ```
 
 **Import extension convention:**
+
 - Source files (`.ts`, `.tsx`) use `.js` extension for relative imports: `from '../schemas/tenantSchemas.js'`
 - Test files (`.test.tsx`) omit the extension: `from '../testing/renderWithProviders'`
 - Package imports never have extensions: `from '@hexalith/cqrs-client'`
@@ -358,6 +367,7 @@ if (error) return <ErrorDisplay error={error} onRetry={refetch} />;
 ### File Structure Requirements
 
 **Files to CREATE:**
+
 ```
 modules/hexalith-tenants/
 ├── package.json
@@ -391,6 +401,7 @@ modules/hexalith-tenants/
 ```
 
 **Files to NOT TOUCH:**
+
 - `pnpm-workspace.yaml` — already includes `modules/*`
 - `turbo.json` — no changes needed, module builds as part of workspace
 - `.gitmodules` — the Hexalith.Tenants .NET backend entry is separate
@@ -415,7 +426,7 @@ modules/hexalith-tenants/
 - **Empty state test:** You MUST explicitly set an empty array response via `queryBus.setResponse(key, [])`. If no response is configured, MockQueryBus returns a 404 error — NOT empty data. This is the most common test mistake.
 - **Build mock keys using `createMockTenantContext()`:**
   ```typescript
-  import { createMockTenantContext } from '@hexalith/shell-api';
+  import { createMockTenantContext } from "@hexalith/shell-api";
   const TENANT = createMockTenantContext().activeTenant;
   const listKey = `${TENANT}:${TENANT_LIST_QUERY.domain}:${TENANT_LIST_QUERY.queryType}::`;
   ```
@@ -426,30 +437,35 @@ modules/hexalith-tenants/
 ### Previous Story Intelligence (6-2)
 
 **Story 6-2 is ready-for-dev** — Module publishing via git integration. Key context:
+
 - Foundation packages (`shell-api`, `cqrs-client`, `ui`) are being prepared for publishing to GitHub Packages
 - `pnpm-workspace.yaml` already includes `modules/*` — new modules are auto-discovered
 - Module boundary rules and ESLint isolation are already configured
 - The scaffold tool template is the canonical module pattern
 
 **Story 6-1 is done** — CI pipeline with quality gates:
+
 - Coverage gates: 80% modules, 95% foundation packages
 - Scaffold smoke test validates template integrity
 - Manifest validation runs at build time
 - Design System Health gate checks token compliance
 
 **Anti-patterns from 6-1:**
+
 - Pre-existing test failure in `packages/ui/src/utils/CssLayerSmoke.test.ts` — ignore if encountered
 - `@vitest/coverage-v8` was added as explicit dependency (Vitest v3 needs it)
 
 ### Git Intelligence
 
 Recent commits show:
+
 - Module isolation ESLint rules active (`module-isolation.js`)
 - Connection recovery revalidation in `useQuery`
 - Manifest validation plugin operational
 - Module error boundaries working
 
 **Patterns established:**
+
 - Co-located tests (`.test.ts(x)` next to source)
 - Scripts in `scripts/` at repo root
 - Vitest for all unit/integration tests
@@ -474,9 +490,11 @@ Recent commits show:
 ### MockQueryBus Key Format
 
 The `MockQueryBus` uses a composite key to look up responses:
+
 ```
 "<tenantId>:<domain>:<queryType>:<aggregateId>:<entityId>"
 ```
+
 - Default tenantId from MockShellProvider is `"test-tenant"`
 - For list query: `"test-tenant:Tenants:GetTenantList::"`
 - For detail query: `"test-tenant:Tenants:GetTenantDetail:<id>:"`
@@ -486,6 +504,7 @@ Use `queryBus.setResponse(key, data)` to configure mock responses in tests and i
 ### Key Code Patterns to Follow
 
 **TenantListPage pattern (from scaffold template ExampleListPage):**
+
 ```typescript
 import { useNavigate } from 'react-router';
 import { useQuery } from '@hexalith/cqrs-client';
@@ -527,6 +546,7 @@ export function TenantListPage() {
 ```
 
 **TenantCreatePage pattern (from scaffold template ExampleCreatePage):**
+
 ```typescript
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
@@ -608,8 +628,85 @@ export function TenantCreatePage() {
 
 ### Agent Model Used
 
+GPT-5.4
+
 ### Debug Log References
+
+- Initial tests had 2 failures in TenantDetailPage: "Found multiple elements with the text: Acme Corporation" — caused by name appearing in both PageLayout title and DetailView Name field. Fixed by using `getAllByText()` instead of `getByText()`.
+- ESLint auto-fix corrected import ordering across all files (import-x/order rule).
+- Removed unused `replay` destructured variable from TenantCreatePage and unused `navigatedTo` variable from TenantListPage.test.tsx.
+- Pre-existing CssLayerSmoke.test.ts timeout in @hexalith/ui confirmed as known issue from story 6-1 — not a regression.
+- Review follow-up fixes added enforced Vitest coverage thresholds, replay handling for failed/timed-out create commands, missing-id and no-data fallbacks on the detail page, and schema de-duplication on the list page.
+- Expanded automated validation with rejection/replay/navigation tests plus manifest/routes/index coverage tests; final verification passed with 22/22 tests, coverage above 80% on all thresholds, `pnpm lint`, and `pnpm build`.
 
 ### Completion Notes List
 
+- Created complete Tenants module at `modules/hexalith-tenants/` following scaffold template patterns exactly
+- Zod schemas define TenantItemSchema, TenantListSchema, TenantDetailSchema, CreateTenantCommandSchema, UpdateTenantCommandSchema, DisableTenantCommandSchema with proper validation rules
+- 10 realistic sample tenants with mixed statuses (Active, Inactive, Disabled) and professional names
+- TenantListPage: useQuery + Table with sorting/pagination/search, status badge rendering via CSS modules, relative navigation
+- TenantDetailPage: useQuery + DetailView with General Information and Audit Trail sections, Back button only (Edit/Disable deferred to 6-4)
+- TenantCreatePage: useCommandPipeline + Form with Zod schema validation, pipeline status feedback, success toast + navigation
+- All navigation uses relative paths as required
+- renderWithProviders test utility with MockShellProvider + CqrsProvider + MockSignalRHub + ToastProvider + MemoryRouter
+- Dev-host for standalone development with mock data pre-configured
+- 14 tests across 3 test files, all passing
+- Module auto-discovered by shell via import.meta.glob (confirmed in full workspace build)
+- No lint errors, no boundary violations, no regressions
+- Review follow-up pass raised module coverage to 97.65% statements/lines, 89.7% branches, and 92.85% functions with explicit 80% thresholds enforced in `vitest.config.ts`
+- TenantCreatePage now exposes retry via `useCommandPipeline().replay` for failed/timed-out commands and shows inline rejected-command feedback
+- TenantDetailPage now shows explicit inline error states for missing route ids and unexpected empty query results, and the Back action uses browser-history navigation via `navigate(-1)`
+- Added manifest, routes, and barrel-export tests plus create/detail page regression tests to protect the CQRS integration contract
+
+### Implementation Plan
+
+Followed scaffold template copy-and-adapt approach as recommended in Dev Notes. All pages modeled after ExampleListPage, ExampleDetailPage, ExampleCreatePage with tenant-specific domain types, query params, and styling.
+
+### Change Log
+
+- 2026-03-23: Implemented story 6-3 — complete Tenants reference module with CQRS integration (all 10 tasks completed)
+- 2026-03-23: Addressed code-review follow-ups, revalidated module quality gates, and moved story to done
+
 ### File List
+
+**New files created:**
+
+- modules/hexalith-tenants/package.json
+- modules/hexalith-tenants/tsconfig.json
+- modules/hexalith-tenants/tsup.config.ts
+- modules/hexalith-tenants/vitest.config.ts
+- modules/hexalith-tenants/eslint.config.js
+- modules/hexalith-tenants/src/index.ts
+- modules/hexalith-tenants/src/index.test.ts
+- modules/hexalith-tenants/src/manifest.ts
+- modules/hexalith-tenants/src/manifest.test.ts
+- modules/hexalith-tenants/src/routes.tsx
+- modules/hexalith-tenants/src/routes.test.tsx
+- modules/hexalith-tenants/src/test-setup.ts
+- modules/hexalith-tenants/src/css-modules.d.ts
+- modules/hexalith-tenants/src/schemas/tenantSchemas.ts
+- modules/hexalith-tenants/src/data/sampleData.ts
+- modules/hexalith-tenants/src/testing/renderWithProviders.tsx
+- modules/hexalith-tenants/src/pages/TenantListPage.tsx
+- modules/hexalith-tenants/src/pages/TenantListPage.module.css
+- modules/hexalith-tenants/src/pages/TenantListPage.test.tsx
+- modules/hexalith-tenants/src/pages/TenantDetailPage.tsx
+- modules/hexalith-tenants/src/pages/TenantDetailPage.module.css
+- modules/hexalith-tenants/src/pages/TenantDetailPage.test.tsx
+- modules/hexalith-tenants/src/pages/TenantCreatePage.tsx
+- modules/hexalith-tenants/src/pages/TenantCreatePage.test.tsx
+- modules/hexalith-tenants/dev-host/index.html
+- modules/hexalith-tenants/dev-host/main.tsx
+- modules/hexalith-tenants/dev-host/mockSetup.ts
+- modules/hexalith-tenants/dev-host/vite.config.ts
+
+**Modified files:**
+
+- modules/hexalith-tenants/vitest.config.ts
+- modules/hexalith-tenants/src/pages/TenantListPage.tsx
+- modules/hexalith-tenants/src/pages/TenantDetailPage.tsx
+- modules/hexalith-tenants/src/pages/TenantDetailPage.test.tsx
+- modules/hexalith-tenants/src/pages/TenantCreatePage.tsx
+- modules/hexalith-tenants/src/pages/TenantCreatePage.test.tsx
+- \_bmad-output/implementation-artifacts/sprint-status.yaml (story status update)
+- \_bmad-output/implementation-artifacts/6-3-tenants-reference-module-cqrs-integration.md (task checkboxes, dev agent record)

@@ -64,7 +64,7 @@ So that the complete platform stack is validated end-to-end with a real module.
    - **When** Playwright E2E tests (`.spec.ts`) run against the shell with Tenants module
    - **Then** at least the following user flows are covered:
      1. Navigate to tenant list → see table → click row → see detail → navigate back
-     2. Create tenant → form validation → submit → see confirmation toast → tenant appears in list
+     2. Create tenant → form validation → submit → see confirmation toast → redirect to list
      3. Switch tenant via status bar → table data refreshes for new tenant
      4. Module error recovery → trigger error → see error boundary → retry → module recovers
    - **And** E2E tests include axe-core accessibility checks on key pages
@@ -84,7 +84,22 @@ So that the complete platform stack is validated end-to-end with a real module.
     - Use `useCommandPipeline()` for command submission
     - Render `<PageLayout>` with title "Edit Tenant"
     - Render `<Form>` with `UpdateTenantCommandSchema` for validation
-    - **Pre-fill via `defaultValues`:** `<Form>` wraps React Hook Form internally and accepts a `defaultValues` prop. Verify at implementation time by checking `FormProps` in `@hexalith/ui`. If `defaultValues` is not exposed, pre-fill by passing `value` props to individual `<Input>`/`<TextArea>` components instead. The scaffold template's `ExampleCreatePage` does NOT use `defaultValues` (it creates new records), so check `Form.tsx` source for the actual prop interface.
+    - **Pre-fill via `defaultValues`:** `<Form>` wraps React Hook Form internally and may accept a `defaultValues` prop. Verify at implementation time by checking `FormProps` in `@hexalith/ui`. If `defaultValues` is NOT exposed or does not work (form renders empty), use the RHF `reset()` fallback pattern:
+      ```typescript
+      // Fallback: reset form when data FIRST loads (not on every re-render)
+      const formRef = useRef<{ reset: (values: UpdateTenantInput) => void }>(null);
+      const hasInitialized = useRef(false);
+      useEffect(() => {
+        if (data && formRef.current && !hasInitialized.current) {
+          formRef.current.reset({ name: data.name, description: data.description, contactEmail: data.contactEmail });
+          hasInitialized.current = true;
+        }
+      }, [data]);
+      // CRITICAL: Guard with hasInitialized to prevent overwriting user edits
+      // if useQuery re-fetches (e.g., window refocus, SignalR push).
+      // If <Form> exposes a ref or provides useFormContext, use that to call reset()
+      ```
+      The scaffold template's `ExampleCreatePage` does NOT use `defaultValues` (it creates new records), so check `Form.tsx` source for the actual prop interface.
     - Fields: name (`<Input>`), description (`<TextArea>`), contactEmail (`<Input>`)
     - Pre-fill form fields from loaded tenant data
     - Submit handler:
@@ -99,8 +114,9 @@ So that the complete platform stack is validated end-to-end with a real module.
     - On `completed`: show success toast, navigate to detail page (`../detail/${id}`)
     - On `rejected`: show `CommandRejectedError` inline via `<ErrorDisplay>`
     - On `failed`/`timedOut`: show error with retry via `replay()`
-    - Cancel button navigates back without submitting (`navigate(-1)`)
-    - Loading state: `<Skeleton variant="detail" />` while initial data loads
+    - Cancel button navigates back without submitting — use `navigate('..')` (NOT `navigate(-1)`). `navigate(-1)` is fragile when users deep-link directly to the edit page (it exits the app instead of going to the list). `navigate('..')` reliably goes to the module root (list page).
+    - **Missing ID guard:** If `!id` (user navigates to `/tenants/edit/` with no ID param), render `<ErrorDisplay error={{ message: 'Tenant not found' }} />` immediately. Do NOT show `<Skeleton>` forever — `useQuery` with `enabled: false` never resolves, leaving the user stuck on a permanent loading state.
+    - Loading state: `<Skeleton variant="detail" />` while initial data loads (only when `id` is present)
     - Error state: `<ErrorDisplay error={error} onRetry={refetch} />` if initial data fetch fails
   - [ ] 1.2 Create `modules/hexalith-tenants/src/pages/TenantEditPage.test.tsx`:
     - Test loading state renders Skeleton while data loads
@@ -113,6 +129,7 @@ So that the complete platform stack is validated end-to-end with a real module.
 
 - [ ] **Task 2: Add Edit & Disable buttons to TenantDetailPage** (AC: #3, #5, #6)
   - [ ] 2.1 Modify `modules/hexalith-tenants/src/pages/TenantDetailPage.tsx`:
+    - **FIRST:** Read the existing file created by story 6-3. The code snippets below show ADDITIONS to the page — do not blindly copy-paste. Understand the existing component structure (imports, hooks, JSX layout) and integrate the new functionality into it.
     - Add Edit button navigating to `/tenants/edit/${id}` (use `navigate(`../edit/${id}`)`)
     - Add Disable button that opens a confirmation Modal
     - Use `<Stack direction="horizontal" gap="sm">` to lay out action buttons (Back, Edit, Disable)
@@ -139,13 +156,18 @@ So that the complete platform stack is validated end-to-end with a real module.
         </Form>
       </Modal>
       ```
-    - On disable `completed`: show toast, close modal, `refetch()` to refresh detail data
-    - On disable `rejected`: show error inline in modal
+    - **UX pattern — optimistic modal close:** Close the modal immediately on submit (don't leave Elena staring at a frozen modal during command in-flight). Use toasts for async feedback:
+      - On submit: close modal, show info toast "Disabling tenant..."
+      - On `completed`: show success toast "Tenant disabled", call `refetch()` to refresh detail data
+      - On `rejected`: show error toast "Failed to disable: {error.message}" — user can re-open modal to retry
+      - On `failed`/`timedOut`: show error toast with retry guidance
     - Do NOT show Disable button if tenant status is already "Disabled"
   - [ ] 2.2 Update `modules/hexalith-tenants/src/pages/TenantDetailPage.test.tsx`:
     - Test Edit button navigates to edit page
     - Test Disable button opens Modal
-    - Test disable confirmation submits command
+    - Test disable form submit closes modal immediately (optimistic close) and triggers command
+    - Test success toast appears after command completes
+    - Test error toast appears on command rejection
     - Test Disable button hidden when status is "Disabled"
     - Test Modal cancel closes without action
 
@@ -160,6 +182,10 @@ So that the complete platform stack is validated end-to-end with a real module.
   - [ ] 3.4 **Checkpoint:** Run `pnpm turbo build --filter=@hexalith/tenants` — verify clean compilation with new route. Run `pnpm turbo test --filter=@hexalith/tenants` — verify all existing + new tests pass.
 
 - [ ] **Task 4: Verify shell integration** (AC: #1, #8)
+  - [ ] 4.0 **PRE-CHECK (before any other task in 6-4):** Verify story 6-3 output matches 6-4's assumptions:
+    - Confirm module directory is `modules/hexalith-tenants/` (architecture doc says `modules/tenants/` — if 6-3 used the shorter name, update ALL file paths in this story)
+    - Confirm `manifest.name` is `"tenants"` (NOT `"hexalith-tenants"`). Open `modules/hexalith-tenants/src/manifest.ts` and check. The basePath in the shell derives from `manifest.name` — if it says `"hexalith-tenants"`, all routes (`/tenants/...`) and E2E URLs are wrong.
+    - If either differs from expectations, update this story's paths and routes before proceeding with Tasks 1-3.
   - [ ] 4.1 Run `pnpm turbo build` (full workspace) — verify:
     - The shell discovers the Tenants manifest at build time
     - `apps/shell/src/build/manifestValidationPlugin.ts` validates the manifest
@@ -188,19 +214,56 @@ So that the complete platform stack is validated end-to-end with a real module.
     "test:e2e": "playwright test --config=e2e/playwright.config.ts"
     ```
   - [ ] 5.3 Create `apps/shell/e2e/playwright.config.ts`:
-    - Base URL: `http://localhost:5173` (Vite dev server)
+    - Base URL: `http://localhost:4173`
+    - Web server: `pnpm vite build --config vite.config.e2e.ts && pnpm vite preview --config vite.config.e2e.ts` — builds the E2E shell then serves from `dist/`. Same command works locally and in CI. No dual-config complexity.
     - Test directory: `.` (relative to e2e/)
     - Use Chromium only for MVP
-    - Web server: start `pnpm dev` in `apps/shell/` before tests
-    - Global setup: none (auth bypassed in E2E mode — see Task 5.4)
+    - Global setup: none (auth bypassed via provider alias swap — see Task 5.4)
     - Timeout: 30s per test
+    - **Local dev tip:** The `webServer` command rebuilds on every `playwright test` run. For faster iteration when writing E2E tests, pre-build once (`pnpm vite build --config vite.config.e2e.ts`), then run `pnpm vite preview --config vite.config.e2e.ts` in one terminal and `playwright test --config=e2e/playwright.config.ts` in another. Only re-build when source code changes.
   - [ ] 5.4 Create E2E test mode for the shell:
     - The shell uses OIDC for authentication. For E2E tests, we need to bypass auth.
-    - Create `apps/shell/src/test-utils/e2eMode.ts` — exports `isE2EMode()` checking `VITE_E2E_MODE=true` env var
-    - In `apps/shell/src/providers/ShellProviders.tsx` — when E2E mode is active, use `MockShellProvider` instead of real OIDC provider. Wrap this behind a conditional import.
-    - Set `VITE_E2E_MODE=true` in playwright.config.ts web server env
-    - **CRITICAL:** The E2E mode flag must NEVER be set in production builds — verify via CI that `VITE_E2E_MODE` is unset during `pnpm build`
-    - **Mock data seeding for E2E:** In the E2E mode path, configure `MockQueryBus` with sample tenant data. Reuse `sampleTenants` and `sampleTenantDetails` from `modules/hexalith-tenants/src/data/sampleData.ts` (import directly — workspace resolution allows cross-package imports in the shell app). Pre-seed the mock buses so E2E tests render realistic data without a backend.
+    - **CRITICAL: Use Vite alias swap, NOT runtime conditional.** A runtime `if (import.meta.env.VITE_E2E_MODE)` check will leak mock dependencies into the production bundle because Vite's tree-shaking cannot eliminate runtime branches. Instead:
+      - Create `apps/shell/src/providers/ShellProviders.tsx` (production — real OIDC providers)
+      - Create `apps/shell/src/providers/ShellProviders.e2e.tsx` (E2E — uses `MockShellProvider` + `MockQueryBus`/`MockCommandBus`/`MockSignalRHub` with seeded tenant data)
+        - **CRITICAL:** Must pass `signalRHub={new MockSignalRHub()}` to `CqrsProvider`. Omitting it causes `useConnectionState` to throw, crashing the shell on load and breaking ALL E2E tests. This is the same requirement documented in story 6-3's `renderWithProviders.tsx` — the E2E provider must replicate the full provider stack:
+          ```typescript
+          const mockSignalRHub = new MockSignalRHub();
+          <MockShellProvider>
+            <CqrsProvider
+              commandApiBaseUrl="http://localhost:mock"
+              tokenGetter={async () => "e2e-token"}
+              signalRHub={mockSignalRHub}
+              queryBus={queryBus}
+              commandBus={commandBus}
+            >
+              <ToastProvider>
+                {children}
+              </ToastProvider>
+            </CqrsProvider>
+          </MockShellProvider>
+          ```
+      - Create `apps/shell/vite.config.e2e.ts` that extends the main `vite.config.ts` and adds a `resolve.alias`:
+        ```typescript
+        // apps/shell/vite.config.e2e.ts
+        import { defineConfig, mergeConfig } from 'vite';
+        import baseConfig from './vite.config';
+        import path from 'node:path';
+
+        export default mergeConfig(baseConfig, defineConfig({
+          resolve: {
+            alias: {
+              // Swap production providers with E2E mock providers
+              [path.resolve(__dirname, 'src/providers/ShellProviders')]:
+                path.resolve(__dirname, 'src/providers/ShellProviders.e2e'),
+            },
+          },
+        }));
+        ```
+        The alias key must be an **absolute path** (not a module specifier) because the import in the shell app is a relative path (`./providers/ShellProviders`). Vite resolves aliases by matching the resolved file path, so `path.resolve` is required.
+      - In `apps/shell/e2e/playwright.config.ts`, set the web server command to use the E2E vite config: `pnpm vite --config vite.config.e2e.ts`
+    - This ensures mock code is NEVER included in production builds — no flag to forget, no runtime branch to leak.
+    - **Mock data seeding for E2E:** In `ShellProviders.e2e.tsx`, configure `MockQueryBus` with sample tenant data. **DO NOT import from `modules/hexalith-tenants/src/data/sampleData.ts`** — this creates a hard shell→module dependency that breaks builds when the module isn't present (e.g., fresh clone without submodules). Instead, define a small set of inline mock tenant data directly in the E2E provider file (3-5 tenants with mixed statuses). This keeps the shell self-contained for E2E builds.
     - **LIMITATION:** These E2E tests validate UI integration (routing, component rendering, navigation, accessibility) against mock data. They do NOT validate real API calls, real OIDC auth, or real backend responses. True end-to-end backend integration testing requires a running Hexalith backend and is out of scope for this story.
   - [ ] 5.5 Create `apps/shell/e2e/fixtures/test-fixtures.ts`:
     - Re-export `test` and `expect` from `@playwright/test`
@@ -227,8 +290,8 @@ So that the complete platform stack is validated end-to-end with a real module.
       await page.goto('/tenants');
       // Verify table renders with tenant data
       await expect(page.getByRole('table')).toBeVisible();
-      // Click first row
-      await page.getByRole('row').nth(1).click();
+      // Click a known tenant row (use name from E2E mock data, not nth() which is fragile)
+      await page.getByRole('row').filter({ hasText: /Acme/ }).click();
       // Verify detail page
       await expect(page).toHaveURL(/\/tenants\/detail\//);
       await expect(page.getByText('General Information')).toBeVisible();
@@ -241,7 +304,7 @@ So that the complete platform stack is validated end-to-end with a real module.
     ```
   - [ ] 6.2 Create `apps/shell/e2e/tenants-create.spec.ts`:
     ```typescript
-    // Flow 2: Create tenant → form validation → submit → toast → tenant in list
+    // Flow 2: Create tenant → form validation → submit → toast → redirect
     test('create tenant flow', async ({ page }) => {
       await page.goto('/tenants');
       await page.getByRole('button', { name: /create/i }).click();
@@ -257,6 +320,10 @@ So that the complete platform stack is validated end-to-end with a real module.
       await expect(page.getByText(/tenant created/i)).toBeVisible();
       // Verify redirect to list
       await expect(page).toHaveURL('/tenants');
+      // NOTE: Do NOT assert that the new tenant appears in the list.
+      // MockCommandBus does not auto-update MockQueryBus responses —
+      // the list still shows pre-seeded data. Verifying toast + redirect
+      // is sufficient for the E2E mock context.
       // Accessibility check
       await checkAccessibility(page);
     });
@@ -289,17 +356,15 @@ So that the complete platform stack is validated end-to-end with a real module.
 
 - [ ] **Task 7: Add E2E step to CI pipeline** (AC: #7)
   - [ ] 7.1 Update `.github/workflows/ci.yml`:
-    - Add E2E test step after the Build step:
+    - Add E2E test step after the main Build step:
       ```yaml
       - name: E2E Tests
         run: |
           npx playwright install chromium --with-deps
           pnpm --filter @hexalith/shell test:e2e
-        env:
-          VITE_E2E_MODE: 'true'
       ```
-    - Place the E2E step after the Build step (needs built shell)
-    - E2E tests use the built shell (not dev server in CI) — adjust playwright config to use `preview` server or a static file server pointing at `dist/`
+    - Playwright config's `webServer` handles the E2E build + preview automatically (build → serve `dist/` → run tests) — no separate CI build step needed
+    - The E2E build uses `vite.config.e2e.ts` which swaps in MockShellProvider via alias — no env vars needed
 
 - [ ] **Task 8: Verify full component coverage and theme correctness** (AC: #6, #8)
   - [ ] 8.1 Audit the Tenants module code to confirm ALL required @hexalith/ui components are used:
@@ -320,7 +385,12 @@ So that the complete platform stack is validated end-to-end with a real module.
   - [ ] 8.2 Verify light and dark theme rendering:
     - All CSS module styles use design tokens (`--hx-*` custom properties) not raw values
     - Status colors use semantic tokens: `--color-status-success`, `--color-status-warning`, etc.
-    - Run storybook or manual check in both themes (no hardcoded colors)
+    - **Explicit dark mode check:** Run the dev-host or shell in dark mode (toggle via `useTheme().toggleTheme()` or browser DevTools `prefers-color-scheme: dark`) and visually verify:
+      - TenantListPage: table rows, status badges, Select filter, empty state all readable
+      - TenantDetailPage: section headings, field values, action buttons, Modal backdrop/content
+      - TenantEditPage: form fields, labels, error messages
+      - No hardcoded colors (e.g., `color: #333`, `background: white`) — grep module CSS files for hex/rgb values as a quick check
+    - Add an E2E accessibility check in dark mode: in one test, set `prefers-color-scheme: dark` via `page.emulateMedia({ colorScheme: 'dark' })` before running `checkAccessibility(page)` — ensures contrast ratios hold in dark theme
   - [ ] 8.3 Add standalone `<Select>` component usage to TenantListPage — replace the table's built-in status filter:
     - **IMPORTANT:** Story 6-3 defines the status column with `filterType: 'select'` and `filterOptions`. REMOVE `filterType` and `filterOptions` from the status column definition to avoid two competing filter mechanisms for the same field (Table internal filter state vs external Select state will desync and confuse users).
     - Add a `<Select>` filter above the table for status filtering:
@@ -349,6 +419,7 @@ So that the complete platform stack is validated end-to-end with a real module.
       <Table data={filteredData} ... />
       ```
     - **CRITICAL:** `<Select>` requires a `label` prop (string, for accessibility). Without it, the component will produce inaccessible output.
+    - **CRITICAL:** Pass `filteredData` (not `data`) to `<Table>`. The Table's `globalSearch` operates on whatever `data` prop it receives — filtering must happen BEFORE the Table. This ensures globalSearch searches within the Select-filtered results, avoiding confusing empty states when search text matches a different status than the one selected.
     - Update `TenantListPage.test.tsx` to test the Select filter behavior (select "Active" → only active tenants shown)
 
 - [ ] **Task 9: Final integration verification** (AC: #8)
@@ -466,7 +537,7 @@ if (error) return <ErrorDisplay error={error} onRetry={refetch} />;
 - `navigate('..')` to go back to parent route (module root = list)
 - `navigate(`../detail/${id}`)` for detail page
 - `navigate(`../edit/${id}`)` for edit page
-- `navigate(-1)` for browser-style back
+- `navigate(-1)` for browser-style back — use ONLY on the detail page Back button where browser-history behavior is desired. DO NOT use for Cancel buttons (fragile on deep-link — user may exit the app). Use `navigate('..')` for Cancel buttons instead.
 - IMPORTANT: absolute `/` goes to shell root, not module root
 
 **Import ordering:**
@@ -482,7 +553,7 @@ if (error) return <ErrorDisplay error={error} onRetry={refetch} />;
 
 - **@hexalith/cqrs-client** — `useQuery`, `useCommandPipeline`, `CqrsProvider`, `MockCommandBus`, `MockQueryBus`, `MockSignalRHub`
 - **@hexalith/shell-api** — `useTenant`, `MockShellProvider`, `ModuleManifest`
-- **@hexalith/ui** — `Table` (`TableColumn`), `DetailView` (`DetailSection`, `DetailField`), `Form`, `FormField`, `Button`, `Input`, `Select` (`SelectOption`), `TextArea`, `PageLayout`, `Stack`, `Skeleton`, `EmptyState`, `ErrorDisplay`, `ToastProvider`, `useToast` (`{ toast, dismiss }`), `Modal`
+- **@hexalith/ui** — `Table` (`TableColumn`), `DetailView` (`DetailSection`, `DetailField`), `Form`, `FormField`, `Button` (verify `variant="destructive"` is a valid ButtonProps variant at impl time — if not available, use `variant="danger"` or style via className), `Input`, `Select` (`SelectOption`), `TextArea`, `PageLayout`, `Stack`, `Skeleton`, `EmptyState`, `ErrorDisplay`, `ToastProvider`, `useToast` (`{ toast, dismiss }`), `Modal`
 - **zod** v3.x — Schema definitions with `z.infer<>` for types
 - **react-router** v7.x — `useNavigate`, `useParams`, `Routes`, `Route`, `MemoryRouter`
 - **@playwright/test** — E2E test runner (NEW dependency for shell)
@@ -506,8 +577,10 @@ apps/shell/e2e/
 ├── tenants-switching.spec.ts             # Flow 3: Tenant switching
 └── tenants-error-recovery.spec.ts        # Flow 4: Error → Boundary → Retry
 
-apps/shell/src/test-utils/
-└── e2eMode.ts                            # E2E mode detection utility
+apps/shell/src/providers/
+└── ShellProviders.e2e.tsx                # E2E provider swap (MockShellProvider + mock buses)
+apps/shell/
+└── vite.config.e2e.ts                    # E2E Vite config with resolve.alias for provider swap
 ```
 
 **Files to MODIFY:**
@@ -595,9 +668,11 @@ Recent commits show:
 10. **DO NOT hardcode colors or spacing** — use design tokens (`--hx-*` CSS custom properties)
 11. **DO NOT use `workspace:*` in peerDependencies** — use versioned ranges (e.g., `^0.1.0`)
 12. **DO NOT add `vitest` to shell devDependencies** — it's already at workspace root level
-13. **DO NOT create auth.setup.spec.ts** — E2E mode bypasses OIDC auth entirely via MockShellProvider
-14. **DO NOT put E2E test files in the module directory** — they go in `apps/shell/e2e/`
-15. **DO NOT keep `filterType: 'select'` on the status Table column after adding the standalone `<Select>` filter** — two filter mechanisms for the same field will desync and confuse users. Remove the table's built-in filter; use the standalone `<Select>` as the single source of truth.
+13. **DO NOT use a runtime conditional (`if (import.meta.env.VITE_E2E_MODE)`) to swap providers** — Vite cannot tree-shake runtime branches, so mock code will leak into production bundles. Use `resolve.alias` in a separate `vite.config.e2e.ts` to swap the provider module at build time.
+14. **DO NOT create auth.setup.spec.ts** — E2E mode bypasses OIDC auth entirely via MockShellProvider
+15. **DO NOT put E2E test files in the module directory** — they go in `apps/shell/e2e/`
+16. **DO NOT keep `filterType: 'select'` on the status Table column after adding the standalone `<Select>` filter** — two filter mechanisms for the same field will desync and confuse users. Remove the table's built-in filter; use the standalone `<Select>` as the single source of truth.
+17. **DO NOT use `navigate(-1)` for Cancel buttons** — fragile when user deep-links. Use `navigate('..')` for Cancel (reliable parent route). Reserve `navigate(-1)` for Back buttons only where browser-history behavior is desired.
 
 ### Key Code Patterns to Follow
 
@@ -633,6 +708,7 @@ export function TenantEditPage() {
     }
   }, [status]);
 
+  if (!id) return <ErrorDisplay error={{ message: 'Tenant not found' }} />;
   if (isLoading) return <Skeleton variant="detail" />;
   if (error) return <ErrorDisplay error={error} onRetry={refetch} />;
   if (!data) return null;
@@ -649,7 +725,7 @@ export function TenantEditPage() {
             <Button type="submit" disabled={status === 'sending' || status === 'polling'}>
               {status === 'sending' || status === 'polling' ? 'Saving...' : 'Save Changes'}
             </Button>
-            <Button variant="ghost" onClick={() => navigate(-1)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => navigate('..')}>Cancel</Button>
           </Stack>
         </Stack>
       </Form>
@@ -670,7 +746,13 @@ const [isDisableModalOpen, setIsDisableModalOpen] = useState(false);
 const { send: sendDisable, status: disableStatus, error: disableError } = useCommandPipeline();
 const { toast } = useToast();
 
+const hasSubmittedDisable = useRef(false);
+
 const handleDisable = async (formData: DisableTenantInput) => {
+  // Optimistic modal close — don't leave user staring at frozen modal
+  hasSubmittedDisable.current = true;
+  setIsDisableModalOpen(false);
+  toast({ title: 'Disabling tenant...', variant: 'default' });
   await sendDisable({
     domain: 'Tenants',
     commandType: 'DisableTenant',
@@ -679,11 +761,24 @@ const handleDisable = async (formData: DisableTenantInput) => {
   });
 };
 
+// Guard with hasSubmittedDisable to prevent stale 'completed' status
+// from triggering a toast on mount. Verify at impl time: if useCommandPipeline()
+// always initializes with status='idle', this guard is unnecessary and can
+// be removed for simplicity. Keep it if status can persist across renders.
 useEffect(() => {
+  if (!hasSubmittedDisable.current) return;
   if (disableStatus === 'completed') {
     toast({ title: 'Tenant disabled', variant: 'success' });
-    setIsDisableModalOpen(false);
     refetch();
+    hasSubmittedDisable.current = false;
+  }
+  if (disableStatus === 'rejected') {
+    toast({ title: `Failed to disable: ${disableError?.message}`, variant: 'error' });
+    hasSubmittedDisable.current = false;
+  }
+  if (disableStatus === 'failed' || disableStatus === 'timedOut') {
+    toast({ title: 'Disable failed — please try again', variant: 'error' });
+    hasSubmittedDisable.current = false;
   }
 }, [disableStatus]);
 
@@ -722,8 +817,8 @@ test.describe('Tenants Module', () => {
   test('navigates from list to detail and back', async ({ page }) => {
     await page.goto('/tenants');
     await expect(page.getByRole('table')).toBeVisible();
-    const firstRow = page.getByRole('row').nth(1);
-    await firstRow.click();
+    // Use known tenant name from E2E mock data — nth() is fragile
+    await page.getByRole('row').filter({ hasText: /Acme/ }).click();
     await expect(page).toHaveURL(/\/tenants\/detail\//);
     await page.getByRole('button', { name: /back/i }).click();
     await expect(page).toHaveURL('/tenants');
@@ -770,6 +865,18 @@ Use `queryBus.setResponse(key, data)` to configure mock responses.
 - **Dual-theme parity** — light and dark themes designed simultaneously, semantic color tokens only
 - **Signal clarity wins all conflicts** — density wins over calm layout for data-heavy screens
 - **Core user loop**: Sidebar → data table → row detail → action (command) → feedback confirmation → back to table
+
+### Architecture Decisions (from story elicitation)
+
+| ADR | Decision | Rationale |
+|-----|----------|-----------|
+| ADR-1 | Vite alias swap for E2E, not runtime conditional | Runtime `if` leaks mock deps into production bundle — Vite can't tree-shake runtime branches |
+| ADR-2 | Optimistic modal close on disable | UX spec: "no confirmation dialogs for reversible actions" — disable is reversible, reason field prevents accidents |
+| ADR-3 | `navigate('..')` for Cancel, `navigate(-1)` for Back only | `navigate(-1)` is fragile on deep-link (exits app). Reserve for Back button where browser-history is desired. |
+| ADR-4 | E2E mock data inline in shell, not imported from module | Shell→module import creates hard dependency — shell build breaks if module absent |
+| ADR-5 | Single `<Select>` filter replaces Table built-in filter | Two filter mechanisms for same field desync and confuse users |
+| ADR-6 | E2E tests verify toast+redirect, not list data after create | `MockCommandBus` doesn't auto-update `MockQueryBus` — list still shows pre-seeded data |
+| ADR-7 | Single build+preview mode for E2E (no dual local/CI config) | Occam's Razor — same command works everywhere, no config drift |
 
 ### References
 
