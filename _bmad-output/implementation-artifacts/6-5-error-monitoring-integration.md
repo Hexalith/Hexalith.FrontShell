@@ -1,6 +1,6 @@
 # Story 6.5: Error Monitoring Integration
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -65,14 +65,17 @@ So that I can integrate with observability tools (Sentry, OpenTelemetry) when th
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1: Enrich `ModuleErrorEvent` interface** (AC: #1)
-  - [ ] 1.1 Update `apps/shell/src/errors/moduleErrorEvents.ts`:
+- [x] **Task 1: Enrich `ModuleErrorEvent` interface** (AC: #1)
+  - [x] 1.1 Update `apps/shell/src/errors/moduleErrorEvents.ts`:
     - Add `ErrorEventSource`, `ErrorSeverity` types and extend `ModuleErrorEvent` interface with new fields:
+
       ```typescript
       export type ErrorEventSource = "error-boundary" | "global-handler";
       export type ErrorSeverity = "warning" | "error";
 
-      export function classifySeverity(classification: ModuleErrorClassification): ErrorSeverity {
+      export function classifySeverity(
+        classification: ModuleErrorClassification,
+      ): ErrorSeverity {
         // chunk-load-failure and network-error are retryable → warning
         // render-error is a code bug → error
         return classification === "render-error" ? "error" : "warning";
@@ -82,21 +85,23 @@ So that I can integrate with observability tools (Sentry, OpenTelemetry) when th
         timestamp: string;
         moduleName: string;
         classification: ModuleErrorClassification;
-        errorCode: string;            // same as classification, kept for external consumers
-        severity: ErrorSeverity;      // "warning" for retryable, "error" for code bugs
+        errorCode: string; // same as classification, kept for external consumers
+        severity: ErrorSeverity; // "warning" for retryable, "error" for code bugs
         errorMessage: string;
         stackTrace: string | undefined;
         componentStack: string | undefined;
-        userId: string;               // from auth context, "anonymous" if unauthenticated
-        tenantId: string;             // from tenant context, "none" if not set
-        route: string;                // window.location.pathname
-        sessionId: string;            // per-tab UUID, generated once at shell startup
-        buildVersion: string;         // from VITE_APP_VERSION env var
-        source: ErrorEventSource;     // "error-boundary" for ModuleErrorBoundary, "global-handler" for window error/rejection
-        count: number;                // dedup count, default 1
+        userId: string; // from auth context, "anonymous" if unauthenticated
+        tenantId: string; // from tenant context, "none" if not set
+        route: string; // window.location.pathname
+        sessionId: string; // per-tab UUID, generated once at shell startup
+        buildVersion: string; // from VITE_APP_VERSION env var
+        source: ErrorEventSource; // "error-boundary" for ModuleErrorBoundary, "global-handler" for window error/rejection
+        count: number; // dedup count, default 1
       }
       ```
+
     - Update `createModuleErrorEvent()` to accept a context parameter and source for the new fields:
+
       ```typescript
       export interface ErrorEventContext {
         userId: string;
@@ -132,12 +137,13 @@ So that I can integrate with observability tools (Sentry, OpenTelemetry) when th
         };
       }
       ```
+
     - **CRITICAL:** The `context` and `source` parameters are optional with sensible defaults so existing callers (ModuleErrorBoundary) don't break before being updated.
 
-  - [ ] 1.2 Update `MAX_ERROR_LOG_SIZE` from 50 to 100 (AC: #2)
+  - [x] 1.2 Update `MAX_ERROR_LOG_SIZE` from 50 to 100 (AC: #2)
 
-- [ ] **Task 2: Add session ID generation** (AC: #1)
-  - [ ] 2.1 Create `apps/shell/src/errors/sessionId.ts`:
+- [x] **Task 2: Add session ID generation** (AC: #1)
+  - [x] 2.1 Create `apps/shell/src/errors/sessionId.ts`:
     ```typescript
     // Generate once per tab — survives SPA navigation, lost on tab close/reload
     export const sessionId: string =
@@ -145,11 +151,13 @@ So that I can integrate with observability tools (Sentry, OpenTelemetry) when th
         ? crypto.randomUUID()
         : `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
     ```
+
     - Module-level constant — evaluated once when the module loads
     - Fallback for environments where `crypto.randomUUID` isn't available (older browsers, test environments)
 
-- [ ] **Task 3: Add deduplication logic** (AC: #5)
-  - [ ] 3.1 Update `emitModuleErrorEvent()` in `moduleErrorEvents.ts`:
+- [x] **Task 3: Add deduplication logic** (AC: #5)
+  - [x] 3.1 Update `emitModuleErrorEvent()` in `moduleErrorEvents.ts`:
+
     ```typescript
     const DEDUP_WINDOW_MS = 5_000;
 
@@ -208,15 +216,17 @@ So that I can integrate with observability tools (Sentry, OpenTelemetry) when th
       }
     }
     ```
+
     - **CRITICAL:** The `onModuleError` callback is wrapped in try/catch — a failing monitoring integration must never crash the shell.
     - **TESTING:** The `now` parameter (defaults to `Date.now`) enables deterministic dedup tests without `vi.useFakeTimers()`. Tests pass a custom `now` function to control time precisely — no flaky timing issues.
 
-- [ ] **Task 4: Create `ErrorMonitoringProvider` React context** (AC: #1, #3, #6)
-  - [ ] 4.1 Create `apps/shell/src/errors/ErrorMonitoringProvider.tsx`:
+- [x] **Task 4: Create `ErrorMonitoringProvider` React context** (AC: #1, #3, #6)
+  - [x] 4.1 Create `apps/shell/src/errors/ErrorMonitoringProvider.tsx`:
     - This provider sits high in the component tree (inside ShellProviders, below AuthProvider/TenantProvider so it can read auth/tenant context)
     - It provides the `ErrorEventContext` to `ModuleErrorBoundary` via React context
     - It wires up `window.addEventListener("error", ...)` and `window.addEventListener("unhandledrejection", ...)` for global capture
     - It accepts an optional `onModuleError` callback prop (from RuntimeConfig)
+
     ```typescript
     import React, { createContext, useContext, useEffect, useMemo, useRef } from "react";
     import { useAuth, useTenant } from "@hexalith/shell-api";
@@ -309,10 +319,11 @@ So that I can integrate with observability tools (Sentry, OpenTelemetry) when th
       );
     }
     ```
+
     - **CRITICAL:** Use `useRef` for the callback to avoid re-registering global handlers when the callback reference changes.
     - **CRITICAL:** `useAuth()` and `useTenant()` must be available — this provider goes INSIDE `AuthProvider`/`TenantProvider` but OUTSIDE the router.
 
-  - [ ] 4.2 Create `apps/shell/src/errors/ErrorMonitoringProvider.test.tsx`:
+  - [x] 4.2 Create `apps/shell/src/errors/ErrorMonitoringProvider.test.tsx`:
     - Test that context provides correct userId, tenantId, sessionId, buildVersion
     - Test that global error handler captures window errors with `source: "global-handler"`
     - Test that global unhandledrejection handler captures promise rejections with `source: "global-handler"`
@@ -321,11 +332,12 @@ So that I can integrate with observability tools (Sentry, OpenTelemetry) when th
     - **Test that cleanup removes global listeners on unmount** (critical: leaked listeners across tests = flaky suite)
     - Use `renderWithProviders` pattern: wrap in `MockShellProvider` to provide auth/tenant context
 
-- [ ] **Task 5: Wire `ErrorMonitoringProvider` into the shell** (AC: #3, #4)
-  - [ ] 5.1 Update `apps/shell/src/providers/ShellProviders.tsx`:
+- [x] **Task 5: Wire `ErrorMonitoringProvider` into the shell** (AC: #3, #4)
+  - [x] 5.1 Update `apps/shell/src/providers/ShellProviders.tsx`:
     - Import `ErrorMonitoringProvider`
     - Add it inside the provider tree, after `TenantProvider` (needs auth and tenant context)
     - Accept `onModuleError` prop in `ShellProvidersProps` and pass it through
+
     ```typescript
     // In ShellProvidersProps:
     onModuleError?: (event: ModuleErrorEvent) => void;
@@ -341,16 +353,18 @@ So that I can integrate with observability tools (Sentry, OpenTelemetry) when th
       </TenantProvider>
     </AuthProvider>
     ```
-  - [ ] 5.2 Add `onModuleError` as a prop on `App` component (NOT on `RuntimeConfig` — functions can't serialize to JSON):
+
+  - [x] 5.2 Add `onModuleError` as a prop on `App` component (NOT on `RuntimeConfig` — functions can't serialize to JSON):
     ```typescript
     interface AppProps {
       config: RuntimeConfig;
       onModuleError?: (event: ModuleErrorEvent) => void;
     }
     ```
+
     - Pass it through `App` → `ShellProviders` → `ErrorMonitoringProvider`
     - Do NOT modify `apps/shell/src/config/types.ts` — `RuntimeConfig` stays JSON-serializable
-  - [ ] 5.3 Update `apps/shell/src/App.tsx`:
+  - [x] 5.3 Update `apps/shell/src/App.tsx`:
     - Accept `onModuleError` in `AppProps`
     - Pass to `ShellProviders`:
       ```typescript
@@ -361,7 +375,8 @@ So that I can integrate with observability tools (Sentry, OpenTelemetry) when th
         onModuleError={onModuleError}
       >
       ```
-  - [ ] 5.4 Add example integration comment in `apps/shell/src/main.tsx`:
+  - [x] 5.4 Add example integration comment in `apps/shell/src/main.tsx`:
+
     ```typescript
     // Example: Sentry integration
     // import * as Sentry from "@sentry/browser";
@@ -379,12 +394,13 @@ So that I can integrate with observability tools (Sentry, OpenTelemetry) when th
     // };
     ```
 
-  - [ ] 5.5 **Checkpoint:** Run `pnpm turbo build` — verify clean compilation with new provider wired into the shell. Fix any import/type errors before proceeding to the boundary refactor in Task 6.
+  - [x] 5.5 **Checkpoint:** Run `pnpm turbo build` — verify clean compilation with new provider wired into the shell. Fix any import/type errors before proceeding to the boundary refactor in Task 6.
 
-- [ ] **Task 6: Update `ModuleErrorBoundary` to use monitoring context** (AC: #1, #3)
-  - [ ] 6.1 Update `apps/shell/src/errors/ModuleErrorBoundary.tsx`:
+- [x] **Task 6: Update `ModuleErrorBoundary` to use monitoring context** (AC: #1, #3)
+  - [x] 6.1 Update `apps/shell/src/errors/ModuleErrorBoundary.tsx`:
     - **CHALLENGE:** `ModuleErrorBoundary` is a class component (React error boundaries require class components). Class components cannot use hooks like `useErrorMonitoring()`.
     - **SOLUTION:** Create a wrapper that passes the monitoring context via props:
+
       ```typescript
       // Keep the class component but add context props
       interface ModuleErrorBoundaryProps {
@@ -413,7 +429,9 @@ So that I can integrate with observability tools (Sentry, OpenTelemetry) when th
         }
       }
       ```
+
     - Create a functional wrapper component that uses **optional context** (raw `useContext`, NOT the throwing `useErrorMonitoring()`):
+
       ```typescript
       import { useContext } from "react";
       import { ErrorMonitoringContext } from "./ErrorMonitoringProvider";
@@ -438,6 +456,7 @@ So that I can integrate with observability tools (Sentry, OpenTelemetry) when th
         );
       }
       ```
+
     - **IMPORTANT:** Rename the class to `ModuleErrorBoundaryInner` and export the functional wrapper as `ModuleErrorBoundary` to preserve the public API. All existing import sites (`routeBuilder.ts`) continue to work without changes.
     - **CRITICAL — DO NOT use `useErrorMonitoring()` in the wrapper.** That hook throws when the provider is missing. The wrapper MUST use raw `useContext(ErrorMonitoringContext)` which returns `null` gracefully. This prevents crashes in:
       - E2E tests (where `ShellProviders.e2e.tsx` may not include `ErrorMonitoringProvider`)
@@ -445,7 +464,7 @@ So that I can integrate with observability tools (Sentry, OpenTelemetry) when th
       - Any future shell variant that omits the provider
     - **FALLBACK behavior:** When `monitoring` is `null`, `errorContext` and `onEmit` are both `undefined`. The inner class component's `componentDidCatch` falls back to `emitModuleErrorEvent(event)` without context enrichment — same as current behavior. Zero regressions.
 
-  - [ ] 6.2 Update `apps/shell/src/errors/ModuleErrorBoundary.test.tsx`:
+  - [x] 6.2 Update `apps/shell/src/errors/ModuleErrorBoundary.test.tsx`:
     - **Test strategy:** Existing tests should be updated to test the functional WRAPPER (`ModuleErrorBoundary`), not the inner class (`ModuleErrorBoundaryInner`). The wrapper is the public API — that's what `routeBuilder.ts` renders.
     - Update imports: `ModuleErrorBoundary` now refers to the functional wrapper
     - Add `_resetEmittingFlag()` and `_clearModuleErrorLog()` to `beforeEach` cleanup
@@ -453,19 +472,23 @@ So that I can integrate with observability tools (Sentry, OpenTelemetry) when th
     - Add test: render `ModuleErrorBoundary` WITHOUT `ErrorMonitoringProvider` → trigger error → verify fallback to direct `emitModuleErrorEvent()` with default context (userId: "anonymous", etc.) — **must NOT throw**
     - Add test: `onModuleError` callback is invoked when a boundary catches an error (wrap in provider with callback)
 
-- [ ] **Task 7: Update exports** (AC: #3)
-  - [ ] 7.1 Update `apps/shell/src/errors/index.ts`:
+- [x] **Task 7: Update exports** (AC: #3)
+  - [x] 7.1 Update `apps/shell/src/errors/index.ts`:
     - Add exports for new types and the provider:
       ```typescript
-      export { ErrorMonitoringProvider, ErrorMonitoringContext, useErrorMonitoring } from "./ErrorMonitoringProvider";
+      export {
+        ErrorMonitoringProvider,
+        ErrorMonitoringContext,
+        useErrorMonitoring,
+      } from "./ErrorMonitoringProvider";
       export type { ErrorEventContext } from "./moduleErrorEvents";
       export { classifySeverity } from "./moduleErrorEvents";
       export { sessionId } from "./sessionId";
       ```
     - Ensure `ModuleErrorEvent` type export includes new fields (already exported)
 
-- [ ] **Task 8: Update existing tests and add new tests** (AC: #7)
-  - [ ] 8.1 Update `apps/shell/src/errors/moduleErrorEvents.test.ts`:
+- [x] **Task 8: Update existing tests and add new tests** (AC: #7)
+  - [x] 8.1 Update `apps/shell/src/errors/moduleErrorEvents.test.ts`:
     - Add `_resetEmittingFlag()` alongside `_clearModuleErrorLog()` in `beforeEach`
     - Update `createModuleErrorEvent` tests to verify new fields
     - Add tests for context parameter (userId, tenantId, etc.)
@@ -478,14 +501,14 @@ So that I can integrate with observability tools (Sentry, OpenTelemetry) when th
     - Add test that callback failure is caught silently
     - Add re-entrancy guard test: calling `emitModuleErrorEvent` while already emitting returns immediately (use `_resetEmittingFlag()` in `beforeEach`)
     - Add `classifySeverity` tests: `render-error` → `"error"`, `chunk-load-failure` → `"warning"`, `network-error` → `"warning"`
-  - [ ] 8.2 Verify all existing tests still pass (the `context` parameter is optional, so existing test calls should work)
+  - [x] 8.2 Verify all existing tests still pass (the `context` parameter is optional, so existing test calls should work)
 
-- [ ] **Task 9: Verify integration** (AC: all)
-  - [ ] 9.1 Run `pnpm turbo build` — verify clean compilation
-  - [ ] 9.2 Run `pnpm turbo test` — verify all tests pass (unit)
-  - [ ] 9.3 Run `pnpm turbo lint` — verify no lint errors
-  - [ ] 9.4 Verify no module boundary violations — all changes are in `apps/shell/` only
-  - [ ] 9.5 Verify the `ModuleErrorEvent` type is exported from `apps/shell/src/errors/index.ts` for consumers
+- [x] **Task 9: Verify integration** (AC: all)
+  - [x] 9.1 Run `pnpm turbo build` — verify clean compilation
+  - [x] 9.2 Run `pnpm turbo test` — verify all tests pass (unit)
+  - [x] 9.3 Run `pnpm turbo lint` — verify no lint errors
+  - [x] 9.4 Verify no module boundary violations — all changes are in `apps/shell/` only
+  - [x] 9.5 Verify the `ModuleErrorEvent` type is exported from `apps/shell/src/errors/index.ts` for consumers
 
 ## Dev Notes
 
@@ -494,6 +517,7 @@ So that I can integrate with observability tools (Sentry, OpenTelemetry) when th
 The error monitoring infrastructure is partially implemented. **DO NOT start from scratch — extend what's there.**
 
 **Existing files in `apps/shell/src/errors/`:**
+
 - `moduleErrorEvents.ts` — `ModuleErrorEvent` interface (6 fields), `classifyError()`, `createModuleErrorEvent()`, `emitModuleErrorEvent()`, `getModuleErrorLog()`, `_clearModuleErrorLog()`. Buffer capped at 50 (needs → 100).
 - `moduleErrorEvents.test.ts` — 10 tests covering classification, display messages, event creation, emit/log, buffer cap, snapshot immutability.
 - `ModuleErrorBoundary.tsx` — React class component that catches errors and calls `createModuleErrorEvent()` + `emitModuleErrorEvent()`. Uses `ErrorDisplay` from `@hexalith/ui`.
@@ -504,6 +528,7 @@ The error monitoring infrastructure is partially implemented. **DO NOT start fro
 - `index.ts` — Barrel exports for `ModuleErrorBoundary`, `ModuleRenderGuard`, `ShellErrorBoundary`, `ModuleSkeleton`, `classifyError`, `getModuleErrorLog`, `ModuleErrorEvent` type.
 
 **Current `ModuleErrorEvent` shape (extend, don't replace):**
+
 ```typescript
 {
   timestamp: string;
@@ -516,6 +541,7 @@ The error monitoring infrastructure is partially implemented. **DO NOT start fro
 ```
 
 **Current `emitModuleErrorEvent` behavior:**
+
 - Logs to `console.error("[ModuleError]", event)`
 - Pushes to in-memory array (FIFO, cap 50)
 - No external callback support
@@ -523,6 +549,7 @@ The error monitoring infrastructure is partially implemented. **DO NOT start fro
 - No re-entrancy guard
 
 **Shell auth context provides:**
+
 - `useAuth().user?.sub` — user subject identifier (string)
 - `useTenant().activeTenant` — current tenant ID (string | null)
 
@@ -531,6 +558,7 @@ The error monitoring infrastructure is partially implemented. **DO NOT start fro
 ### Architecture Compliance
 
 **Error boundary hierarchy** [Source: architecture.md, Lines 473-483]:
+
 ```
 Shell ErrorBoundary (catches catastrophic shell failures)
   └─ Module ErrorBoundary (per module, catches module failures)
@@ -539,9 +567,11 @@ Shell ErrorBoundary (catches catastrophic shell failures)
 ```
 
 **Error handling decision** [Source: architecture.md, Decision #10]:
+
 > Typed error hierarchy + per-module error boundaries. Structured error types for API errors, validation errors, auth errors, network errors. Shell catches unhandled errors at module boundary.
 
 **Deferred decision** [Source: architecture.md, Deferred Decisions]:
+
 > Remote logging/monitoring: Focus on core platform first. Add structured logging (e.g., Sentry, OpenTelemetry) when production traffic exists — Phase 2.
 
 This story bridges the gap: it doesn't add Sentry/OTel directly but creates the integration point (`onModuleError` callback) so that configuring monitoring later is a one-line change.
@@ -561,6 +591,7 @@ This story bridges the gap: it doesn't add Sentry/OTel directly but creates the 
 ### File Structure Requirements
 
 **Files to CREATE:**
+
 ```
 apps/shell/src/errors/
 ├── sessionId.ts                          # Per-tab session ID (module-level constant)
@@ -569,6 +600,7 @@ apps/shell/src/errors/
 ```
 
 **Files to MODIFY:**
+
 ```
 apps/shell/src/errors/moduleErrorEvents.ts     # Enrich ModuleErrorEvent, add dedup, add callback
 apps/shell/src/errors/moduleErrorEvents.test.ts # Update for new fields, add dedup tests
@@ -581,6 +613,7 @@ apps/shell/src/main.tsx                         # Add example integration commen
 ```
 
 **Files to NOT TOUCH:**
+
 - `apps/shell/src/errors/ShellErrorBoundary.tsx` — top-level boundary, separate concern. **Tech debt note:** Shell-level errors currently only go to `console.error`. A future story should wire `ShellErrorBoundary` through the same `onModuleError` callback with `source: "shell-boundary"`. Out of scope for this story (FR51 = module errors).
 - `apps/shell/src/errors/ModuleRenderGuard.tsx` — no changes needed
 - `apps/shell/src/errors/ModuleSkeleton.tsx` — no changes needed
@@ -592,6 +625,7 @@ apps/shell/src/main.tsx                         # Add example integration commen
 ### Testing Requirements
 
 **Unit Tests (Vitest):**
+
 - `moduleErrorEvents.test.ts`: enriched event fields (including `source`), dedup window (using injected `now()` for deterministic timing — no `vi.useFakeTimers()`), callback invocation, callback error handling, buffer cap 100
 - `ErrorMonitoringProvider.test.tsx`: context values from auth/tenant, global error capture with `source: "global-handler"`, unhandledrejection capture, callback flow, **verify cleanup removes global listeners** (leaked listeners = flaky suite)
 - `ModuleErrorBoundary.test.tsx`: enriched events via monitoring context with `source: "error-boundary"`, **fallback to direct emit without provider** (test with no `ErrorMonitoringProvider` wrapper — must NOT throw)
@@ -600,6 +634,7 @@ apps/shell/src/main.tsx                         # Add example integration commen
 **sessionId in tests:** Do not assert specific `sessionId` values — assert non-empty string. The value is a module-level constant: stable within a test run but not deterministic across runs.
 
 **Test pattern:**
+
 ```typescript
 // Wrap in MockShellProvider to get auth/tenant context
 import { MockShellProvider, createMockAuthContext, createMockTenantContext } from "@hexalith/shell-api";
@@ -621,21 +656,25 @@ function renderWithMonitoring(ui: React.ReactElement, onModuleError?: (e: Module
 ### Previous Story Intelligence
 
 **Story 6-4 (ready-for-dev):** Creates TenantEditPage, Disable flow, E2E test infrastructure with Playwright. Key context:
+
 - E2E provider swap uses `vite.config.e2e.ts` with resolve.alias — `ShellProviders.e2e.tsx` replaces `ShellProviders.tsx` at build time
 - `ShellProviders.tsx` is the central provider composition point — adding `ErrorMonitoringProvider` here is the right approach
 - **E2E note:** `ShellProviders.e2e.tsx` does NOT need `ErrorMonitoringProvider`. The `ModuleErrorBoundary` wrapper uses optional context (`useContext` returning `null`) and falls back to direct `emitModuleErrorEvent()`. E2E tests will work without enriched error events — this is acceptable since E2E error monitoring is not a test concern.
 
 **Story 6-3 (done):** Created Tenants module. Dev notes:
+
 - `renderWithProviders.tsx` utility wraps MockShellProvider + CqrsProvider + ToastProvider + MemoryRouter
 - Tests use `MockShellProvider` from `@hexalith/shell-api` for auth/tenant context
 - 22/22 tests passing, coverage > 80%
 
 **Story 6-1 (done):** CI pipeline — coverage gates: 80% modules, 95% foundation packages
+
 - Pre-existing: `CssLayerSmoke.test.ts` times out — ignore if encountered
 
 ### Git Intelligence
 
 Recent commits show:
+
 - `3c45472`: implement tenant management module with CRUD functionality
 - `22f217b`: implement ShellErrorBoundary and module error handling
 - `0771d18`: implement ModuleErrorBoundary and ModuleSkeleton components with tests
@@ -662,6 +701,7 @@ The `ModuleErrorBoundary` and `moduleErrorEvents` infrastructure was created in 
 ### Key Code Patterns to Follow
 
 **Existing `emitModuleErrorEvent` pattern (extend, don't replace):**
+
 ```typescript
 // Current — keep this working
 emitModuleErrorEvent(event);
@@ -674,6 +714,7 @@ emitModuleErrorEvent(event, undefined, () => fakeTime);
 ```
 
 **Source field pattern — distinguish error origins:**
+
 ```typescript
 // ModuleErrorBoundary (default)
 createModuleErrorEvent("Tenants", error, componentStack, context); // source defaults to "error-boundary"
@@ -683,6 +724,7 @@ createModuleErrorEvent("shell", error, undefined, context, "global-handler");
 ```
 
 **Provider nesting order (from App.tsx / ShellProviders.tsx):**
+
 ```
 ShellErrorBoundary                    ← catches catastrophic failures
   └─ AuthProvider                     ← provides useAuth()
@@ -694,6 +736,7 @@ ShellErrorBoundary                    ← catches catastrophic failures
 ```
 
 **Class component + hooks bridge pattern (OPTIONAL context — never throws):**
+
 ```typescript
 // Class components can't use hooks — use a functional wrapper with raw useContext
 function ModuleErrorBoundary({ name, children }: Props) {
@@ -704,6 +747,7 @@ function ModuleErrorBoundary({ name, children }: Props) {
 ```
 
 **Import ordering:**
+
 ```typescript
 // 1. React
 // 2. External libraries
@@ -721,16 +765,16 @@ function ModuleErrorBoundary({ name, children }: Props) {
 
 ### Architecture Decisions (from story elicitation)
 
-| ADR | Decision | Rationale |
-|-----|----------|-----------|
-| ADR-1 | `onModuleError` as `App` prop, not JSON config | Functions can't be serialized in JSON; programmatic prop keeps `RuntimeConfig` clean |
-| ADR-2 | `ErrorMonitoringProvider` inside auth/tenant providers | Needs to read `useAuth().user?.sub` and `useTenant().activeTenant` for event enrichment |
-| ADR-3 | Functional wrapper around class `ModuleErrorBoundary` | React error boundaries require class components; hooks require functional components. Wrapper bridges the two. |
-| ADR-4 | In-memory buffer only, no persistence | GDPR data minimization — no PII in localStorage. Buffer survives SPA navigation, lost on tab close. |
-| ADR-5 | 5-second dedup window with count increment | Prevents crash loops from flooding monitoring tools while preserving visibility into error frequency |
-| ADR-6 | Global error handlers for async/promise errors | `componentDidCatch` only catches sync render errors. `window.onerror` + `unhandledrejection` capture the rest. |
+| ADR   | Decision                                                            | Rationale                                                                                                             |
+| ----- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| ADR-1 | `onModuleError` as `App` prop, not JSON config                      | Functions can't be serialized in JSON; programmatic prop keeps `RuntimeConfig` clean                                  |
+| ADR-2 | `ErrorMonitoringProvider` inside auth/tenant providers              | Needs to read `useAuth().user?.sub` and `useTenant().activeTenant` for event enrichment                               |
+| ADR-3 | Functional wrapper around class `ModuleErrorBoundary`               | React error boundaries require class components; hooks require functional components. Wrapper bridges the two.        |
+| ADR-4 | In-memory buffer only, no persistence                               | GDPR data minimization — no PII in localStorage. Buffer survives SPA navigation, lost on tab close.                   |
+| ADR-5 | 5-second dedup window with count increment                          | Prevents crash loops from flooding monitoring tools while preserving visibility into error frequency                  |
+| ADR-6 | Global error handlers for async/promise errors                      | `componentDidCatch` only catches sync render errors. `window.onerror` + `unhandledrejection` capture the rest.        |
 | ADR-7 | `source` field on events (`"error-boundary"` vs `"global-handler"`) | Operators need to distinguish module-boundary errors from unattributed async/global errors for filtering and alerting |
-| ADR-8 | Injected `now()` parameter for dedup timing | Deterministic dedup tests without `vi.useFakeTimers()` — cleaner, no flaky timing. Default `Date.now` for production. |
+| ADR-8 | Injected `now()` parameter for dedup timing                         | Deterministic dedup tests without `vi.useFakeTimers()` — cleaner, no flaky timing. Default `Date.now` for production. |
 
 ### References
 
@@ -749,8 +793,71 @@ function ModuleErrorBoundary({ name, children }: Props) {
 
 ### Agent Model Used
 
+Claude Opus 4.6 (1M context)
+
 ### Debug Log References
+
+- Build checkpoint after Task 5 passed cleanly
+- One lint error (import order in ErrorMonitoringProvider.tsx) — fixed immediately
+- One test failure (buffer cap test hit deduplication) — fixed by using unique module names per iteration
+- Code review follow-up: global `window.error` events without an `Error` object were not captured; fixed by normalizing message-only events into structured `global-handler` errors and adding regression coverage
 
 ### Completion Notes List
 
+- **Task 1+3:** Extended `ModuleErrorEvent` with 9 new fields (errorCode, severity, userId, tenantId, route, sessionId, buildVersion, source, count). Added `ErrorEventContext` interface, `classifySeverity()`, deduplication logic (5s window), re-entrancy guard, `onModuleError` callback support, and injected `now()` for deterministic dedup testing. Buffer size increased from 50 to 100.
+- **Task 2:** Created `sessionId.ts` — module-level constant using `crypto.randomUUID()` with fallback for older environments.
+- **Task 4:** Created `ErrorMonitoringProvider` React context that reads auth/tenant context and wires up `window.addEventListener("error")` and `window.addEventListener("unhandledrejection")` for global capture. 8 tests covering context values, global error capture, callback invocation, callback failure safety, and listener cleanup on unmount.
+- **Task 5:** Wired `ErrorMonitoringProvider` into `ShellProviders` (after TenantProvider, before InnerProviders). Added `onModuleError` prop to `App` and `ShellProviders`. Added example Sentry/console-logger comments in `main.tsx`.
+- **Task 6:** Refactored `ModuleErrorBoundary` — renamed class to `ModuleErrorBoundaryInner`, created functional wrapper using raw `useContext(ErrorMonitoringContext)` (returns null gracefully). 3 new tests: enriched events via monitoring context, fallback without provider, callback invocation.
+- **Task 7:** Updated `index.ts` barrel exports with `ErrorMonitoringProvider`, `ErrorMonitoringContext`, `useErrorMonitoring`, `classifySeverity`, `ErrorEventContext`, `sessionId`.
+- **Task 8:** Updated `moduleErrorEvents.test.ts` — 8 new tests: classifySeverity, context parameters, source parameter, buffer cap 100, callback invocation, callback error handling, dedup within/after window, re-entrancy guard. All existing tests updated to work with new interface.
+- **Task 9:** Verified build (clean), tests (224 pass, 0 fail), lint (0 errors), module boundary compliance (all changes in `apps/shell/`), and exports.
+- **Review follow-up:** Fixed AC6 edge case for `window.onerror` events that provide only a message without an `Error` object. Added a regression test ensuring message-only global errors are captured as structured `source: "global-handler"` events.
+
 ### File List
+
+**New files:**
+
+- `apps/shell/src/errors/sessionId.ts`
+- `apps/shell/src/errors/ErrorMonitoringProvider.tsx`
+- `apps/shell/src/errors/ErrorMonitoringProvider.test.tsx`
+
+**Modified files:**
+
+- `apps/shell/src/errors/moduleErrorEvents.ts`
+- `apps/shell/src/errors/moduleErrorEvents.test.ts`
+- `apps/shell/src/errors/ModuleErrorBoundary.tsx`
+- `apps/shell/src/errors/ModuleErrorBoundary.test.tsx`
+- `apps/shell/src/errors/index.ts`
+- `apps/shell/src/providers/ShellProviders.tsx`
+- `apps/shell/src/App.tsx`
+- `apps/shell/src/main.tsx`
+
+### Change Log
+
+- 2026-03-23: Implemented error monitoring integration (Story 6-5) — enriched ModuleErrorEvent with full context fields, added ErrorMonitoringProvider with global error capture, deduplication, rate limiting, onModuleError callback API, and comprehensive test coverage (224 tests pass).
+- 2026-03-23: Code review follow-up — fixed message-only global `window.onerror` capture so all global errors flow through the structured monitoring pipeline.
+
+## Senior Developer Review (AI)
+
+### Review Date
+
+- 2026-03-23
+
+### Reviewer
+
+- GitHub Copilot (GPT-5.4)
+
+### Findings
+
+- **Resolved:** AC6 edge case in `apps/shell/src/errors/ErrorMonitoringProvider.tsx` where `window` `error` events without an `Error` object were dropped.
+
+### Fix Applied
+
+- Normalized message-only `ErrorEvent` payloads into `Error` instances before creating the structured module error event.
+- Added regression coverage in `apps/shell/src/errors/ErrorMonitoringProvider.test.tsx` for `window` `error` events without `e.error`.
+
+### Outcome
+
+- All identified high-severity review findings were fixed.
+- Story is ready and moved to `done`.

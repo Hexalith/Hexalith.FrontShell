@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useContext } from "react";
 
 import { ErrorDisplay } from "@hexalith/ui";
 
+import { ErrorMonitoringContext } from "./ErrorMonitoringProvider";
 import {
   classifyError,
   getErrorDisplayMessage,
@@ -9,20 +10,27 @@ import {
   emitModuleErrorEvent,
 } from "./moduleErrorEvents";
 
-interface ModuleErrorBoundaryProps {
+import type {
+  ErrorEventContext,
+  ModuleErrorEvent,
+} from "./moduleErrorEvents";
+
+interface ModuleErrorBoundaryInnerProps {
   name: string;
   children: React.ReactNode;
+  errorContext?: ErrorEventContext;
+  onEmit?: (event: ModuleErrorEvent) => void;
 }
 
 interface ModuleErrorBoundaryState {
   error: Error | null;
 }
 
-export class ModuleErrorBoundary extends React.Component<
-  ModuleErrorBoundaryProps,
+class ModuleErrorBoundaryInner extends React.Component<
+  ModuleErrorBoundaryInnerProps,
   ModuleErrorBoundaryState
 > {
-  constructor(props: ModuleErrorBoundaryProps) {
+  constructor(props: ModuleErrorBoundaryInnerProps) {
     super(props);
     this.state = { error: null };
   }
@@ -37,8 +45,13 @@ export class ModuleErrorBoundary extends React.Component<
         this.props.name,
         error,
         info.componentStack ?? undefined,
+        this.props.errorContext,
       );
-      emitModuleErrorEvent(event);
+      if (this.props.onEmit) {
+        this.props.onEmit(event);
+      } else {
+        emitModuleErrorEvent(event);
+      }
     } catch {
       console.error("[ModuleErrorBoundary] Failed to emit error event");
     }
@@ -63,4 +76,27 @@ export class ModuleErrorBoundary extends React.Component<
 
     return this.props.children;
   }
+}
+
+export function ModuleErrorBoundary({
+  name,
+  children,
+}: {
+  name: string;
+  children: React.ReactNode;
+}): React.JSX.Element {
+  // Raw useContext — returns null if ErrorMonitoringProvider is missing.
+  // This is intentional: E2E tests, unit tests, and future shell variants
+  // may not include the provider. The inner class falls back to direct
+  // emitModuleErrorEvent() when onEmit is undefined.
+  const monitoring = useContext(ErrorMonitoringContext);
+  return (
+    <ModuleErrorBoundaryInner
+      name={name}
+      errorContext={monitoring?.context}
+      onEmit={monitoring?.emit}
+    >
+      {children}
+    </ModuleErrorBoundaryInner>
+  );
 }

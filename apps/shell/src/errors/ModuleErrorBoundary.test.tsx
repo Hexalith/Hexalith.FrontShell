@@ -3,14 +3,27 @@ import userEvent from "@testing-library/user-event";
 import { describe, it, expect, afterEach, vi, beforeEach } from "vitest";
 
 import { CommandRejectedError } from "@hexalith/cqrs-client";
+import {
+  MockShellProvider,
+  createMockAuthContext,
+  createMockTenantContext,
+} from "@hexalith/shell-api";
 
+import { ErrorMonitoringProvider } from "./ErrorMonitoringProvider";
 import { ModuleErrorBoundary } from "./ModuleErrorBoundary";
-import { getModuleErrorLog, _clearModuleErrorLog } from "./moduleErrorEvents";
+import {
+  getModuleErrorLog,
+  _clearModuleErrorLog,
+  _resetEmittingFlag,
+} from "./moduleErrorEvents";
+
+import type { ModuleErrorEvent } from "./moduleErrorEvents";
 
 // Suppress React error boundary console.error noise during tests
 beforeEach(() => {
   vi.spyOn(console, "error").mockImplementation(() => {});
   _clearModuleErrorLog();
+  _resetEmittingFlag();
 });
 
 afterEach(() => {
@@ -216,5 +229,70 @@ describe("ModuleErrorBoundary", () => {
 
     expect(screen.getByRole("alert")).toBeTruthy();
     expect(screen.getByText(/Unable to load Orders/i)).toBeTruthy();
+  });
+
+  it("emits enriched event when wrapped in ErrorMonitoringProvider", () => {
+    render(
+      <MockShellProvider
+        authContext={createMockAuthContext({
+          user: { sub: "user-99", tenantClaims: ["t1"], name: "U", email: "u@test.com" },
+        })}
+        tenantContext={createMockTenantContext({ activeTenant: "tenant-x" })}
+      >
+        <ErrorMonitoringProvider>
+          <ModuleErrorBoundary name="Enriched">
+            <ThrowingComponent />
+          </ModuleErrorBoundary>
+        </ErrorMonitoringProvider>
+      </MockShellProvider>,
+    );
+
+    const log = getModuleErrorLog();
+    expect(log).toHaveLength(1);
+    expect(log[0]!.moduleName).toBe("Enriched");
+    expect(log[0]!.userId).toBe("user-99");
+    expect(log[0]!.tenantId).toBe("tenant-x");
+    expect(log[0]!.source).toBe("error-boundary");
+    expect(log[0]!.sessionId).toBeTruthy();
+    expect(log[0]!.buildVersion).toBeTruthy();
+    expect(log[0]!.severity).toBe("error");
+    expect(log[0]!.errorCode).toBe("render-error");
+  });
+
+  it("falls back to direct emit without ErrorMonitoringProvider (no crash)", () => {
+    render(
+      <ModuleErrorBoundary name="NoProvider">
+        <ThrowingComponent />
+      </ModuleErrorBoundary>,
+    );
+
+    const log = getModuleErrorLog();
+    expect(log).toHaveLength(1);
+    expect(log[0]!.moduleName).toBe("NoProvider");
+    expect(log[0]!.userId).toBe("anonymous");
+    expect(log[0]!.tenantId).toBe("none");
+    expect(log[0]!.source).toBe("error-boundary");
+  });
+
+  it("invokes onModuleError callback when error boundary catches", () => {
+    const callback = vi.fn<[ModuleErrorEvent], void>();
+
+    render(
+      <MockShellProvider>
+        <ErrorMonitoringProvider onModuleError={callback}>
+          <ModuleErrorBoundary name="CallbackTest">
+            <ThrowingComponent />
+          </ModuleErrorBoundary>
+        </ErrorMonitoringProvider>
+      </MockShellProvider>,
+    );
+
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(callback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        moduleName: "CallbackTest",
+        errorMessage: "Module render failure",
+      }),
+    );
   });
 });

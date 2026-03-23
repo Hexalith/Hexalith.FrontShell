@@ -12,7 +12,10 @@ import {
   LocaleProvider,
 } from "@hexalith/shell-api";
 
+import { ErrorMonitoringProvider } from "../errors/ErrorMonitoringProvider";
 import { VersionGuard } from "../navigation/VersionGuard";
+
+import type { ModuleErrorEvent } from "../errors/moduleErrorEvents";
 
 export interface ShellProvidersProps {
   oidcConfig: {
@@ -30,6 +33,7 @@ export interface ShellProvidersProps {
    * Omit in production so the live hub is used.
    */
   signalRHub?: ISignalRHub;
+  onModuleError?: (event: ModuleErrorEvent) => void;
 }
 
 function InnerProviders({
@@ -71,14 +75,17 @@ export function ShellProviders({
   backendUrl,
   tenantClaimName,
   signalRHub,
+  onModuleError,
   children,
 }: ShellProvidersProps): React.JSX.Element {
   return (
     <AuthProvider {...oidcConfig} tenantClaimName={tenantClaimName}>
       <TenantProvider>
-        <InnerProviders backendUrl={backendUrl} signalRHub={signalRHub}>
-          {children}
-        </InnerProviders>
+        <ErrorMonitoringProvider onModuleError={onModuleError}>
+          <InnerProviders backendUrl={backendUrl} signalRHub={signalRHub}>
+            {children}
+          </InnerProviders>
+        </ErrorMonitoringProvider>
       </TenantProvider>
     </AuthProvider>
   );

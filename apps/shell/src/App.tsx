@@ -10,6 +10,7 @@ import { WelcomePage } from "./pages/WelcomePage";
 import { ShellProviders } from "./providers/ShellProviders";
 
 import type { RuntimeConfig } from "./config/types";
+import type { ModuleErrorEvent } from "./errors/moduleErrorEvents";
 
 function createAppRouter() {
   const moduleRoutes = buildModuleRoutes(modules);
@@ -35,9 +36,10 @@ function createAppRouter() {
 
 interface AppProps {
   config: RuntimeConfig;
+  onModuleError?: (event: ModuleErrorEvent) => void;
 }
 
-export default function App({ config }: AppProps): React.JSX.Element {
+export default function App({ config, onModuleError }: AppProps): React.JSX.Element {
   const router = React.useMemo(() => createAppRouter(), []);
 
   const oidcConfig = React.useMemo(
@@ -58,6 +60,7 @@ export default function App({ config }: AppProps): React.JSX.Element {
         oidcConfig={oidcConfig}
         backendUrl={config.commandApiBaseUrl}
         tenantClaimName={config.tenantClaimName}
+        onModuleError={onModuleError}
       >
         <AuthGate>
           <RouterProvider router={router} />

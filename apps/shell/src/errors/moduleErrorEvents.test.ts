@@ -4,15 +4,18 @@ import { ApiError } from "@hexalith/cqrs-client";
 
 import {
   classifyError,
+  classifySeverity,
   getErrorDisplayMessage,
   createModuleErrorEvent,
   emitModuleErrorEvent,
   getModuleErrorLog,
   _clearModuleErrorLog,
+  _resetEmittingFlag,
 } from "./moduleErrorEvents";
 
 beforeEach(() => {
   _clearModuleErrorLog();
+  _resetEmittingFlag();
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
 
@@ -68,6 +71,20 @@ describe("classifyError", () => {
   });
 });
 
+describe("classifySeverity", () => {
+  it('returns "error" for render-error', () => {
+    expect(classifySeverity("render-error")).toBe("error");
+  });
+
+  it('returns "warning" for chunk-load-failure', () => {
+    expect(classifySeverity("chunk-load-failure")).toBe("warning");
+  });
+
+  it('returns "warning" for network-error', () => {
+    expect(classifySeverity("network-error")).toBe("warning");
+  });
+});
+
 describe("getErrorDisplayMessage", () => {
   it("returns correct message for chunk-load-failure", () => {
     expect(getErrorDisplayMessage("chunk-load-failure", "Inventory")).toBe(
@@ -98,9 +115,17 @@ describe("createModuleErrorEvent", () => {
       expect.objectContaining({
         moduleName: "Tenants",
         classification: "network-error",
+        errorCode: "network-error",
+        severity: "warning",
         errorMessage: "Failed to fetch",
         stackTrace: "TypeError: Failed to fetch\n    at fetch",
         componentStack: "<App>",
+        userId: "anonymous",
+        tenantId: "none",
+        sessionId: "unknown",
+        buildVersion: "dev",
+        source: "error-boundary",
+        count: 1,
       }),
     );
     expect(event.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
@@ -114,6 +139,39 @@ describe("createModuleErrorEvent", () => {
       null as unknown as string | undefined,
     );
     expect(event.componentStack).toBeUndefined();
+  });
+
+  it("uses context values when provided", () => {
+    const error = new Error("test");
+    const event = createModuleErrorEvent("Mod", error, undefined, {
+      userId: "user-1",
+      tenantId: "t-1",
+      sessionId: "sess-1",
+      buildVersion: "1.0.0",
+    });
+
+    expect(event.userId).toBe("user-1");
+    expect(event.tenantId).toBe("t-1");
+    expect(event.sessionId).toBe("sess-1");
+    expect(event.buildVersion).toBe("1.0.0");
+  });
+
+  it("uses provided source parameter", () => {
+    const error = new Error("test");
+    const event = createModuleErrorEvent(
+      "shell",
+      error,
+      undefined,
+      undefined,
+      "global-handler",
+    );
+    expect(event.source).toBe("global-handler");
+  });
+
+  it("defaults source to 'error-boundary'", () => {
+    const error = new Error("test");
+    const event = createModuleErrorEvent("Mod", error);
+    expect(event.source).toBe("error-boundary");
   });
 });
 
@@ -130,18 +188,93 @@ describe("emitModuleErrorEvent", () => {
     expect(log[0]!.moduleName).toBe("Orders");
   });
 
-  it("caps error log at 50 entries (FIFO)", () => {
-    for (let i = 0; i < 55; i++) {
+  it("caps error log at 100 entries (FIFO)", () => {
+    for (let i = 0; i < 105; i++) {
       emitModuleErrorEvent(
-        createModuleErrorEvent("Module", new Error(`error-${i}`)),
+        createModuleErrorEvent(`Module-${i}`, new Error(`error-${i}`)),
       );
     }
 
     const log = getModuleErrorLog();
-    expect(log).toHaveLength(50);
+    expect(log).toHaveLength(100);
     // Oldest entries (0-4) should have been evicted
     expect(log[0]!.errorMessage).toBe("error-5");
-    expect(log[49]!.errorMessage).toBe("error-54");
+    expect(log[99]!.errorMessage).toBe("error-104");
+  });
+
+  it("invokes onModuleError callback", () => {
+    const callback = vi.fn();
+    const event = createModuleErrorEvent("Mod", new Error("cb-test"));
+    emitModuleErrorEvent(event, callback);
+
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(callback).toHaveBeenCalledWith(event);
+  });
+
+  it("catches callback errors silently", () => {
+    const callback = vi.fn(() => {
+      throw new Error("callback boom");
+    });
+    const event = createModuleErrorEvent("Mod", new Error("safe"));
+
+    expect(() => emitModuleErrorEvent(event, callback)).not.toThrow();
+    expect(getModuleErrorLog()).toHaveLength(1);
+  });
+
+  it("deduplicates events with same moduleName + errorCode within 5s window", () => {
+    const baseTime = Date.now();
+    const event1 = createModuleErrorEvent("Mod", new Error("render crash"));
+    const event2 = createModuleErrorEvent("Mod", new Error("render crash 2"));
+
+    emitModuleErrorEvent(event1, undefined, () => baseTime);
+    emitModuleErrorEvent(event2, undefined, () => baseTime + 2000);
+
+    const log = getModuleErrorLog();
+    expect(log).toHaveLength(1);
+    expect(log[0]!.count).toBe(2);
+  });
+
+  it("creates separate entries after 5s dedup window expires", () => {
+    const baseTime = Date.now();
+    const event1 = createModuleErrorEvent("Mod", new Error("render crash"));
+    const event2 = createModuleErrorEvent("Mod", new Error("render crash 2"));
+
+    emitModuleErrorEvent(event1, undefined, () => baseTime);
+    emitModuleErrorEvent(event2, undefined, () => baseTime + 6000);
+
+    const log = getModuleErrorLog();
+    expect(log).toHaveLength(2);
+  });
+
+  it("does not deduplicate events with different moduleName", () => {
+    const baseTime = Date.now();
+    const event1 = createModuleErrorEvent("ModA", new Error("render crash"));
+    const event2 = createModuleErrorEvent("ModB", new Error("render crash"));
+
+    emitModuleErrorEvent(event1, undefined, () => baseTime);
+    emitModuleErrorEvent(event2, undefined, () => baseTime);
+
+    const log = getModuleErrorLog();
+    expect(log).toHaveLength(2);
+  });
+
+  it("re-entrancy guard prevents infinite emit loops", () => {
+    const event = createModuleErrorEvent("Mod", new Error("loop"));
+
+    // Simulate re-entrant call by having the callback try to emit again
+    const callback = vi.fn(() => {
+      // This should be blocked by the re-entrancy guard
+      emitModuleErrorEvent(
+        createModuleErrorEvent("Mod", new Error("reentrant")),
+        undefined,
+      );
+    });
+
+    emitModuleErrorEvent(event, callback);
+
+    const log = getModuleErrorLog();
+    expect(log).toHaveLength(1);
+    expect(log[0]!.errorMessage).toBe("loop");
   });
 });
 

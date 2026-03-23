@@ -39,6 +39,9 @@ project_key: NOKEY
 tracking_system: file-system
 story_location: "{project-root}/_bmad-output/implementation-artifacts"
 last_updated: "2026-03-23"
+# Story 6-5 code review follow-up fixed and moved to done 2026-03-23
+# Story 6-5 implemented and moved to review 2026-03-23
+# Story 6-5 started implementation 2026-03-23
 # Story 6-4 review 2 passed — all issues fixed, moved to done 2026-03-23
 # Story 6-4 code review found unresolved issues and moved to in-progress 2026-03-23
 # Story 6-4 review follow-ups fixed and moved back to review 2026-03-23
@@ -147,7 +150,7 @@ development_status:
   6-2-module-publishing-via-git-integration: done
   6-3-tenants-reference-module-cqrs-integration: done
   6-4-tenants-reference-module-ui-and-shell-integration: done
-  6-5-error-monitoring-integration: ready-for-dev
+  6-5-error-monitoring-integration: done
   6-6-testing-strategy-and-quality-gates-ci-formalization: ready-for-dev
   epic-6-retrospective: optional
 

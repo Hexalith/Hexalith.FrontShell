@@ -5,13 +5,38 @@ export type ModuleErrorClassification =
   | "network-error"
   | "render-error";
 
+export type ErrorEventSource = "error-boundary" | "global-handler";
+export type ErrorSeverity = "warning" | "error";
+
+export function classifySeverity(
+  classification: ModuleErrorClassification,
+): ErrorSeverity {
+  return classification === "render-error" ? "error" : "warning";
+}
+
 export interface ModuleErrorEvent {
   timestamp: string;
   moduleName: string;
   classification: ModuleErrorClassification;
+  errorCode: string;
+  severity: ErrorSeverity;
   errorMessage: string;
   stackTrace: string | undefined;
   componentStack: string | undefined;
+  userId: string;
+  tenantId: string;
+  route: string;
+  sessionId: string;
+  buildVersion: string;
+  source: ErrorEventSource;
+  count: number;
+}
+
+export interface ErrorEventContext {
+  userId: string;
+  tenantId: string;
+  sessionId: string;
+  buildVersion: string;
 }
 
 /**
@@ -59,25 +84,78 @@ export function createModuleErrorEvent(
   moduleName: string,
   error: Error,
   componentStack?: string,
+  context?: ErrorEventContext,
+  source: ErrorEventSource = "error-boundary",
 ): ModuleErrorEvent {
+  const classification = classifyError(error);
   return {
     timestamp: new Date().toISOString(),
     moduleName,
-    classification: classifyError(error),
+    classification,
+    errorCode: classification,
+    severity: classifySeverity(classification),
     errorMessage: error.message,
     stackTrace: error.stack,
     componentStack: componentStack ?? undefined,
+    userId: context?.userId ?? "anonymous",
+    tenantId: context?.tenantId ?? "none",
+    route: typeof window !== "undefined" ? window.location.pathname : "/",
+    sessionId: context?.sessionId ?? "unknown",
+    buildVersion: context?.buildVersion ?? "dev",
+    source,
+    count: 1,
   };
 }
 
-const MAX_ERROR_LOG_SIZE = 50;
+const MAX_ERROR_LOG_SIZE = 100;
 const moduleErrorLog: ModuleErrorEvent[] = [];
 
-export function emitModuleErrorEvent(event: ModuleErrorEvent): void {
-  console.error("[ModuleError]", event);
-  moduleErrorLog.push(event);
-  if (moduleErrorLog.length > MAX_ERROR_LOG_SIZE) {
-    moduleErrorLog.shift();
+const DEDUP_WINDOW_MS = 5_000;
+
+let isEmitting = false;
+
+/** @internal — for testing only */
+export function _resetEmittingFlag(): void {
+  isEmitting = false;
+}
+
+export function emitModuleErrorEvent(
+  event: ModuleErrorEvent,
+  onModuleError?: (event: ModuleErrorEvent) => void,
+  now: () => number = Date.now,
+): void {
+  if (isEmitting) return;
+  isEmitting = true;
+
+  try {
+    const currentTime = now();
+    const existing = moduleErrorLog.find(
+      (e) =>
+        e.moduleName === event.moduleName &&
+        e.errorCode === event.errorCode &&
+        currentTime - new Date(e.timestamp).getTime() < DEDUP_WINDOW_MS,
+    );
+
+    if (existing) {
+      existing.count += 1;
+      return;
+    }
+
+    console.error("[ModuleError]", event);
+    moduleErrorLog.push(event);
+    if (moduleErrorLog.length > MAX_ERROR_LOG_SIZE) {
+      moduleErrorLog.shift();
+    }
+
+    if (onModuleError) {
+      try {
+        onModuleError(event);
+      } catch {
+        console.error("[ModuleError] onModuleError callback threw");
+      }
+    }
+  } finally {
+    isEmitting = false;
   }
 }
 
