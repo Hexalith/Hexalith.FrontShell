@@ -11,6 +11,7 @@ describe("manifest", () => {
       "/",
       "/detail/:id",
       "/create",
+      "/edit/:id",
     ]);
     expect(manifest.navigation).toEqual([
       expect.objectContaining({

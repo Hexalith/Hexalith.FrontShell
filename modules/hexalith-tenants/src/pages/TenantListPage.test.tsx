@@ -89,6 +89,46 @@ describe("TenantListPage", () => {
     });
   });
 
+  it("renders status filter Select component", async () => {
+    renderWithProviders(<TenantListPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Acme Corporation")).toBeInTheDocument();
+    });
+
+    // Select label should be visible
+    expect(screen.getByText("Filter by Status")).toBeInTheDocument();
+    // Default value "All Statuses" should be shown
+    expect(screen.getByText("All Statuses")).toBeInTheDocument();
+  });
+
+  it("filters rows when a status is selected", async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<TenantListPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Acme Corporation")).toBeInTheDocument();
+    });
+
+    const statusFilter = screen.getByRole("combobox", {
+      name: /filter by status/i,
+    });
+
+    await user.click(statusFilter);
+    await user.click(screen.getByRole("option", { name: "Disabled" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Horizon Healthcare Partners"),
+      ).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText("Acme Corporation")).not.toBeInTheDocument();
+    expect(screen.queryByText("TechVentures Inc.")).not.toBeInTheDocument();
+    expect(screen.queryByText("GlobalTrade Solutions")).not.toBeInTheDocument();
+  });
+
   it("navigates to create on Create Tenant button click", async () => {
     const user = userEvent.setup();
 

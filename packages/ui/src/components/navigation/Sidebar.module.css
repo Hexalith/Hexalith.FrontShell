@@ -115,13 +115,17 @@
     padding: 0;
   }
 
-  .item {
+  .item,
+  .item:link,
+  .item:visited,
+  .item:hover,
+  .item:active {
     display: flex;
     align-items: center;
     gap: var(--spacing-2);
     height: 36px;
     padding: var(--spacing-2) var(--spacing-3);
-    color: var(--color-text-primary);
+    color: var(--color-text-primary) !important;
     text-decoration: none;
     font-family: var(--font-family-sans);
     font-size: var(--font-size-body);
@@ -133,6 +137,11 @@
     transition-property: background;
     transition-duration: var(--transition-duration-default);
     transition-timing-function: var(--transition-easing-default);
+  }
+
+  .itemIcon,
+  .itemLabel {
+    color: inherit !important;
   }
 
   .item:hover {

@@ -10,6 +10,7 @@ describe("routes", () => {
       "/",
       "/detail/:id",
       "/create",
+      "/edit/:id",
     ]);
   });
 

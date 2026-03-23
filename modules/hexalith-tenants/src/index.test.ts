@@ -15,7 +15,7 @@ describe("index exports", () => {
   it("re-exports the module entry points and schemas", () => {
     expect(TenantRootPage).toBeTypeOf("function");
     expect(manifest.name).toBe("tenants");
-    expect(routes).toHaveLength(3);
+    expect(routes).toHaveLength(4);
     expect(TenantItemSchema).toBeDefined();
     expect(TenantListSchema).toBeDefined();
     expect(TenantDetailSchema).toBeDefined();

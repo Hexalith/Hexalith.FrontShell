@@ -5,7 +5,8 @@
     padding: var(--spacing-1) var(--spacing-2);
     border: 1px solid var(--color-border-default);
     border-radius: var(--radius-sm);
-    background-color: var(--color-surface-secondary);
+    background-color: var(--color-surface-elevated) !important;
+    color: var(--color-text-primary) !important;
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
     line-height: 1;
@@ -13,16 +14,16 @@
 
   .statusActive {
     border-color: var(--color-status-success);
-    color: var(--color-status-success);
+    color: var(--color-text-primary) !important;
   }
 
   .statusInactive {
-    border-color: var(--color-border-default);
-    color: var(--color-text-tertiary);
+    border-color: var(--color-border-strong);
+    color: var(--color-text-primary) !important;
   }
 
   .statusDisabled {
     border-color: var(--color-status-warning);
-    color: var(--color-status-warning);
+    color: var(--color-text-primary) !important;
   }
 }

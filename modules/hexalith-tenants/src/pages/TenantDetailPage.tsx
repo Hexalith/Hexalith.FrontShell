@@ -1,18 +1,29 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 
-import { useQuery } from "@hexalith/cqrs-client";
+import { useCommandPipeline, useQuery } from "@hexalith/cqrs-client";
 import {
   Button,
   DetailView,
   ErrorDisplay,
+  Form,
+  FormField,
+  Input,
+  Modal,
   PageLayout,
   Skeleton,
+  Stack,
+  useToast,
 } from "@hexalith/ui";
 
-import styles from "./TenantDetailPage.module.css";
+import styles from "../styles/tenantStatus.module.css";
 import { buildTenantDetailQuery } from "../data/sampleData.js";
-import { TenantDetailSchema } from "../schemas/tenantSchemas.js";
+import {
+  DisableTenantCommandSchema,
+  TenantDetailSchema,
+} from "../schemas/tenantSchemas.js";
+
+import type { DisableTenantInput } from "../schemas/tenantSchemas.js";
 
 function formatDate(iso: string): string {
   return new Intl.DateTimeFormat(undefined, {
@@ -30,15 +41,67 @@ const STATUS_VARIANT: Record<string, string> = {
 export function TenantDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { data, isLoading, error, refetch } = useQuery(
     TenantDetailSchema,
     buildTenantDetailQuery(id ?? ""),
     { enabled: !!id },
   );
+  const {
+    send: sendDisable,
+    status: disableStatus,
+    error: disableError,
+  } = useCommandPipeline();
+
+  const [isDisableModalOpen, setIsDisableModalOpen] = useState(false);
+  const hasSubmittedDisable = useRef(false);
 
   const handleBack = useCallback(() => {
     navigate(-1);
   }, [navigate]);
+
+  const handleEdit = useCallback(() => {
+    navigate(`../edit/${id}`);
+  }, [id, navigate]);
+
+  const handleDisable = useCallback(
+    async (formData: DisableTenantInput) => {
+      hasSubmittedDisable.current = true;
+      setIsDisableModalOpen(false);
+      toast({ title: "Disabling tenant...", variant: "info" });
+      await sendDisable({
+        domain: "Tenants",
+        commandType: "DisableTenant",
+        aggregateId: id!,
+        payload: formData,
+      });
+    },
+    [id, sendDisable, toast],
+  );
+
+  useEffect(() => {
+    if (!hasSubmittedDisable.current) return;
+
+    if (disableStatus === "completed") {
+      toast({ title: "Tenant disabled", variant: "success" });
+      refetch();
+      hasSubmittedDisable.current = false;
+    }
+    if (disableStatus === "rejected") {
+      toast({
+        title: `Failed to disable: ${disableError?.message ?? "Unknown error"}`,
+        variant: "error",
+      });
+      hasSubmittedDisable.current = false;
+    }
+    if (disableStatus === "failed" || disableStatus === "timedOut") {
+      toast({
+        title: "Disable failed — please try again",
+        variant: "error",
+      });
+      hasSubmittedDisable.current = false;
+    }
+  }, [disableError, disableStatus, refetch, toast]);
 
   if (!id) {
     return (
@@ -88,9 +151,20 @@ export function TenantDetailPage() {
       title={data.name}
       subtitle="Tenant Details"
       actions={
-        <Button variant="ghost" onClick={handleBack}>
-          Back
-        </Button>
+        <Stack direction="horizontal" gap="sm">
+          <Button variant="ghost" onClick={handleBack}>
+            Back
+          </Button>
+          <Button onClick={handleEdit}>Edit</Button>
+          {data.status !== "Disabled" && (
+            <Button
+              variant="destructive"
+              onClick={() => setIsDisableModalOpen(true)}
+            >
+              Disable
+            </Button>
+          )}
+        </Stack>
       }
     >
       <DetailView
@@ -103,12 +177,19 @@ export function TenantDetailPage() {
               {
                 label: "Status",
                 value: (
-                  <span className={`${styles.statusBadge} ${STATUS_VARIANT[data.status] ?? ""}`}>
+                  <span
+                    className={`${styles.statusBadge} ${STATUS_VARIANT[data.status] ?? ""}`}
+                    data-tenant-status={data.status}
+                  >
                     {data.status}
                   </span>
                 ),
               },
-              { label: "Description", value: data.description ?? "—", span: 2 },
+              {
+                label: "Description",
+                value: data.description ?? "—",
+                span: 2,
+              },
               { label: "Contact Email", value: data.contactEmail ?? "—" },
             ],
           },
@@ -123,6 +204,44 @@ export function TenantDetailPage() {
           },
         ]}
       />
+
+      {isDisableModalOpen && (
+        <Modal
+          open
+          onClose={() => setIsDisableModalOpen(false)}
+          title="Disable Tenant"
+        >
+          <Form schema={DisableTenantCommandSchema} onSubmit={handleDisable}>
+            <Stack gap="md">
+              <p>
+                This action will disable the tenant. Please provide a reason.
+              </p>
+              <FormField name="reason">
+                <Input label="Reason" placeholder="Reason for disabling" required />
+              </FormField>
+              <Stack direction="horizontal" gap="sm">
+                <Button
+                  variant="ghost"
+                  onClick={() => setIsDisableModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="destructive"
+                  disabled={
+                    disableStatus === "sending" || disableStatus === "polling"
+                  }
+                >
+                  {disableStatus === "sending" || disableStatus === "polling"
+                    ? "Disabling..."
+                    : "Confirm Disable"}
+                </Button>
+              </Stack>
+            </Stack>
+          </Form>
+        </Modal>
+      )}
     </PageLayout>
   );
 }

@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useNavigate } from "react-router";
 
 import { useQuery } from "@hexalith/cqrs-client";
@@ -7,12 +7,14 @@ import {
   EmptyState,
   ErrorDisplay,
   PageLayout,
+  Select,
   Skeleton,
+  Stack,
   Table,
 } from "@hexalith/ui";
-import type { TableColumn } from "@hexalith/ui";
+import type { SelectOption, TableColumn } from "@hexalith/ui";
 
-import styles from "./TenantListPage.module.css";
+import styles from "../styles/tenantStatus.module.css";
 import { TENANT_LIST_QUERY } from "../data/sampleData.js";
 import {
   TenantListSchema,
@@ -45,15 +47,11 @@ const columns = [
     header: "Status",
     accessorKey: "status",
     isSortable: true,
-    isFilterable: true,
-    filterType: "select",
-    filterOptions: [
-      { label: "Active", value: "Active" },
-      { label: "Inactive", value: "Inactive" },
-      { label: "Disabled", value: "Disabled" },
-    ],
     cell: ({ value }) => (
-      <span className={`${styles.statusBadge} ${STATUS_VARIANT[value as string] ?? ""}`}>
+      <span
+        className={`${styles.statusBadge} ${STATUS_VARIANT[value as string] ?? ""}`}
+        data-tenant-status={value as string}
+      >
         {value as string}
       </span>
     ),
@@ -70,12 +68,25 @@ const columns = [
   },
 ] satisfies TableColumn<TenantItem>[];
 
+const statusOptions: SelectOption[] = [
+  { value: "all", label: "All Statuses" },
+  { value: "Active", label: "Active" },
+  { value: "Inactive", label: "Inactive" },
+  { value: "Disabled", label: "Disabled" },
+];
+
 export function TenantListPage() {
   const navigate = useNavigate();
   const { data, isLoading, error, refetch } = useQuery(
     TenantListSchema,
     TENANT_LIST_QUERY,
   );
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const filteredData =
+    data && statusFilter !== "all"
+      ? data.filter((t) => t.status === statusFilter)
+      : data;
 
   const handleRowClick = useCallback(
     (row: TenantItem) => {
@@ -128,15 +139,23 @@ export function TenantListPage() {
       title="Tenants"
       actions={<Button variant="primary" onClick={handleCreate}>Create Tenant</Button>}
     >
-      <Table
-        data={data}
-        columns={columns}
-        sorting
-        pagination={{ pageSize: 10 }}
-        globalSearch
-        onRowClick={handleRowClick}
-        caption="Tenants list"
-      />
+      <Stack gap="md">
+        <Select
+          label="Filter by Status"
+          options={statusOptions}
+          value={statusFilter}
+          onChange={setStatusFilter}
+        />
+        <Table
+          data={filteredData ?? []}
+          columns={columns}
+          sorting
+          pagination={{ pageSize: 10 }}
+          globalSearch
+          onRowClick={handleRowClick}
+          caption="Tenants list"
+        />
+      </Stack>
     </PageLayout>
   );
 }
