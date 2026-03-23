@@ -85,6 +85,8 @@ describe("integration: scaffold smoke test", () => {
     expect(pkg.peerDependencies).toHaveProperty("react");
     expect(pkg.peerDependencies).toHaveProperty("react-dom");
     expect(pkg.peerDependencies).toHaveProperty("zod");
+    expect(pkg.repository?.type).toBe("git");
+    expect(pkg.repository?.url).toBe("https://github.com/your-org/hexalith-my-orders.git");
   });
 
   it("generates tsconfig.json that extends base", async () => {

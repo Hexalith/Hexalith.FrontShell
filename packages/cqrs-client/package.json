@@ -1,10 +1,12 @@
 {
   "name": "@hexalith/cqrs-client",
-  "private": true,
   "version": "0.2.0",
   "type": "module",
+  "description": "CQRS client hooks and utilities for Hexalith frontend modules",
+  "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "files": ["dist"],
   "exports": {
     ".": {
       "import": "./dist/index.js",
@@ -14,6 +16,15 @@
       "import": "./dist/testing.js",
       "types": "./dist/testing.d.ts"
     }
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Hexalith/Hexalith.FrontShell.git",
+    "directory": "packages/cqrs-client"
   },
   "scripts": {
     "build": "tsup",

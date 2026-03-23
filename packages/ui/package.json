@@ -1,17 +1,32 @@
 {
   "name": "@hexalith/ui",
-  "private": true,
   "version": "0.1.0",
   "type": "module",
-  "main": "./src/index.ts",
+  "description": "Hexalith design system components, tokens, and utilities",
+  "license": "MIT",
+  "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "!dist/.layer-smoke-lock",
+    "src/tokens/*.css"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./src/index.ts"
+      "import": "./dist/index.js"
     },
     "./tokens.css": "./src/tokens/index.css",
     "./tokens/*.css": "./src/tokens/*.css"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Hexalith/Hexalith.FrontShell.git",
+    "directory": "packages/ui"
   },
   "scripts": {
     "build": "tsup",

@@ -52,6 +52,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # ─── Peer Dependency Validation ───
+      # Ensures module peerDependency ranges match workspace package versions
+      - name: Check Peer Dependencies
+        run: bash scripts/check-peer-deps.sh
+
       # ─── Manifest Type Check (fail early on manifest type errors) ───
       # Two-tier validation: (1) TypeScript type-check here, (2) semantic validation via Vite plugin at build
       - name: Manifest Type Check

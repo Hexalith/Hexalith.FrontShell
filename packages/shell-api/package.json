@@ -1,15 +1,26 @@
 {
   "name": "@hexalith/shell-api",
-  "private": true,
   "version": "0.1.0",
   "type": "module",
+  "description": "Shell API contracts and context providers for Hexalith frontend modules",
+  "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "files": ["dist"],
   "exports": {
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
     }
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Hexalith/Hexalith.FrontShell.git",
+    "directory": "packages/shell-api"
   },
   "scripts": {
     "build": "tsup",

@@ -1,0 +1,130 @@
+# Hexalith FrontShell Package Publish Workflow
+#
+# Publishes: @hexalith/shell-api, @hexalith/cqrs-client, @hexalith/ui
+# Add new @hexalith/* packages here when created.
+#
+# Triggers on push to main or manual dispatch.
+# Publishes in dependency order: shell-api → cqrs-client → ui.
+# Skips packages whose version already exists on GitHub Packages.
+#
+# SETUP:
+# 1. Repository Settings → Actions → General → Workflow permissions: "Read and write"
+# 2. GITHUB_TOKEN automatically provides packages:write via the permissions block below.
+
+name: Publish Packages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish to GitHub Packages
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+          registry-url: 'https://npm.pkg.github.com'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm turbo build
+
+      # Publish in dependency order: shell-api first (cqrs-client depends on it), then cqrs-client, then ui
+      - name: Publish @hexalith/shell-api
+        id: pub-shell-api
+        run: |
+          set -euo pipefail
+          OUTPUT=$(bash scripts/publish-if-needed.sh packages/shell-api)
+          printf '%s\n' "$OUTPUT"
+          RESULT=$(printf '%s\n' "$OUTPUT" | tail -1)
+          echo "result=$RESULT" >> "$GITHUB_OUTPUT"
+
+      - name: Publish @hexalith/cqrs-client
+        id: pub-cqrs-client
+        run: |
+          set -euo pipefail
+          OUTPUT=$(bash scripts/publish-if-needed.sh packages/cqrs-client)
+          printf '%s\n' "$OUTPUT"
+          RESULT=$(printf '%s\n' "$OUTPUT" | tail -1)
+          echo "result=$RESULT" >> "$GITHUB_OUTPUT"
+
+      - name: Publish @hexalith/ui
+        id: pub-ui
+        run: |
+          set -euo pipefail
+          OUTPUT=$(bash scripts/publish-if-needed.sh packages/ui)
+          printf '%s\n' "$OUTPUT"
+          RESULT=$(printf '%s\n' "$OUTPUT" | tail -1)
+          echo "result=$RESULT" >> "$GITHUB_OUTPUT"
+
+      # Warn if all packages were skipped (versions already exist)
+      - name: Check publish results
+        run: |
+          SHELL_API="${{ steps.pub-shell-api.outputs.result }}"
+          CQRS_CLIENT="${{ steps.pub-cqrs-client.outputs.result }}"
+          UI="${{ steps.pub-ui.outputs.result }}"
+
+          if [ "$SHELL_API" = "skipped" ] && [ "$CQRS_CLIENT" = "skipped" ] && [ "$UI" = "skipped" ]; then
+            echo "::warning::All package versions already published. If you made changes, bump the version in package.json."
+          fi
+
+          echo "### Publish Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Package | Result |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| @hexalith/shell-api | $SHELL_API |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| @hexalith/cqrs-client | $CQRS_CLIENT |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| @hexalith/ui | $UI |" >> "$GITHUB_STEP_SUMMARY"
+
+      # Verify published packages are accessible (only for packages that were actually published)
+      - name: Verify published packages
+        run: |
+          SHELL_API_VER=$(node -p "require('./packages/shell-api/package.json').version")
+          CQRS_CLIENT_VER=$(node -p "require('./packages/cqrs-client/package.json').version")
+          UI_VER=$(node -p "require('./packages/ui/package.json').version")
+
+          ERRORS=0
+
+          if [ "${{ steps.pub-shell-api.outputs.result }}" = "published" ]; then
+            echo "Verifying @hexalith/shell-api@$SHELL_API_VER..."
+            pnpm view "@hexalith/shell-api@$SHELL_API_VER" version || ERRORS=$((ERRORS + 1))
+          fi
+
+          if [ "${{ steps.pub-cqrs-client.outputs.result }}" = "published" ]; then
+            echo "Verifying @hexalith/cqrs-client@$CQRS_CLIENT_VER..."
+            pnpm view "@hexalith/cqrs-client@$CQRS_CLIENT_VER" version || ERRORS=$((ERRORS + 1))
+          fi
+
+          if [ "${{ steps.pub-ui.outputs.result }}" = "published" ]; then
+            echo "Verifying @hexalith/ui@$UI_VER..."
+            pnpm view "@hexalith/ui@$UI_VER" version || ERRORS=$((ERRORS + 1))
+          fi
+
+          if [ "$ERRORS" -gt 0 ]; then
+            echo "::error::$ERRORS package(s) failed post-publish verification"
+            exit 1
+          fi

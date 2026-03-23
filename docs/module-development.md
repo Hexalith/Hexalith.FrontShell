@@ -334,12 +334,10 @@ const ExampleCategorySchema = z
     /^[A-Za-z][A-Za-z &/-]*$/,
     "Category can include letters, spaces, ampersands, hyphens, and slashes only",
   );
-const ExampleTimestampSchema = z
-  .string()
-  .datetime({
-    offset: true,
-    message: "Timestamp must be a valid ISO 8601 date",
-  });
+const ExampleTimestampSchema = z.string().datetime({
+  offset: true,
+  message: "Timestamp must be a valid ISO 8601 date",
+});
 
 export const ExampleItemSchema = z.object({
   id: ExampleIdentifierSchema,
@@ -502,9 +500,8 @@ When your module is ready for production:
 **Shell team steps (handoff point):**
 
 1. Shell team runs `git submodule add <your-repo-url> modules/<module-name>`
-2. Shell team updates the shell module registry import
-3. Shell CI validates your manifest using `validateManifest()` from `@hexalith/shell-api`
-4. Shell build includes your module's routes and navigation entries
+2. Shell CI validates your manifest using `validateManifest()` from `@hexalith/shell-api`
+3. Shell build auto-discovers your module from `modules/*/src/manifest.ts` and `modules/*/src/index.ts`, then includes its routes and navigation entries
 
 **Verification (you):**
 
@@ -512,3 +509,103 @@ When your module is ready for production:
 2. Verify all routes work (list, detail, create)
 
 The shell reads your `manifest.ts` at build time. If the manifest is invalid (missing required fields, invalid route paths, etc.), the build fails with descriptive error messages.
+
+## Module Publishing
+
+Foundation packages (`@hexalith/shell-api`, `@hexalith/cqrs-client`, `@hexalith/ui`) are published to GitHub Packages so external teams can develop modules outside the shell workspace.
+
+### External consumer setup
+
+To install Hexalith foundation packages from GitHub Packages:
+
+**1. Configure `.npmrc`** in your module repository:
+
+```ini
+@hexalith:registry=https://npm.pkg.github.com
+```
+
+**2. Authentication** — GitHub Packages requires authentication even for public packages:
+
+- Create a GitHub Personal Access Token (PAT) with `read:packages` scope
+- Add to your `.npmrc` (do NOT commit this line):
+
+  ```ini
+  //npm.pkg.github.com/:_authToken=YOUR_TOKEN
+  ```
+
+- Or set the `NODE_AUTH_TOKEN` environment variable:
+
+  ```bash
+  export NODE_AUTH_TOKEN=YOUR_TOKEN
+  ```
+
+**3. Install packages:**
+
+```bash
+pnpm add @hexalith/shell-api @hexalith/cqrs-client @hexalith/ui
+```
+
+### Versioning policy
+
+During **0.x development**, any minor bump (e.g., 0.1.0 to 0.2.0) may contain breaking changes. External module developers should pin exact versions during the 0.x phase:
+
+```json
+{
+  "peerDependencies": {
+    "@hexalith/shell-api": "0.1.0",
+    "@hexalith/cqrs-client": "0.2.0",
+    "@hexalith/ui": "0.1.0"
+  }
+}
+```
+
+Starting at **1.0.0**, foundation packages will follow strict semver:
+
+- **Patch** (1.0.x): bug fixes only
+- **Minor** (1.x.0): backward-compatible new features
+- **Major** (x.0.0): breaking changes
+
+### Submodule update workflow (shell team)
+
+When a module developer pushes updates to their module repository:
+
+1. Update the submodule reference:
+
+   ```bash
+   git submodule update --remote modules/<module-name>
+   ```
+
+2. Verify the update passes CI:
+
+   ```bash
+   pnpm install
+   pnpm turbo build
+   pnpm turbo test
+   pnpm turbo lint
+   ```
+
+3. Commit the updated submodule pin:
+
+   ```bash
+   git add modules/<module-name>
+   git commit -m "chore: update <module-name> submodule to latest"
+   ```
+
+4. The submodule pin only advances when the full CI pipeline passes. This ensures that module updates don't break the shell.
+
+### Adding a new module submodule
+
+```bash
+git submodule add <repo-url> modules/<module-name>
+pnpm install
+pnpm turbo build && pnpm turbo test
+```
+
+If the new module's `@hexalith/*` peer dependency range does not match the workspace versions, `pnpm install` prints a warning that identifies the mismatch and the module `package.json` that should be updated.
+
+The module must:
+
+- Export a valid `ModuleManifest` from its entry point
+- List `@hexalith/shell-api`, `@hexalith/cqrs-client`, and `@hexalith/ui` as `peerDependencies`
+- Include matching `workspace:*` entries in `devDependencies` for workspace resolution
+- Follow the module boundary rules (no deep imports, no cross-module dependencies)

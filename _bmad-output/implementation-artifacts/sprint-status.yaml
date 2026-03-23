@@ -38,7 +38,14 @@ project: Hexalith.FrontShell
 project_key: NOKEY
 tracking_system: file-system
 story_location: "{project-root}/_bmad-output/implementation-artifacts"
-last_updated: "2026-03-22"
+last_updated: "2026-03-23"
+# Story 6-2 code review passed and moved to done 2026-03-23
+# Story 6-4 context created 2026-03-23
+# Story 6-2 review changes requested, moved back to in-progress 2026-03-23
+# Story 6-2 follow-up review findings addressed and moved back to review 2026-03-23
+# Story 6-2 implemented and moved to review 2026-03-22
+# Story 6-3 context created 2026-03-22
+# Story 6-2 started implementation 2026-03-22
 # Story 6-2 context created 2026-03-22
 # Story 6-1 implemented and moved to review 2026-03-22
 # Story 6-1 started implementation 2026-03-22
@@ -126,9 +133,9 @@ development_status:
   # Epic 6: Build Pipeline, Quality Gates & Reference Module
   epic-6: in-progress
   6-1-full-ci-pipeline-and-quality-gates: done
-  6-2-module-publishing-via-git-integration: ready-for-dev
-  6-3-tenants-reference-module-cqrs-integration: backlog
-  6-4-tenants-reference-module-ui-and-shell-integration: backlog
+  6-2-module-publishing-via-git-integration: done
+  6-3-tenants-reference-module-cqrs-integration: ready-for-dev
+  6-4-tenants-reference-module-ui-and-shell-integration: ready-for-dev
   6-5-error-monitoring-integration: backlog
   6-6-testing-strategy-and-quality-gates-ci-formalization: backlog
   epic-6-retrospective: optional
