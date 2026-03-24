@@ -167,7 +167,7 @@ development_status:
   # Epic 7: AI Module Generation
   epic-7: in-progress
   7-1-machine-readable-knowledge-bundle: done
-  7-2-ai-prompt-templates: ready-for-dev
+  7-2-ai-prompt-templates: in-progress
   7-3-ai-generation-pipeline-and-quality-gate-pass-through: backlog
   7-4-generation-validation-feedback: backlog
   epic-7-retrospective: optional
