@@ -5,6 +5,8 @@ import { ApiError, ValidationError } from "../errors";
 import { queryBusContractTests, TEST_QUERY } from "./__contracts__/queryBus.contract.test";
 import { MockQueryBus } from "./MockQueryBus";
 
+// AC: 2-4#1 — Query hook with Zod validation
+
 const RESPONSE_KEY = "test-tenant:TestDomain:GetList:agg-001:";
 const VALID_RESPONSE = [{ id: "1", name: "Test" }];
 

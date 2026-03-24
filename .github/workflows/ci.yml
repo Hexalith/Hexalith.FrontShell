@@ -57,6 +57,14 @@ jobs:
       - name: Check Peer Dependencies
         run: bash scripts/check-peer-deps.sh
 
+      # ─── ATDD Compliance Check ───
+      # Ensures implementation PRs include corresponding tests
+      - name: ATDD Compliance Check
+        if: github.event_name == 'pull_request'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: bash scripts/check-atdd-compliance.sh
+
       # ─── Manifest Type Check (fail early on manifest type errors) ───
       # Two-tier validation: (1) TypeScript type-check here, (2) semantic validation via Vite plugin at build
       - name: Manifest Type Check
@@ -81,6 +89,31 @@ jobs:
       # Apps and tools: 80% threshold
       - name: Test with Coverage
         run: pnpm turbo test -- --coverage
+
+      # ─── Test Quality Standards ───
+      # Validates test files against deterministic/isolated/explicit/focused/fast standards
+      - name: Test Quality Check
+        if: github.event_name == 'pull_request'
+        run: pnpm check:test-quality --changed-only
+
+      # ─── Contract Verification ───
+      # Verifies frontend-backend API contracts are satisfied
+      # Runs on ALL builds (fast due to Turborepo cache) — no path-scoping needed
+      - name: Contract Verification
+        run: |
+          pnpm --filter @hexalith/cqrs-client exec vitest run contracts/ --reporter=json --outputFile=/tmp/contract-results.json 2>/dev/null || true
+          NUM_TESTS=$(jq -r '.numTotalTests // 0' /tmp/contract-results.json 2>/dev/null || echo 0)
+          NUM_FAILED=$(jq -r '.numFailedTests // 0' /tmp/contract-results.json 2>/dev/null || echo 0)
+          if [ "$NUM_TESTS" -eq 0 ]; then
+            echo "::error::Contract verification found ZERO tests. Contract test files may have been deleted."
+            exit 1
+          fi
+          if [ "$NUM_FAILED" -gt 0 ]; then
+            echo "::error::Contract verification failed: $NUM_FAILED test(s) failed."
+            exit 1
+          fi
+          echo "### Contract Verification: PASS ($NUM_TESTS tests)" >> "$GITHUB_STEP_SUMMARY"
+          echo "All consumer contracts verified. Frontend-backend compatibility confirmed." >> "$GITHUB_STEP_SUMMARY"
 
       # ─── Scaffold Smoke Test ───
       # Verifies create-hexalith-module produces compilable, testable output

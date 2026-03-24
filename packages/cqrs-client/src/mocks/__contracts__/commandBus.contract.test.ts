@@ -5,6 +5,8 @@ import { CommandRejectedError, CommandTimeoutError } from "../../errors";
 import type { ICommandBus } from "../../core/ICommandBus";
 import type { SubmitCommandRequest } from "../../core/types";
 
+// AC: 2-6#1 — Mock/real command bus contract parity
+
 /** Valid test command fixture */
 export const TEST_COMMAND: SubmitCommandRequest = {
   tenant: "test-tenant",

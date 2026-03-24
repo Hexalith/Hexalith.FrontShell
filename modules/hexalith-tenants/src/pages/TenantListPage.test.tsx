@@ -10,6 +10,7 @@ import { TenantListPage } from "./TenantListPage";
 import { sampleTenants, TENANT_LIST_QUERY } from "../data/sampleData.js";
 import { renderWithProviders } from "../testing/renderWithProviders";
 
+// AC: 6-3#2 — Tenant list page renders table with data
 describe("TenantListPage", () => {
   it("renders loading state initially", () => {
     const slowQueryBus = new MockQueryBus({ delay: 500 });

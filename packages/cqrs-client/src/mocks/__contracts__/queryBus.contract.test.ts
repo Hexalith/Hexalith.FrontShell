@@ -6,6 +6,8 @@ import { ValidationError } from "../../errors";
 import type { IQueryBus } from "../../core/IQueryBus";
 import type { SubmitQueryRequest } from "../../core/types";
 
+// AC: 2-6#2 — Mock/real query bus contract parity
+
 /** Valid test query fixture */
 export const TEST_QUERY: SubmitQueryRequest = {
   tenant: "test-tenant",

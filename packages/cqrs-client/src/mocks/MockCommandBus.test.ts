@@ -4,6 +4,8 @@ import { ApiError, CommandRejectedError, CommandTimeoutError } from "../errors";
 import { commandBusContractTests, TEST_COMMAND } from "./__contracts__/commandBus.contract.test";
 import { MockCommandBus } from "./MockCommandBus";
 
+// AC: 2-3#1 — Command hooks submit/status pipeline
+
 // Contract tests
 commandBusContractTests("MockCommandBus", () => new MockCommandBus(), {
   configureReject: (bus) =>

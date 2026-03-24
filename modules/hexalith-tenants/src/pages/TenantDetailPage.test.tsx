@@ -13,6 +13,7 @@ import {
 } from "../data/sampleData.js";
 import { renderWithProviders } from "../testing/renderWithProviders";
 
+// AC: 6-4#3 — Tenant detail page rendering and interactions
 describe("TenantDetailPage", () => {
   const firstDetail = sampleTenantDetails[0];
   const disabledDetail = sampleTenantDetails.find(

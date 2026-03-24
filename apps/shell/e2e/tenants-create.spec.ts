@@ -1,5 +1,6 @@
 import { test, expect, checkAccessibility } from "./fixtures/test-fixtures";
 
+// AC: 6-4#7 — E2E tenant create flow
 test.describe("Tenants Create", () => {
   test("create tenant: form validation, submit, toast, redirect", async ({
     page,

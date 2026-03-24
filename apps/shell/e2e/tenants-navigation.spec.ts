@@ -1,5 +1,6 @@
 import { test, expect, checkAccessibility } from "./fixtures/test-fixtures";
 
+// AC: 6-4#7 — E2E tenant navigation flows
 test.describe("Tenants Navigation", () => {
   test("navigate to tenant list, click row, see detail, navigate back", async ({
     page,
