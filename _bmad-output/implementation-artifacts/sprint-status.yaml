@@ -39,6 +39,10 @@ project_key: NOKEY
 tracking_system: file-system
 story_location: "{project-root}/_bmad-output/implementation-artifacts"
 last_updated: "2026-03-24"
+# Story 7-2 code review follow-ups fixed and moved to done 2026-03-24
+# Story 7-2 code review found unresolved issues and moved to in-progress 2026-03-24
+# Story 7-2 implemented and moved to review 2026-03-24
+# Story 7-3 context created 2026-03-24
 # Story 7-1 code review passed — moved to done 2026-03-24
 # Story 7-2 context created 2026-03-24
 # Story 7-1 implemented and moved to review 2026-03-24
@@ -167,7 +171,7 @@ development_status:
   # Epic 7: AI Module Generation
   epic-7: in-progress
   7-1-machine-readable-knowledge-bundle: done
-  7-2-ai-prompt-templates: in-progress
-  7-3-ai-generation-pipeline-and-quality-gate-pass-through: backlog
+  7-2-ai-prompt-templates: done
+  7-3-ai-generation-pipeline-and-quality-gate-pass-through: ready-for-dev
   7-4-generation-validation-feedback: backlog
   epic-7-retrospective: optional

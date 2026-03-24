@@ -50,6 +50,10 @@ function readFile(relativePath: string): string {
   return readFileSync(fullPath, "utf-8");
 }
 
+function fileLabel(relativePath: string): string {
+  return relativePath.split("/").at(-1) ?? relativePath;
+}
+
 // ─── 1. Version Check ───
 
 function checkVersion(): void {
@@ -367,6 +371,259 @@ function checkBundleFiles(): void {
   }
 }
 
+// ─── 7. Prompt Template Files ───
+
+function checkPromptTemplates(): void {
+  console.log("\n── Prompt Templates ──");
+
+  const templateFiles = [
+    "docs/ai-knowledge-bundle/prompts/index.md",
+    "docs/ai-knowledge-bundle/prompts/new-module.md",
+    "docs/ai-knowledge-bundle/prompts/add-command.md",
+    "docs/ai-knowledge-bundle/prompts/add-projection.md",
+  ];
+
+  let allPresent = true;
+  for (const file of templateFiles) {
+    const fullPath = resolve(ROOT, file);
+    if (!existsSync(fullPath)) {
+      fail("Template file", `Missing: ${file}`);
+      allPresent = false;
+    }
+  }
+
+  if (allPresent) {
+    pass("Template files", `All ${templateFiles.length} prompt template files present`);
+  } else {
+    return; // Can't check content of missing files
+  }
+
+  const templateContents = new Map(
+    templateFiles.map((file) => [file, readFile(file)]),
+  );
+
+  // Check that templates reference current hook names
+  const requiredHookNames = [
+    "useSubmitCommand",
+    "useCommandPipeline",
+    "useQuery",
+  ];
+
+  const hookTemplateFiles = [
+    "docs/ai-knowledge-bundle/prompts/new-module.md",
+    "docs/ai-knowledge-bundle/prompts/add-command.md",
+    "docs/ai-knowledge-bundle/prompts/add-projection.md",
+  ];
+
+  for (const file of hookTemplateFiles) {
+    const content = templateContents.get(file) ?? "";
+    if (!content) continue;
+
+    const missingHooks: string[] = [];
+    for (const hook of requiredHookNames) {
+      // Each template should reference hooks relevant to its scope
+      // new-module and add-projection need useQuery; new-module and add-command need useCommandPipeline
+      if (file.includes("add-projection") && hook === "useCommandPipeline") continue;
+      if (file.includes("add-projection") && hook === "useSubmitCommand") continue;
+      if (file.includes("add-command") && hook === "useQuery") continue;
+
+      if (!content.includes(hook)) {
+        missingHooks.push(hook);
+      }
+    }
+
+    if (missingHooks.length > 0) {
+      fail(
+        "Template hook refs",
+        `${file} missing hooks: ${missingHooks.join(", ")}`,
+      );
+    }
+  }
+
+  const requiredComponentsByFile: Record<string, string[]> = {
+    "docs/ai-knowledge-bundle/prompts/new-module.md": [
+      "PageLayout",
+      "Table",
+      "DetailView",
+      "Form",
+      "FormField",
+      "Skeleton",
+      "ErrorDisplay",
+      "EmptyState",
+    ],
+    "docs/ai-knowledge-bundle/prompts/add-command.md": [
+      "PageLayout",
+      "Form",
+      "FormField",
+      "Button",
+      "ErrorDisplay",
+      "AlertDialog",
+    ],
+    "docs/ai-knowledge-bundle/prompts/add-projection.md": [
+      "PageLayout",
+      "Table",
+      "DetailView",
+      "Skeleton",
+      "ErrorDisplay",
+      "EmptyState",
+    ],
+  };
+
+  for (const [file, requiredComponents] of Object.entries(requiredComponentsByFile)) {
+    const content = templateContents.get(file) ?? "";
+    if (!content) continue;
+
+    const missingComponents = requiredComponents.filter(
+      (component) => !content.includes(component),
+    );
+
+    if (missingComponents.length > 0) {
+      fail(
+        "Template component refs",
+        `${fileLabel(file)} missing components: ${missingComponents.join(", ")}`,
+      );
+    } else {
+      pass(
+        "Template component refs",
+        `All ${requiredComponents.length} required components referenced in ${fileLabel(file)}`,
+      );
+    }
+  }
+
+  const signatureChecks = [
+    {
+      file: "docs/ai-knowledge-bundle/prompts/new-module.md",
+      name: "useQuery call shape",
+      ok: (content: string) =>
+        content.includes("useQuery(") &&
+        (content.includes("ListSchema,") || content.includes("DetailSchema,")),
+      failMessage: "useQuery examples must show (schema, params) call shape",
+    },
+    {
+      file: "docs/ai-knowledge-bundle/prompts/new-module.md",
+      name: "useCommandPipeline return shape",
+      ok: (content: string) =>
+        content.includes("useCommandPipeline()") &&
+        content.includes("send,") &&
+        content.includes("status,") &&
+        content.includes("error"),
+      failMessage: "useCommandPipeline examples must show { send, status, error } return shape",
+    },
+    {
+      file: "docs/ai-knowledge-bundle/prompts/add-command.md",
+      name: "useCommandPipeline return shape",
+      ok: (content: string) =>
+        content.includes("useCommandPipeline()") &&
+        content.includes("send,") &&
+        content.includes("status,") &&
+        content.includes("error"),
+      failMessage: "useCommandPipeline examples must show { send, status, error } return shape",
+    },
+    {
+      file: "docs/ai-knowledge-bundle/prompts/add-projection.md",
+      name: "useQuery call shape",
+      ok: (content: string) =>
+        content.includes("useQuery(") &&
+        (content.includes("ListSchema,") || content.includes("DetailSchema,")),
+      failMessage: "useQuery examples must show (schema, params) call shape",
+    },
+  ];
+
+  for (const check of signatureChecks) {
+    const content = templateContents.get(check.file) ?? "";
+    if (!content) continue;
+
+    if (!check.ok(content)) {
+      fail("Hook signatures", `${fileLabel(check.file)}: ${check.failMessage}`);
+    } else {
+      pass("Hook signatures", `${check.name} verified in ${fileLabel(check.file)}`);
+    }
+  }
+
+  const structuralChecks = [
+    {
+      file: "docs/ai-knowledge-bundle/prompts/new-module.md",
+      name: "Dev-host path",
+      ok: (content: string) => content.includes("dev-host/mockSetup.ts"),
+      failMessage: "must reference dev-host/mockSetup.ts for mock setup generation",
+    },
+    {
+      file: "docs/ai-knowledge-bundle/prompts/new-module.md",
+      name: "Detail navigation",
+      ok: (content: string) => /navigate\(`detail\/\$\{row\.id\}`\)/.test(content),
+      failMessage: "list-page example must navigate to detail/${row.id} to match /detail/:id routes",
+    },
+    {
+      file: "docs/ai-knowledge-bundle/prompts/add-projection.md",
+      name: "Detail navigation",
+      ok: (content: string) => /navigate\(`detail\/\$\{row\.id\}`\)/.test(content),
+      failMessage: "list-page example must navigate to detail/${row.id} to match declared detail routes",
+    },
+  ];
+
+  for (const check of structuralChecks) {
+    const content = templateContents.get(check.file) ?? "";
+    if (!content) continue;
+
+    if (!check.ok(content)) {
+      fail("Template structure", `${fileLabel(check.file)}: ${check.failMessage}`);
+    } else {
+      pass("Template structure", `${check.name} verified in ${fileLabel(check.file)}`);
+    }
+  }
+
+  const invalidPlaceholderFiles = templateFiles.filter((file) =>
+    (templateContents.get(file) ?? "").includes("${{{"),
+  );
+
+  if (invalidPlaceholderFiles.length > 0) {
+    fail(
+      "Template syntax",
+      `Invalid placeholder interpolation found in: ${invalidPlaceholderFiles.map(fileLabel).join(", ")}`,
+    );
+  } else {
+    pass("Template syntax", "No malformed template literal placeholders found");
+  }
+
+  const wrongCliCommandFiles = templateFiles.filter((file) =>
+    (templateContents.get(file) ?? "").includes("pnpm create-module"),
+  );
+
+  if (wrongCliCommandFiles.length > 0) {
+    fail(
+      "Template CLI command",
+      `Outdated scaffold command found in: ${wrongCliCommandFiles.map(fileLabel).join(", ")}`,
+    );
+  } else {
+    pass("Template CLI command", "Scaffold command references are up to date");
+  }
+
+  // Check template freshness — warn if template version comment is outdated
+  const indexContent = readFile("docs/ai-knowledge-bundle/index.md");
+  if (indexContent) {
+    const bundleVersionMatch = indexContent.match(/^bundle_version:\s*(.+)$/m) ??
+      indexContent.match(/^version:\s*(.+)$/m);
+    const bundleVersion = bundleVersionMatch?.[1].trim();
+
+    if (bundleVersion) {
+      for (const file of hookTemplateFiles) {
+        const content = templateContents.get(file) ?? "";
+        if (!content) continue;
+
+        const templateVersionMatch = content.match(/Verified against bundle v([\d.]+)/);
+        if (!templateVersionMatch) {
+          warn("Template freshness", `${file}: No bundle version comment found`);
+        } else if (templateVersionMatch[1] !== bundleVersion) {
+          warn(
+            "Template freshness",
+            `${file}: Verified against v${templateVersionMatch[1]} but bundle is v${bundleVersion}`,
+          );
+        }
+      }
+    }
+  }
+}
+
 // ─── Main ───
 
 console.log("🔍 Knowledge Bundle Freshness Check");
@@ -378,6 +635,7 @@ checkStaleness();
 checkManifestSchema();
 checkHookCompleteness();
 checkComponentCompleteness();
+checkPromptTemplates();
 
 console.log("\n====================================");
 

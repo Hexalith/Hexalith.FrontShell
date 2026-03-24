@@ -17,6 +17,7 @@ This bundle provides structured, machine-readable platform knowledge for AI agen
 | Conventions        | [conventions.md](./conventions.md)               | File naming, code naming, import ordering, organization rules    |
 | Scaffold Structure | [scaffold-structure.md](./scaffold-structure.md) | Module directory layout, state handling patterns, page templates |
 | Test Fixtures      | [test-fixtures.md](./test-fixtures.md)           | Mock implementations, test setup, AC marker convention           |
+| Prompt Templates   | [prompts/index.md](./prompts/index.md)           | AI prompt templates for module, command, and projection generation |
 
 ## How to Use This Bundle
 
