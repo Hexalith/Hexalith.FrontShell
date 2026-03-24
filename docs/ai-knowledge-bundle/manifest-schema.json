@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexalith.com/schemas/module-manifest-v1.json",
+  "title": "ModuleManifestV1",
+  "description": "Schema for Hexalith frontend module manifests. Defines the module's identity, routes, and navigation entries. Source: packages/shell-api/src/manifest/manifestTypes.ts",
+  "type": "object",
+  "required": ["manifestVersion", "name", "displayName", "version", "routes", "navigation"],
+  "properties": {
+    "manifestVersion": {
+      "const": 1,
+      "description": "Manifest schema version. Always 1 for V1 manifests. Enables future schema evolution via discriminated union."
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "minLength": 1,
+      "description": "Module identifier in lowercase kebab-case. Used for routing, package naming, and directory names. Example: 'tenants', 'order-management'."
+    },
+    "displayName": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable module name shown in navigation and UI. Example: 'Tenant Management'."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+",
+      "description": "Module version in semver format. Must match the module's package.json version. Example: '1.0.0'."
+    },
+    "routes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/ModuleRoute"
+      },
+      "description": "Route definitions for the module. Each route is mounted under the module's base path. At least one route is required."
+    },
+    "navigation": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/ModuleNavigation"
+      },
+      "description": "Navigation entries shown in the shell sidebar. Each entry's path should match a declared route."
+    },
+    "migrationStatus": {
+      "type": "string",
+      "enum": ["native", "coexisting", "migrating"],
+      "description": "Optional migration status for modules transitioning from legacy systems. 'native' = built for this platform, 'coexisting' = runs alongside legacy, 'migrating' = actively being ported."
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "ModuleRoute": {
+      "type": "object",
+      "required": ["path"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^/",
+          "description": "Route path starting with /. Mounted relative to the module's base path in the shell."
+        }
+      },
+      "additionalProperties": false,
+      "description": "A route definition for the module."
+    },
+    "ModuleNavigation": {
+      "type": "object",
+      "required": ["label", "path"],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Navigation label shown in the sidebar."
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^/",
+          "description": "Navigation path. Must start with / and should match a declared route. Paths not matching a route produce a validation warning."
+        },
+        "icon": {
+          "type": "string",
+          "description": "Optional icon identifier for the navigation entry."
+        },
+        "category": {
+          "type": "string",
+          "description": "Optional category for grouping navigation entries in the sidebar."
+        }
+      },
+      "additionalProperties": false,
+      "description": "A navigation entry shown in the shell sidebar."
+    }
+  },
+  "examples": [
+    {
+      "manifestVersion": 1,
+      "name": "tenants",
+      "displayName": "Tenant Management",
+      "version": "0.1.0",
+      "routes": [
+        { "path": "/" },
+        { "path": "/detail" }
+      ],
+      "navigation": [
+        { "label": "Tenants", "path": "/", "icon": "building", "category": "Administration" }
+      ]
+    }
+  ]
+}

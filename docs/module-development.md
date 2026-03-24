@@ -2,6 +2,8 @@
 
 Complete reference for developing a Hexalith module — from manifest definition to shell integration.
 
+> **AI-assisted generation:** For structured, machine-readable platform knowledge optimized for AI module generation, see the [AI Knowledge Bundle](./ai-knowledge-bundle/index.md).
+
 ## Manifest definition
 
 Every module declares a manifest that tells the shell what routes and navigation entries to register. The manifest is defined using the `ModuleManifest` type from `@hexalith/shell-api`.

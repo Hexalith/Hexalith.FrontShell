@@ -24,6 +24,10 @@ Welcome to the Hexalith module developer documentation. These guides cover every
 | Publish my module           | [Module Development — Shell Integration](./module-development.md#shell-integration-via-git-submodule) |
 | Look up a hook or component | [API Reference](./api-reference.md)                                                                   |
 
+## AI Module Generation
+
+- **[AI Knowledge Bundle](./ai-knowledge-bundle/index.md)** — Structured, machine-readable platform knowledge for AI agents. Includes manifest schema (JSON Schema), CQRS hook APIs, UI component catalog, naming conventions, scaffold structure, and test fixtures. Use this bundle when generating modules with AI assistance.
+
 ## Interactive documentation
 
 - **Storybook** — Interactive component catalog with live examples, prop controls, and accessibility audits. Run with `pnpm storybook` (or `pnpm -F @hexalith/ui storybook`).

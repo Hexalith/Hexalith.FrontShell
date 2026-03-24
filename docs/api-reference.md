@@ -2,6 +2,8 @@
 
 Complete export catalog for the three Hexalith frontend packages. For interactive component documentation, run `pnpm storybook` (or `pnpm -F @hexalith/ui storybook`).
 
+> **AI-assisted generation:** For structured hook API reference, component catalog with props, and usage examples optimized for AI consumption, see the [AI Knowledge Bundle](./ai-knowledge-bundle/index.md).
+
 ## @hexalith/shell-api
 
 ### Auth

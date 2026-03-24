@@ -78,6 +78,11 @@ jobs:
           pnpm turbo build
           echo "duration=$(( SECONDS - START_SECONDS ))" >> "$GITHUB_OUTPUT"
 
+      # ─── Knowledge Bundle Freshness ───
+      # Verifies AI knowledge bundle matches current platform API
+      - name: Knowledge Bundle Freshness
+        run: pnpm check:bundle-freshness
+
       # ─── Lint ───
       - name: Lint
         id: lint

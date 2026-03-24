@@ -10,3 +10,4 @@ Hexalith FrontShell is a modular micro-frontend shell for Hexalith applications.
 - Module boundaries enforced by ESLint — no cross-package imports, no direct Radix imports.
 - Design tokens enforced by Stylelint — no hardcoded colors, spacing, or typography.
 - CI pipeline in `.github/workflows/ci.yml` — all gates must pass before merge.
+- AI knowledge bundle: see `docs/ai-knowledge-bundle/index.md` for manifest schema, hook APIs, component catalog, and conventions for AI-assisted module generation.
