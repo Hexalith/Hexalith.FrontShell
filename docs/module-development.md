@@ -2,7 +2,7 @@
 
 Complete reference for developing a Hexalith module — from manifest definition to shell integration.
 
-> **AI-assisted generation:** For structured, machine-readable platform knowledge optimized for AI module generation, see the [AI Knowledge Bundle](./ai-knowledge-bundle/index.md). For ready-to-use prompt templates (new module, add command, add projection), see the [Prompt Templates](./ai-knowledge-bundle/prompts/index.md).
+> **AI-assisted generation:** For structured, machine-readable platform knowledge optimized for AI module generation, see the [AI Knowledge Bundle](./ai-knowledge-bundle/index.md). For ready-to-use prompt templates (new module, add command, add projection), see the [Prompt Templates](./ai-knowledge-bundle/prompts/index.md). For the end-to-end generation workflow and validation pipeline, see the [Generation Pipeline](./ai-knowledge-bundle/generation-pipeline.md).
 
 ## Manifest definition
 

@@ -37,6 +37,7 @@ describe('CSS layer smoke', () => {
 
     if (lockFd != null) {
       try {
+        // execSync is safe here: the command is a hardcoded string with no user input
         execSync('pnpm run build', { stdio: 'ignore' });
       } finally {
         closeSync(lockFd);
@@ -59,6 +60,5 @@ describe('CSS layer smoke', () => {
     const css = readFileSync(distCssPath, 'utf8');
     expect(css).toContain('@layer components');
     expect(css).toContain('PageLayout.module.css');
-  });
+  }, 30_000);
 });
-

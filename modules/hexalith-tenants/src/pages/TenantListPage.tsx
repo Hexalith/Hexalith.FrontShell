@@ -14,12 +14,12 @@ import {
 } from "@hexalith/ui";
 import type { SelectOption, TableColumn } from "@hexalith/ui";
 
-import styles from "../styles/tenantStatus.module.css";
 import { TENANT_LIST_QUERY } from "../data/sampleData.js";
 import {
   TenantListSchema,
   type TenantItem,
 } from "../schemas/tenantSchemas.js";
+import styles from "../styles/tenantStatus.module.css";
 
 const STATUS_VARIANT: Record<string, string> = {
   Active: styles.statusActive,

@@ -1,11 +1,12 @@
-import { describe, it, expect } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
+import { describe, it, expect } from "vitest";
+
 import { MockQueryBus } from "@hexalith/cqrs-client";
 import { createMockTenantContext } from "@hexalith/shell-api";
 
-import { renderWithProviders } from "../testing/renderWithProviders";
 import { ExampleListPage } from "./ExampleListPage";
 import { exampleItems, EXAMPLE_LIST_QUERY } from "../data/sampleData.js";
+import { renderWithProviders } from "../testing/renderWithProviders";
 
 describe("ExampleListPage", () => {
   it("renders loading state initially", () => {

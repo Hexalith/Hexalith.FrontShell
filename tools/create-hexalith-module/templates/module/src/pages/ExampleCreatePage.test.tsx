@@ -1,10 +1,11 @@
-import { describe, it, expect } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { describe, it, expect } from "vitest";
+
 import { MockCommandBus } from "@hexalith/cqrs-client";
 
-import { renderWithProviders } from "../testing/renderWithProviders";
 import { ExampleCreatePage } from "./ExampleCreatePage";
+import { renderWithProviders } from "../testing/renderWithProviders";
 
 describe("ExampleCreatePage", () => {
   it("renders create form with all fields", () => {
@@ -30,17 +31,17 @@ describe("ExampleCreatePage", () => {
     const categoryTrigger = screen.getByRole("combobox", { name: /category/i });
     await user.click(categoryTrigger);
     await waitFor(() => {
-      expect(screen.getByText("Operations")).toBeInTheDocument();
+      expect(screen.getByRole("option", { name: "Operations" })).toBeInTheDocument();
     });
-    await user.click(screen.getByText("Operations"));
+    await user.click(screen.getByRole("option", { name: "Operations" }));
 
     // Select Priority — same pattern
     const priorityTrigger = screen.getByRole("combobox", { name: /priority/i });
     await user.click(priorityTrigger);
     await waitFor(() => {
-      expect(screen.getByText("High")).toBeInTheDocument();
+      expect(screen.getByRole("option", { name: "High" })).toBeInTheDocument();
     });
-    await user.click(screen.getByText("High"));
+    await user.click(screen.getByRole("option", { name: "High" }));
 
     // Submit form
     await user.click(screen.getByRole("button", { name: /create/i }));
@@ -63,17 +64,17 @@ describe("ExampleCreatePage", () => {
     const categoryTrigger = screen.getByRole("combobox", { name: /category/i });
     await user.click(categoryTrigger);
     await waitFor(() => {
-      expect(screen.getByText("Operations")).toBeInTheDocument();
+      expect(screen.getByRole("option", { name: "Operations" })).toBeInTheDocument();
     });
-    await user.click(screen.getByText("Operations"));
+    await user.click(screen.getByRole("option", { name: "Operations" }));
 
     // Select Priority
     const priorityTrigger = screen.getByRole("combobox", { name: /priority/i });
     await user.click(priorityTrigger);
     await waitFor(() => {
-      expect(screen.getByText("High")).toBeInTheDocument();
+      expect(screen.getByRole("option", { name: "High" })).toBeInTheDocument();
     });
-    await user.click(screen.getByText("High"));
+    await user.click(screen.getByRole("option", { name: "High" }));
 
     // Submit
     await user.click(screen.getByRole("button", { name: /create/i }));

@@ -16,12 +16,12 @@ import {
   useToast,
 } from "@hexalith/ui";
 
-import styles from "../styles/tenantStatus.module.css";
 import { buildTenantDetailQuery } from "../data/sampleData.js";
 import {
   DisableTenantCommandSchema,
   TenantDetailSchema,
 } from "../schemas/tenantSchemas.js";
+import styles from "../styles/tenantStatus.module.css";
 
 import type { DisableTenantInput } from "../schemas/tenantSchemas.js";
 

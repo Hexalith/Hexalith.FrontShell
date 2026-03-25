@@ -1,3 +1,4 @@
+
 import type { ReactElement, ReactNode } from "react";
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
@@ -12,10 +13,10 @@ import { MockShellProvider, createMockTenantContext } from "@hexalith/shell-api"
 import { ToastProvider } from "@hexalith/ui";
 
 import {
-  EXAMPLE_DETAIL_QUERY,
-  EXAMPLE_LIST_QUERY,
-  exampleDetails,
-  exampleItems,
+  ORDER_DETAIL_QUERY,
+  ORDER_LIST_QUERY,
+  orderDetails,
+  orderItems,
 } from "../data/sampleData.js";
 
 import type { RenderOptions, RenderResult } from "@testing-library/react";
@@ -33,11 +34,11 @@ function createConfiguredQueryBus(): MockQueryBus {
   const TENANT = createMockTenantContext().activeTenant;
 
   // Build keys from query constants to prevent manual string typos
-  const listKey = `${TENANT}:${EXAMPLE_LIST_QUERY.domain}:${EXAMPLE_LIST_QUERY.queryType}::`;
-  mockQueryBus.setResponse(listKey, exampleItems);
+  const listKey = `${TENANT}:${ORDER_LIST_QUERY.domain}:${ORDER_LIST_QUERY.queryType}::`;
+  mockQueryBus.setResponse(listKey, orderItems);
 
-  for (const detail of exampleDetails) {
-    const detailKey = `${TENANT}:${EXAMPLE_DETAIL_QUERY.domain}:${EXAMPLE_DETAIL_QUERY.queryType}:${detail.id}:`;
+  for (const detail of orderDetails) {
+    const detailKey = `${TENANT}:${ORDER_DETAIL_QUERY.domain}:${ORDER_DETAIL_QUERY.queryType}:${detail.id}:`;
     mockQueryBus.setResponse(detailKey, detail);
   }
 

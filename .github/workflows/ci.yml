@@ -101,6 +101,16 @@ jobs:
         if: github.event_name == 'pull_request'
         run: pnpm check:test-quality --changed-only
 
+      # ─── Playwright Browser Setup ───
+      # Required before AI module accessibility validation and downstream component/E2E tests
+      - name: Install Playwright Browsers
+        run: pnpx playwright install --with-deps chromium
+
+      # ─── AI Module Validation ───
+      # Validates AI-generated modules pass all quality gates
+      - name: AI Module Validation
+        run: pnpm check:validate-module modules/hexalith-orders
+
       # ─── Contract Verification ───
       # Verifies frontend-backend API contracts are satisfied
       # Runs on ALL builds (fast due to Turborepo cache) — no path-scoping needed
@@ -130,9 +140,6 @@ jobs:
         run: pnpm --filter @hexalith/ui build-storybook
 
       # ─── Playwright Component Tests (a11y) ───
-      - name: Install Playwright Browsers
-        run: pnpx playwright install --with-deps chromium
-
       - name: E2E Tests
         run: pnpm --filter @hexalith/shell test:e2e
 

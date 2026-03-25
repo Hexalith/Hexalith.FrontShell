@@ -18,6 +18,7 @@ This bundle provides structured, machine-readable platform knowledge for AI agen
 | Scaffold Structure | [scaffold-structure.md](./scaffold-structure.md) | Module directory layout, state handling patterns, page templates |
 | Test Fixtures      | [test-fixtures.md](./test-fixtures.md)           | Mock implementations, test setup, AC marker convention           |
 | Prompt Templates   | [prompts/index.md](./prompts/index.md)           | AI prompt templates for module, command, and projection generation |
+| Generation Pipeline | [generation-pipeline.md](./generation-pipeline.md) | End-to-end generation workflow: domain → prompt → AI → validate → CI |
 
 ## How to Use This Bundle
 

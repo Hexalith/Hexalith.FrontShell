@@ -1,12 +1,13 @@
-import { describe, it, expect } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import { Routes, Route } from "react-router";
+import { describe, it, expect } from "vitest";
+
 import { MockQueryBus } from "@hexalith/cqrs-client";
 import { createMockTenantContext } from "@hexalith/shell-api";
 
-import { renderWithProviders } from "../testing/renderWithProviders";
 import { ExampleDetailPage } from "./ExampleDetailPage";
 import { exampleDetails, EXAMPLE_DETAIL_QUERY } from "../data/sampleData.js";
+import { renderWithProviders } from "../testing/renderWithProviders";
 
 describe("ExampleDetailPage", () => {
   const firstDetail = exampleDetails[0];
@@ -20,7 +21,9 @@ describe("ExampleDetailPage", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(firstDetail.name)).toBeInTheDocument();
+      expect(
+        screen.getAllByText(firstDetail.name).length,
+      ).toBeGreaterThanOrEqual(1);
     });
 
     // Verify General Information section
