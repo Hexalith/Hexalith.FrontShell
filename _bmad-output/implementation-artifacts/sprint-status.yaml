@@ -126,7 +126,7 @@ development_status:
 
   # Epic 2: Backend Integration — Commands, Projections & Real-Time
   # Updated 2026-03-15 per Sprint Change Proposal (SignalR, ETag, pre-flight validation)
-  epic-2: in-progress
+  epic-2: done
   2-1-cqrs-client-package-and-error-hierarchy: done
   2-2-authenticated-fetch-client-with-correlation-id: done
   2-3-command-hooks-submit-status-pipeline: done
