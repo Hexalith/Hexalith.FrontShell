@@ -21,7 +21,9 @@ hexalith-{module-name}/
 │   │   ├── {Name}DetailPage.tsx
 │   │   ├── {Name}DetailPage.test.tsx
 │   │   ├── {Name}CreatePage.tsx
-│   │   └── {Name}CreatePage.test.tsx
+│   │   ├── {Name}CreatePage.test.tsx
+│   │   ├── {Name}EditPage.tsx        # If edit route exists
+│   │   └── {Name}EditPage.test.tsx
 │   ├── components/           # Module-specific reusable components
 │   ├── hooks/                # Module-specific hooks (beyond platform hooks)
 │   ├── data/                 # Sample data for dev host
@@ -342,3 +344,77 @@ export function OrderDetailPage() {
   );
 }
 ```
+
+---
+
+## Edit Page Pattern
+
+Same as Create Page with these key differences:
+
+1. **Title:** "Edit {Entity}" instead of "Create {Entity}"
+2. **Data loading:** Fetch existing record with `useQuery` and pass as `defaultValues` to `Form`
+3. **Command type:** Use `Update{Entity}` instead of `Create{Entity}`
+4. **Aggregate ID:** Use the existing record's ID, not `crypto.randomUUID()`
+5. **Success navigation:** Navigate to `../detail/${id}` (back to detail), not `..` (back to list)
+6. **Route:** `/edit/:id` in manifest
+
+```tsx
+export function {Entity}EditPage() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { send, status, error } = useCommandPipeline();
+  const { data, isLoading, error: loadError } = useQuery(
+    {Entity}DetailSchema,
+    build{Entity}DetailParams(id ?? ""),
+    { enabled: !!id },
+  );
+
+  useEffect(() => {
+    if (status !== "completed") return;
+    toast({ variant: "success", title: "{Entity} updated" });
+    navigate(`../detail/${id}`);
+  }, [navigate, status, toast, id]);
+
+  const handleSubmit = useCallback(
+    async (formData: Update{Entity}Input) => {
+      await send({
+        commandType: "Update{Entity}",
+        domain: "{module-name}",
+        aggregateId: id!,
+        payload: formData,
+      });
+    },
+    [send, id],
+  );
+
+  if (isLoading) return <PageLayout title="Edit {Entity}"><Skeleton variant="form" /></PageLayout>;
+  if (loadError) return <PageLayout title="Edit {Entity}"><ErrorDisplay error={loadError} /></PageLayout>;
+  if (!data) return null;
+
+  return (
+    <PageLayout title="Edit {Entity}">
+      <Form schema={Update{Entity}CommandSchema} onSubmit={handleSubmit} defaultValues={data}>
+        {/* Same FormField layout as Create page */}
+        <Inline gap="2">
+          <Button variant="ghost" onClick={() => navigate(`../detail/${id}`)}>Cancel</Button>
+          <Button variant="primary" type="submit" disabled={isBusy}>Save</Button>
+        </Inline>
+      </Form>
+    </PageLayout>
+  );
+}
+```
+
+---
+
+## UX Conformance
+
+All pages must conform to the [UX Interaction Patterns](../../design-artifacts/C-UX-Scenarios/ux-interaction-patterns.md). Key requirements:
+
+- **State handling order:** `isLoading` → `error` → `!data` → render data (never deviate)
+- **Navigation:** Always use relative paths (`..`, `detail/${id}`, `create`)
+- **Formatting:** Use `Intl.DateTimeFormat` for dates, `Intl.NumberFormat` for currency/numbers
+- **Status badges:** CSS module with variant classes mapped via `STATUS_VARIANT` record
+- **Forms:** Zod schema as single validation source via `<Form schema={...}>`
+- **Commands:** `useCommandPipeline()` with full status lifecycle handling

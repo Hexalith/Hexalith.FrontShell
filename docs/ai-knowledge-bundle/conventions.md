@@ -123,6 +123,30 @@ import { useQuery } from '@hexalith/cqrs-client';
 import type { QueryParams } from '@hexalith/cqrs-client';
 ```
 
+## Formatting Conventions
+
+All data formatting must use `Intl` APIs — never manual date/number formatting. Pass `undefined` as locale to respect the user's browser settings.
+
+| Data Type | Formatter | Example |
+|-----------|-----------|---------|
+| Date (table) | `new Intl.DateTimeFormat(undefined, { dateStyle: "medium" })` | "Mar 25, 2026" |
+| Date (detail) | `new Intl.DateTimeFormat(undefined, { dateStyle: "long", timeStyle: "short" })` | "March 25, 2026 at 2:30 PM" |
+| Currency | `new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" })` | "$1,247.50" |
+| Number | `new Intl.NumberFormat()` | "1,247" |
+| Status | CSS module badge with variant mapping | See UX interaction patterns |
+
+## Navigation Conventions
+
+Always use **relative paths** for in-module navigation. Never hardcode absolute module paths.
+
+| Action | Method |
+|--------|--------|
+| To list (from detail/create/edit) | `navigate("..")` |
+| To detail (from list row click) | `navigate(\`detail/${id}\`)` |
+| To create (from list button) | `navigate("create")` |
+| To edit (from detail button) | `navigate(\`../edit/${id}\`)` |
+| Back | `navigate("..")` or `navigate(-1)` |
+
 ## Storybook Title Convention
 
 ```

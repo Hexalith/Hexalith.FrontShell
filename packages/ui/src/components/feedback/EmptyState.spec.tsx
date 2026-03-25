@@ -17,3 +17,28 @@ test.describe('EmptyState accessibility', () => {
     expect(violations).toEqual([]);
   });
 });
+
+test.describe('EmptyState visual regression', () => {
+  test('with action - light', async ({ mount, page }) => {
+    await mount(
+      <EmptyState
+        title="No tenants found"
+        description="Create your first tenant to get started"
+        action={{ label: 'Create Tenant', onClick: () => {} }}
+      />,
+    );
+    await expect(page).toHaveScreenshot('emptystate-action-light.png');
+  });
+
+  test('with action - dark', async ({ mount, page }) => {
+    await mount(
+      <EmptyState
+        title="No tenants found"
+        description="Create your first tenant to get started"
+        action={{ label: 'Create Tenant', onClick: () => {} }}
+      />,
+    );
+    await setDarkTheme(page);
+    await expect(page).toHaveScreenshot('emptystate-action-dark.png');
+  });
+});

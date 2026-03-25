@@ -212,7 +212,7 @@ function nearestSpacingToken(value: string): string {
     return `var(--spacing-${spacingScale.indexOf(nearest)})`;
   }
 
-  return "var(--spacing-2)";
+  return "a spacing token (e.g., var(--spacing-2))";
 }
 
 function nearestFontSizeToken(value: string): string {
@@ -439,7 +439,7 @@ export function parseEslintJson(jsonOutput: string): GateViolation[] {
       }
 
       // Check for cross-module imports
-      if (ruleId.includes("module-isolation") || msg.message.includes("cross-module")) {
+      if (ruleId.includes("module-isolation") || msg.message.toLowerCase().includes("cross-module")) {
         remediation = "Import from `@hexalith/shell-api` or `@hexalith/ui` instead";
       }
 
@@ -494,8 +494,8 @@ export function parseStylelintJson(jsonOutput: string): GateViolation[] {
 
       if (hexMatch) {
         actual = hexMatch[0];
-        expected = "var(--color-text-primary)";
-        remediation = `Replace hardcoded color ${hexMatch[0]} with a semantic color token such as var(--color-text-primary)`;
+        expected = "var(--color-*)";
+        remediation = `Replace hardcoded color ${hexMatch[0]} with a semantic color token (e.g., var(--color-bg-*) for backgrounds, var(--color-text-*) for text, var(--color-border-*) for borders)`;
       } else if (
         warning.rule === "hexalith/no-hardcoded-spacing" ||
         warning.text.includes("hardcoded spacing") ||
@@ -510,15 +510,15 @@ export function parseStylelintJson(jsonOutput: string): GateViolation[] {
         remediation = `Replace hardcoded font size ${actual ?? "value"} with ${expected}`;
       } else if (warning.rule === "hexalith/no-hardcoded-colors" || warning.text.includes("hardcoded color")) {
         actual = quotedValue ?? hexMatch?.[0];
-        expected = "var(--color-text-primary)";
-        remediation = `Replace hardcoded color ${actual ?? "value"} with a semantic color token such as var(--color-text-primary)`;
+        expected = "var(--color-*)";
+        remediation = `Replace hardcoded color ${actual ?? "value"} with a semantic color token (e.g., var(--color-bg-*) for backgrounds, var(--color-text-*) for text, var(--color-border-*) for borders)`;
       } else if (warning.text.includes("calc()") && warning.text.includes("spacing")) {
         expected = "calc(100% - var(--spacing-4))";
         remediation = "Use spacing tokens inside calc expressions (for example calc(100% - var(--spacing-4)))";
       } else if (
         warning.rule === "custom-property-pattern" ||
         warning.text.includes("custom property") ||
-        warning.text.includes("Expected")
+        warning.text.includes("Expected custom property")
       ) {
         expected = "CSS custom property (design token)";
         remediation = "Replace hardcoded value with the appropriate semantic design token";
@@ -1224,7 +1224,7 @@ async function main(): Promise<void> {
 
   const report = buildReport(packageName, cliArgs.modulePath, gates);
   outputReport(report, cliArgs);
-  process.exit(report.overall === "fail" ? 1 : 0);
+  process.exitCode = report.overall === "fail" ? 1 : 0;
 }
 
 // Only run when executed directly (not when imported by tests)

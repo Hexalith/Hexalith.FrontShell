@@ -38,6 +38,7 @@ Read these files before generating — they are the single source of truth:
 | [ui-components.md](../ui-components.md)           | Component props: `Table`, `DetailView`, `Form`, `FormField`, etc.     |
 | [conventions.md](../conventions.md)               | File naming, import ordering, code naming                             |
 | [scaffold-structure.md](../scaffold-structure.md) | Directory layout and state handling patterns                          |
+| [UX Interaction Patterns](../../../design-artifacts/C-UX-Scenarios/ux-interaction-patterns.md) | Mandatory page templates, navigation, formatting, styling rules       |
 | [test-fixtures.md](../test-fixtures.md)           | `MockQueryBus`, `MockCommandBus`, `renderWithProviders`               |
 
 ## Generation Instructions
@@ -408,7 +409,73 @@ export function {Entity}CreatePage() {
 
 **Destructive operations:** If a command is destructive (delete, cancel, disable), wrap the trigger button in `<AlertDialog>` for confirmation before sending.
 
-### 6. CSS Module (`src/pages/{Entity}ListPage.module.css`)
+### 6. Edit Page (`src/pages/{Entity}EditPage.tsx`)
+
+Same structure as Create Page with these differences:
+
+- Title: `"Edit {Display Name}"`
+- Load existing data with `useQuery` and pass as `defaultValues` to `<Form>`
+- Command type: `Update{Entity}` with the existing record's `id` (not `crypto.randomUUID()`)
+- On success: navigate to `../detail/${id}` (back to detail), not `..` (list)
+- Add route `{ path: "/edit/:id" }` to manifest and routes.tsx
+- Cancel navigates to `../detail/${id}`
+
+```typescript
+export function {Entity}EditPage() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { send, status, error } = useCommandPipeline();
+  const { data, isLoading, error: loadError, refetch } = useQuery(
+    {Entity}DetailSchema,
+    build{Entity}DetailParams(id ?? ""),
+    { enabled: !!id },
+  );
+
+  useEffect(() => {
+    if (status !== "completed") return;
+    toast({ variant: "success", title: "{Entity} updated" });
+    navigate(`../detail/${id}`);
+  }, [navigate, status, toast, id]);
+
+  const handleSubmit = useCallback(
+    async (formData: Update{Entity}Input) => {
+      await send({
+        commandType: "Update{Entity}",
+        domain: "{module-name}",
+        aggregateId: id!,
+        payload: formData,
+      });
+    },
+    [send, id],
+  );
+
+  const isBusy = status === "sending" || status === "polling";
+
+  if (isLoading) return <PageLayout title="Edit {Display Name}"><Skeleton variant="form" /></PageLayout>;
+  if (loadError) return <PageLayout title="Edit {Display Name}"><ErrorDisplay error={loadError} onRetry={refetch} /></PageLayout>;
+  if (!data) return null;
+
+  return (
+    <PageLayout title="Edit {Display Name}">
+      {error && <ErrorDisplay error={error} title="Command failed" />}
+      <Form schema={Update{Entity}CommandSchema} onSubmit={handleSubmit} defaultValues={data}>
+        {/* Same FormField layout as Create page */}
+        <Inline gap="2">
+          <Button variant="ghost" onClick={() => navigate(`../detail/${id}`)}>Cancel</Button>
+          <Button variant="primary" type="submit" disabled={isBusy}>
+            {isBusy ? "Saving..." : "Save"}
+          </Button>
+        </Inline>
+      </Form>
+    </PageLayout>
+  );
+}
+```
+
+Also generate `Update{Entity}CommandSchema` in the schemas file — typically the same fields as Create but all optional (partial update).
+
+### 7. CSS Module (`src/pages/{Entity}ListPage.module.css`)
 
 ```css
 @layer components {
@@ -439,7 +506,7 @@ export function {Entity}CreatePage() {
 
 **Rules:** CSS class names must be camelCase. No hardcoded colors — use `--hx-*` or `--color-*` design tokens only.
 
-### 7. Routes (`src/routes.tsx`)
+### 8. Routes (`src/routes.tsx`)
 
 ```typescript
 import { lazy, Suspense } from "react";
@@ -471,7 +538,7 @@ export const routes = [
 ];
 ```
 
-### 8. Index (`src/index.ts`)
+### 9. Index (`src/index.ts`)
 
 ```typescript
 export { {Entity}RootPage as default } from "./routes.js";
@@ -482,7 +549,7 @@ export type { {Entity}Item, {Entity}Detail, Create{Entity}Input } from "./schema
 export { {Entity}ItemSchema, {Entity}DetailSchema, Create{Entity}CommandSchema } from "./schemas/{entity}Schemas.js";
 ```
 
-### 9. Sample Data (`src/data/sampleData.ts`)
+### 10. Sample Data (`src/data/sampleData.ts`)
 
 ```typescript
 import {
@@ -516,7 +583,7 @@ export const {entity}Details: {Entity}Detail[] = {Entity}DetailSchema.array().pa
 );
 ```
 
-### 10. Test File (`src/pages/{Entity}ListPage.test.tsx`)
+### 11. Test File (`src/pages/{Entity}ListPage.test.tsx`)
 
 ```typescript
 import { describe, it, expect } from "vitest";
@@ -573,14 +640,14 @@ describe("{Entity}ListPage", () => {
 });
 ```
 
-### 11. Test Utility (`src/testing/renderWithProviders.tsx`)
+### 12. Test Utility (`src/testing/renderWithProviders.tsx`)
 
 Copy this file **verbatim** from the scaffold template (`tools/create-hexalith-module/templates/module/src/testing/renderWithProviders.tsx`), only changing:
 
 - Import paths for sample data and schemas (replace `Example` → `{Entity}`)
 - Query constants (replace `EXAMPLE_LIST_QUERY` → `LIST_QUERY`, `EXAMPLE_DETAIL_QUERY` → `DETAIL_QUERY`)
 
-### 12. Dev-Host Mock Setup (`dev-host/mockSetup.ts`)
+### 13. Dev-Host Mock Setup (`dev-host/mockSetup.ts`)
 
 Register sample data with the mock query bus for the dev host environment. Follow the pattern in `tools/create-hexalith-module/templates/module/dev-host/mockSetup.ts`, using the query constants and sample data exported from `src/data/sampleData.ts`.
 
@@ -741,6 +808,13 @@ Before considering generation complete, verify **every** item:
 - [ ] Import order: react → react-router → zod → @hexalith/cqrs-client → @hexalith/ui → type imports → relative CSS → relative schemas
 - [ ] Test mock data validates against Zod schemas (all required fields present)
 - [ ] Test query key format: `{tenant}:{domain}:{queryType}:{aggregateId}:{entityId}`
+- [ ] Date columns use `Intl.DateTimeFormat(undefined, { dateStyle: "medium" })` in table cells
+- [ ] Detail page dates use `Intl.DateTimeFormat(undefined, { dateStyle: "long", timeStyle: "short" })`
+- [ ] Currency values use `Intl.NumberFormat(undefined, { style: "currency", currency })` — never manual formatting
+- [ ] All in-module navigation uses relative paths (`..`, `detail/${id}`, `create`) — never absolute paths
+- [ ] Edit page included if domain supports record updates (route `/edit/:id` in manifest)
+- [ ] Detail page actions include Back (ghost) + Edit (secondary) + domain-specific actions
+- [ ] Status messages match the prescribed mapping (sending/polling/rejected/failed/timedOut)
 
 ## Anti-Patterns
 
@@ -761,6 +835,4 @@ These templates generate entity-based CRUD modules only. Not covered:
 - Wizards or multi-step workflows
 - File upload interfaces
 - Real-time streaming views
-- Edit pages (create page pattern can be adapted, but not templated here)
-
 For these, use `pnpm create hexalith-module` and customize manually.

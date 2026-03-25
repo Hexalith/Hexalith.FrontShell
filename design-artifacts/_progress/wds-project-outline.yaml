@@ -1,0 +1,43 @@
+# WDS Project Outline
+# Generated: 2026-03-25
+# Phase 0: Project Setup
+
+project:
+  name: "Hexalith FrontShell"
+  type: brownfield
+  product_complexity: complex
+  tech_stack: react
+  component_library: custom
+  root_folder: design-artifacts
+  brief_level: simplified
+  strategic_analysis: null  # brownfield - not applicable
+  skip_design_system: false  # custom library, Phase 5 recommended
+
+existing_materials:
+  has_materials: false
+
+project_context:
+  stakes: enterprise
+  stakeholders: null
+  political_sensitivities: null
+
+working_relationship:
+  involvement: autonomous
+  role: open-source-project-creator
+  recommendation_style: direct-guidance
+
+# Phase Configuration (Brownfield)
+phases:
+  phase_0_setup: complete
+  phase_8_product_evolution: enabled
+  phase_1_brief: simplified  # limited brief for brownfield
+  phase_2_trigger_map: skipped  # brownfield
+  phase_3_ux_scenarios: skipped  # brownfield
+  phase_4_ux_design: as_needed  # brownfield - targeted improvements
+  phase_5_design_system: recommended  # custom component library
+  phase_6_asset_generation: as_needed
+  phase_7_launch: skipped  # brownfield
+
+# Routing
+next_phase: phase_8
+next_action: brownfield_routing

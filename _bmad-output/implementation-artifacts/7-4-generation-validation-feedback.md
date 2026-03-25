@@ -1,6 +1,6 @@
 # Story 7.4: Generation Validation Feedback
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -144,7 +144,7 @@ so that I can fix specific issues rather than debugging blind.
 
 - [x] Task 8: Implement human-readable text formatter (AC: #1, #6)
   - [x] Default output format — enhance existing text output from story 7-3
-  - [ ] Format pattern per gate (following check-bundle-freshness.ts style):
+  - [x] Format pattern per gate (following check-bundle-freshness.ts style):
 
     ```
     ── Build ──────────────────────────
@@ -456,6 +456,15 @@ Pattern: Provider-based architecture, Zod-validated schemas, turbo-delegated bui
 
 ## Change Log
 
+- 2026-03-25: Adversarial Code Review fixes (AI)
+  - Fixed color token remediation to use generic `var(--color-*)` pattern instead of always suggesting `--color-text-primary` (H1)
+  - Fixed cross-module import detection case mismatch: `"Cross-module"` vs `"cross-module"` (H2)
+  - Replaced `process.exit()` with `process.exitCode` to prevent stdout truncation when piping (M1)
+  - Narrowed Stylelint catch-all from `"Expected"` to `"Expected custom property"` (M2)
+  - Fixed Task 8 subtask checkbox, updated test count to 49, added Hexalith.Tenants to File List (M3/M4)
+  - Changed `nearestSpacingToken` fallback from hardcoded `var(--spacing-2)` to generic guidance message (L2)
+  - Updated test ruleIds from fake `@hexalith/no-direct-radix` to real `no-restricted-imports` with realistic ESLint messages (L3)
+  - Added test for cross-module import case-insensitive detection (L3)
 - 2026-03-25: Addressed Senior Developer Review feedback and moved story back to `review`
   - Aggregated all gate results into a single validation report instead of exiting on the first failure
   - Replaced outdated `--hx-*` remediation hints with the semantic token vocabulary enforced by `packages/ui`
@@ -491,7 +500,7 @@ Claude Opus 4.6 (1M context)
 - Review follow-up complete: validator now reports all failing gates in one run instead of stopping at the first failure
 - Stylelint remediation now uses semantic token suggestions such as `var(--color-text-primary)`, `var(--spacing-4)`, and `var(--font-size-md)`
 - Coverage feedback now reads detailed coverage JSON and lists uncovered function names for actionable follow-up
-- 46 unit tests pass covering: parseArgs (8 tests), buildReport (4 tests), parseTscOutput (4 tests), parseEslintJson (5 tests), parseStylelintJson (5 tests), parseCoverageJson (4 tests), parseVitestJson (4 tests), mapManifestErrors (4 tests), formatJson (2 tests), formatText (6 tests)
+- 49 unit tests pass covering: parseArgs (8 tests), buildReport (4 tests), parseTscOutput (4 tests), parseEslintJson (6 tests), parseStylelintJson (6 tests), parseCoverageJson (5 tests), parseVitestJson (4 tests), mapManifestErrors (4 tests), formatJson (2 tests), formatText (6 tests)
 - E2E: hexalith-orders passes all 7 gates (text + JSON format)
 - E2E: hexalith-tenants passes all 7 gates
 - JSON output is valid, parseable, and writes to file via --output flag
@@ -507,6 +516,7 @@ Claude Opus 4.6 (1M context)
 - scripts/vitest.config.ts (created — minimal vitest config for scripts project)
 - vitest.config.ts (modified — added "scripts" to projects array)
 - \_bmad-output/implementation-artifacts/7-4-generation-validation-feedback.md (modified — task checkboxes, dev record)
+- Hexalith.Tenants (modified — submodule reference update)
 - \_bmad-output/implementation-artifacts/sprint-status.yaml (modified — story status)
 
 ## Senior Developer Review (AI)

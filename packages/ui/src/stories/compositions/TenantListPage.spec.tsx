@@ -17,3 +17,16 @@ test.describe('TenantListPage accessibility', () => {
     expect(violations).toEqual([]);
   });
 });
+
+test.describe('TenantListPage visual regression', () => {
+  test('full page - light', async ({ mount, page }) => {
+    await mount(<TenantListPage />);
+    await expect(page).toHaveScreenshot('tenant-list-page-light.png');
+  });
+
+  test('full page - dark', async ({ mount, page }) => {
+    await mount(<TenantListPage />);
+    await setDarkTheme(page);
+    await expect(page).toHaveScreenshot('tenant-list-page-dark.png');
+  });
+});

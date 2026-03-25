@@ -26,6 +26,17 @@ The generation pipeline produces production-ready Hexalith frontend modules from
 
 5. **CI Pipeline** — The CI workflow includes an AI Module Validation step that runs the same validation script. See `.github/workflows/ci.yml`.
 
+## UX Conformance
+
+Generated modules must conform to the [UX Interaction Patterns](../../design-artifacts/C-UX-Scenarios/ux-interaction-patterns.md). This is not optional. Key requirements:
+
+- Page templates (List, Detail, Create, Edit) follow the prescribed structure
+- State handling order: loading → error → empty → data
+- Navigation uses relative paths only
+- Dates formatted with `Intl.DateTimeFormat`, currency with `Intl.NumberFormat`
+- Status badges use CSS module variants with design tokens
+- Forms use Zod schemas as single validation source
+
 ## Reference Module
 
 The `modules/hexalith-orders` module is the reference AI-generated module. It demonstrates:

@@ -199,10 +199,10 @@ describe("parseEslintJson", () => {
     const json = JSON.stringify([{
       filePath: "src/pages/OrderListPage.tsx",
       messages: [{
-        ruleId: "@hexalith/no-direct-radix",
+        ruleId: "no-restricted-imports",
         line: 3,
         column: 1,
-        message: "Direct import of @radix-ui/react-dialog is not allowed",
+        message: "'@radix-ui/react-dialog' import is restricted from being used. Import from @hexalith/ui instead of @radix-ui directly.",
         severity: 2,
       }],
     }]);
@@ -214,7 +214,7 @@ describe("parseEslintJson", () => {
       file: "src/pages/OrderListPage.tsx",
       line: 3,
       column: 1,
-      rule: "@hexalith/no-direct-radix",
+      rule: "no-restricted-imports",
     });
   });
 
@@ -222,10 +222,10 @@ describe("parseEslintJson", () => {
     const json = JSON.stringify([{
       filePath: "src/index.ts",
       messages: [{
-        ruleId: "import/restricted",
+        ruleId: "no-restricted-imports",
         line: 1,
         column: 1,
-        message: "Import from @radix-ui/react-dialog is restricted",
+        message: "'@radix-ui/react-dialog' import is restricted from being used. Import from @hexalith/ui instead of @radix-ui directly.",
         severity: 2,
       }],
     }]);
@@ -257,6 +257,22 @@ describe("parseEslintJson", () => {
 
   it("returns empty array for invalid JSON", () => {
     expect(parseEslintJson("not json")).toEqual([]);
+  });
+
+  it("provides cross-module remediation for Cross-module messages (case-insensitive)", () => {
+    const json = JSON.stringify([{
+      filePath: "src/index.ts",
+      messages: [{
+        ruleId: "no-restricted-imports",
+        line: 2,
+        column: 1,
+        message: "'@hexalith/settings' import is restricted from being used. Cross-module imports are forbidden. Modules can only depend on @hexalith/shell-api, @hexalith/cqrs-client, and @hexalith/ui.",
+        severity: 2,
+      }],
+    }]);
+    const violations = parseEslintJson(json);
+    expect(violations[0].remediation).toContain("@hexalith/shell-api");
+    expect(violations[0].remediation).toContain("@hexalith/ui");
   });
 
   it("returns empty array for clean output", () => {
@@ -307,8 +323,8 @@ describe("parseStylelintJson", () => {
     }]);
     const violations = parseStylelintJson(json);
     expect(violations[0].actual).toBe("#f5f5f5");
-    expect(violations[0].expected).toBe("var(--color-text-primary)");
-    expect(violations[0].remediation).toContain("var(--color-text-primary)");
+    expect(violations[0].expected).toBe("var(--color-*)");
+    expect(violations[0].remediation).toContain("semantic color token");
   });
 
   it("suggests token replacement for hardcoded px spacing", () => {

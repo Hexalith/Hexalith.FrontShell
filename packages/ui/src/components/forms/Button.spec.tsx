@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 
 import { Button } from './Button';
+import { Inline } from '../layout/Inline';
 import { expectNoA11yViolations, setDarkTheme } from '../../test-utils/a11y-helpers';
 
 test.describe('Button accessibility', () => {
@@ -15,5 +16,30 @@ test.describe('Button accessibility', () => {
     await setDarkTheme(page);
     const violations = await expectNoA11yViolations(page);
     expect(violations).toEqual([]);
+  });
+});
+
+test.describe('Button visual regression', () => {
+  test('primary variant - light', async ({ mount, page }) => {
+    await mount(
+      <Inline gap="2">
+        <Button variant="primary">Create</Button>
+        <Button variant="secondary">Edit</Button>
+        <Button variant="ghost">Cancel</Button>
+      </Inline>,
+    );
+    await expect(page).toHaveScreenshot('button-variants-light.png');
+  });
+
+  test('primary variant - dark', async ({ mount, page }) => {
+    await mount(
+      <Inline gap="2">
+        <Button variant="primary">Create</Button>
+        <Button variant="secondary">Edit</Button>
+        <Button variant="ghost">Cancel</Button>
+      </Inline>,
+    );
+    await setDarkTheme(page);
+    await expect(page).toHaveScreenshot('button-variants-dark.png');
   });
 });

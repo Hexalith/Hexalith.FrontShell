@@ -16,6 +16,7 @@ This bundle provides structured, machine-readable platform knowledge for AI agen
 | UI Components      | [ui-components.md](./ui-components.md)           | Component catalog: props, usage examples, accessibility          |
 | Conventions        | [conventions.md](./conventions.md)               | File naming, code naming, import ordering, organization rules    |
 | Scaffold Structure | [scaffold-structure.md](./scaffold-structure.md) | Module directory layout, state handling patterns, page templates |
+| UX Interaction Patterns | [../../design-artifacts/C-UX-Scenarios/ux-interaction-patterns.md](../../design-artifacts/C-UX-Scenarios/ux-interaction-patterns.md) | Prescriptive page templates, navigation, forms, styling, formatting rules |
 | Test Fixtures      | [test-fixtures.md](./test-fixtures.md)           | Mock implementations, test setup, AC marker convention           |
 | Prompt Templates   | [prompts/index.md](./prompts/index.md)           | AI prompt templates for module, command, and projection generation |
 | Generation Pipeline | [generation-pipeline.md](./generation-pipeline.md) | End-to-end generation workflow: domain → prompt → AI → validate → CI |
@@ -29,6 +30,7 @@ This bundle provides structured, machine-readable platform knowledge for AI agen
 5. Follow naming and file organization rules from `conventions.md`.
 6. Match the scaffold structure from `scaffold-structure.md`.
 7. Write tests using fixtures from `test-fixtures.md`.
+8. Conform to UX interaction patterns from `ux-interaction-patterns.md` — page templates, state handling, navigation, formatting, and styling rules are mandatory.
 
 ## Related Documentation
 

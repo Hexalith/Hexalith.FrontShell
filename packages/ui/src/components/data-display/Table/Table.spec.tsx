@@ -5,9 +5,14 @@ import { expectNoA11yViolations, setDarkTheme } from '../../../test-utils/a11y-h
 
 import type { TableColumn } from './Table';
 
-const data = [{ name: 'Contoso' }];
-const columns: TableColumn<{ name: string }>[] = [
-  { id: 'name', header: 'Name', accessorKey: 'name' as const },
+const data = [
+  { name: 'Contoso', status: 'Active' },
+  { name: 'Fabrikam', status: 'Inactive' },
+  { name: 'Northwind', status: 'Active' },
+];
+const columns: TableColumn<{ name: string; status: string }>[] = [
+  { id: 'name', header: 'Name', accessorKey: 'name' as const, isSortable: true },
+  { id: 'status', header: 'Status', accessorKey: 'status' as const },
 ];
 
 test.describe('Table accessibility', () => {
@@ -22,5 +27,18 @@ test.describe('Table accessibility', () => {
     await setDarkTheme(page);
     const violations = await expectNoA11yViolations(page);
     expect(violations).toEqual([]);
+  });
+});
+
+test.describe('Table visual regression', () => {
+  test('with data - light', async ({ mount, page }) => {
+    await mount(<Table data={data} columns={columns} caption="Tenants" sorting pagination />);
+    await expect(page).toHaveScreenshot('table-data-light.png');
+  });
+
+  test('with data - dark', async ({ mount, page }) => {
+    await mount(<Table data={data} columns={columns} caption="Tenants" sorting pagination />);
+    await setDarkTheme(page);
+    await expect(page).toHaveScreenshot('table-data-dark.png');
   });
 });

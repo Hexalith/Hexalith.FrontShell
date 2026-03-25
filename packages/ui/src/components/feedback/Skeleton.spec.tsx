@@ -17,3 +17,21 @@ test.describe('Skeleton accessibility', () => {
     expect(violations).toEqual([]);
   });
 });
+
+test.describe('Skeleton visual regression', () => {
+  test('table variant - light', async ({ mount, page }) => {
+    await mount(<Skeleton variant="table" />);
+    await expect(page).toHaveScreenshot('skeleton-table-light.png');
+  });
+
+  test('detail variant - light', async ({ mount, page }) => {
+    await mount(<Skeleton variant="detail" />);
+    await expect(page).toHaveScreenshot('skeleton-detail-light.png');
+  });
+
+  test('table variant - dark', async ({ mount, page }) => {
+    await mount(<Skeleton variant="table" />);
+    await setDarkTheme(page);
+    await expect(page).toHaveScreenshot('skeleton-table-dark.png');
+  });
+});

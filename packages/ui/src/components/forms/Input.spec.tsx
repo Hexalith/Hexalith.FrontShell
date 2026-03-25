@@ -17,3 +17,16 @@ test.describe('Input accessibility', () => {
     expect(violations).toEqual([]);
   });
 });
+
+test.describe('Input visual regression', () => {
+  test('default state - light', async ({ mount, page }) => {
+    await mount(<Input label="Tenant Name" placeholder="Enter name" />);
+    await expect(page).toHaveScreenshot('input-default-light.png');
+  });
+
+  test('default state - dark', async ({ mount, page }) => {
+    await mount(<Input label="Tenant Name" placeholder="Enter name" />);
+    await setDarkTheme(page);
+    await expect(page).toHaveScreenshot('input-default-dark.png');
+  });
+});

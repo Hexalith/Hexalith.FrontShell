@@ -1,17 +1,6 @@
 ---
 name: bmad-quick-dev
-description: Implement a Quick Tech Spec for small changes or features. Use when the user provides a quick tech spec and says "implement this quick spec" or "proceed with implementation of [quick tech spec]"
+description: 'Implements any user intent, requirement, story, bug fix or change request by producing clean working code artifacts that follow the project''s existing architecture, patterns and conventions. Use when the user wants to build, fix, tweak, refactor, add or modify any code, component or feature.'
 ---
 
-Execute the BMAD 'quick-dev' workflow.
-
-CRITICAL: You must load and follow the workflow definition exactly.
-
-WORKFLOW INSTRUCTIONS:
-
-1. LOAD the workflow file from {project-root}/_bmad/bmm/workflows/bmad-quick-flow/quick-dev/workflow.md
-2. READ its entire contents
-3. FOLLOW every step precisely as specified
-4. DO NOT skip or modify any steps
-
-WORKFLOW FILE: {project-root}/_bmad/bmm/workflows/bmad-quick-flow/quick-dev/workflow.md
+Follow the instructions in ./workflow.md.
