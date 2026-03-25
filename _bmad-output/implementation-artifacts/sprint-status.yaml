@@ -136,7 +136,7 @@ development_status:
   2-7-signalr-connection-and-projection-subscriptions: done
   2-8-etag-query-cache-integration: done
   2-9-preflight-authorization-validation: done
-  epic-2-retrospective: optional
+  epic-2-retrospective: done
 
   # Epic 3: Component Library — Beautiful by Default
   epic-3: in-progress
