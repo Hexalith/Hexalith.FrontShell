@@ -666,20 +666,20 @@ The build sequence is designed so Weeks 1-6 require **zero backend infrastructur
 - Build-time manifest type validation
 - Mock auth provider (hardcoded user, hardcoded tenant)
 
-**Weeks 7-8: Keycloak Integration (Risk #2 — real auth)**
-- `keycloak-js` integration in `ShellProvider`
+**Weeks 7-8: OIDC Integration (Risk #2 — real auth)**
+- `oidc-client-ts` + `react-oidc-context` integration in `ShellProvider` (provider-agnostic — works with Keycloak, Entra ID, or any OIDC provider via runtime `/config.json`)
 - Token management (login, refresh, expiry, logout)
 - Tenant context from token claims
-- CORS configuration (budget extra time — Keycloak dev realm setup is historically the biggest unexpected time sink)
+- CORS configuration (budget extra time — OIDC provider dev realm setup is historically the biggest unexpected time sink)
 - Dev realm with test users
 - HTTP token injection for CQRS hooks
-- Auth-level error boundary (Keycloak unreachable → diagnostic message)
+- Auth-level error boundary (OIDC provider unreachable → diagnostic message)
 - *Start AI generation testing* — try generating a module against current scaffold + mocks + UI
 
 **Weeks 9-10: Real CQRS Implementation (Risk #1 — real backend)**
 - `DaprCommandBus` — HTTP POST to EventStore CommandApi
 - `DaprQueryBus` — HTTP GET to projection APIs
-- Token injection from Keycloak into HTTP headers
+- Token injection from OIDC provider into HTTP headers
 - `useCommand<T>()` hook wrapping `DaprCommandBus`
 - `useProjection<T>()` hook wrapping `DaprQueryBus` (polling initially)
 - Tenants module switched from mocks to real implementations
@@ -722,8 +722,8 @@ The build sequence is designed so Weeks 1-6 require **zero backend infrastructur
 
 | Aspect | Risk | Mitigation |
 |--------|------|-----------|
-| Keycloak JS integration | Library maturity is good, but React lifecycle integration requires care | Use `keycloak-js` directly with custom React provider in `ShellProvider` |
-| Token refresh | Silent token refresh must work without disrupting user session | `keycloak-js` handles this natively with `onTokenExpired` callback |
+| OIDC library integration | `oidc-client-ts` + `react-oidc-context` — provider-agnostic; React lifecycle integration requires care | Use `react-oidc-context` which handles React provider pattern natively. Provider-agnostic: same code works with Keycloak, Entra ID, or any OIDC provider via runtime `/config.json` |
+| Token refresh | Silent token refresh must work without disrupting user session | `oidc-client-ts` handles this natively with silent iframe refresh and `automaticSilentRenew` |
 | Tenant context | Multi-tenant auth — tenant from token claims | Extract tenant from Keycloak token claims; shell-managed tenant selector as fallback |
 | SignalR + Keycloak | SignalR needs access token for hub authentication | Pass token via `accessTokenFactory`; refresh token before reconnect |
 | Dev realm setup | CORS, redirect URIs, token claim mapping — historically the biggest unexpected time sink | Budget extra time in Weeks 7-8; document every debugging step (becomes Getting Started content) |
