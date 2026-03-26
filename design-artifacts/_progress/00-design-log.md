@@ -297,3 +297,11 @@
   - `manifest.ts` — Registered `/edit/:id` route
   - `index.ts` — Exported UpdateOrderCommand type and schema
 - Orders module now has full CRUD parity with tenants: List, Detail, Create, Edit
+
+### Cycle 25: Developer Tutorial — Build Your First Module
+
+**Selected target:** Step-by-step module development tutorial (Medium impact, Medium effort)
+- Status: **Complete**
+- Deliverable: `docs/tutorials/build-your-first-module.md`
+- Coverage: 8 parts — planning, scaffold, structure walkthrough, domain renaming (schemas, data, pages, routes, manifest, exports), dev host testing, writing tests, common pitfalls, integration checklist
+- File updated: `docs/index.md` — Added Tutorials section and "I want to" entry

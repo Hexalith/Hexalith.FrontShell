@@ -16,7 +16,7 @@ Welcome to the Hexalith module developer documentation. These guides cover every
 
 | Task                        | Guide                                                                                                 |
 | --------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Create a new module         | [Getting Started](./getting-started.md)                                                               |
+| Create a new module         | [Getting Started](./getting-started.md) or [Build Your First Module](./tutorials/build-your-first-module.md) |
 | Send a command              | [CQRS Guide — Commands](./cqrs-frontend-guide.md#commands)                                            |
 | Query data                  | [CQRS Guide — Projections](./cqrs-frontend-guide.md#projections)                                      |
 | Add a table, form, or page  | [Module Development — UI Patterns](./module-development.md#ui-component-patterns)                     |
@@ -51,6 +51,10 @@ Welcome to the Hexalith module developer documentation. These guides cover every
 ## Performance
 
 - **[Performance & Bundle Optimization Guide](./performance-guide.md)** — Chunk splitting, lazy loading, caching strategy, Turborepo, CI performance gates, Docker build, and font loading.
+
+## Tutorials
+
+- **[Build Your First Module](./tutorials/build-your-first-module.md)** — Step-by-step walkthrough: scaffold a module, customize the domain, wire sample data, write tests, and verify in the dev host. ~45 minutes.
 
 ## AI Module Generation
 
