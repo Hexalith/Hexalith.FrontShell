@@ -235,3 +235,12 @@
 - Deliverable: `docs/performance-guide.md`
 - Coverage: Chunk splitting strategy (6 vendor groups), route-based lazy loading, lazyWithRetry resilience, browser caching (nginx), Turborepo build caching, library builds (tsup ESM), CI performance gates (build duration tracking, bundle freshness, contracts), Docker multi-stage build, font loading, future opportunities
 - File updated: `docs/index.md` — Added Performance section and "I want to" entry
+
+### Cycle 19: Technical Debt Backlog
+
+**Selected target:** Consolidate technical debt (Low impact, Low effort)
+- Status: **Complete**
+- Deliverable: `G-Product-Development/technical-debt-backlog.md`
+- Audit results: 13 original items → 6 resolved, 7 open (2 high, 4 medium, 1 low)
+- Key finding: Sidebar collapse and coverage gates were already resolved but not tracked
+- Supersedes: `_bmad-output/implementation-artifacts/deferred-work.md`
