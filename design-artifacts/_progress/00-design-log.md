@@ -219,3 +219,11 @@
 - File updated:
   - `tools/create-hexalith-module/templates/module/README.md` — Enriched scaffold template
 - Coverage: 7 READMEs + 1 template so new modules get a README on scaffold
+
+### Cycle 17: E2E & Component Testing Guide
+
+**Selected target:** E2E testing documentation (Medium impact, Low effort)
+- Status: **Complete**
+- Deliverable: `docs/e2e-testing-guide.md`
+- Coverage: Test types overview, E2E config & mock provider swap, mock data setup, writing E2E tests, component tests (Playwright CT), visual regression, accessibility helpers, CI pipeline integration, coverage thresholds, test quality standards, adding E2E tests for new modules, standalone dev-host
+- File updated: `docs/index.md` — Added guide to "I want to" table and Quality & Testing section

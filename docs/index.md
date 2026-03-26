@@ -21,6 +21,7 @@ Welcome to the Hexalith module developer documentation. These guides cover every
 | Query data                  | [CQRS Guide — Projections](./cqrs-frontend-guide.md#projections)                                      |
 | Add a table, form, or page  | [Module Development — UI Patterns](./module-development.md#ui-component-patterns)                     |
 | Write tests                 | [Module Development — Testing](./module-development.md#testing-strategy)                              |
+| Write E2E or component tests| [E2E & Component Testing Guide](./e2e-testing-guide.md)                                               |
 | Publish my module           | [Module Development — Shell Integration](./module-development.md#shell-integration-via-git-submodule) |
 | Look up a hook or component | [API Reference](./api-reference.md)                                                                   |
 | Choose the right component  | [Component Usage Guidelines](../design-artifacts/D-Design-System/component-usage-guidelines.md)       |
@@ -41,6 +42,8 @@ Welcome to the Hexalith module developer documentation. These guides cover every
 ## Quality & Testing
 
 - **[Testing Strategy](./testing-strategy.md)** — Test pyramid, quality standards, AC markers, and contract testing approach.
+
+- **[E2E & Component Testing Guide](./e2e-testing-guide.md)** — Playwright E2E and component tests: configuration, mock providers, visual regression, accessibility validation, CI integration, and how to add tests for new modules.
 
 - **[Accessibility Audit](../design-artifacts/F-Testing/accessibility-audit.md)** — WCAG 2.1 AA compliance report — fully compliant.
 
