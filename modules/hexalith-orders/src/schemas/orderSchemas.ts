@@ -80,3 +80,11 @@ export const CreateOrderCommandSchema = z.object({
 });
 
 export type CreateOrderCommand = z.infer<typeof CreateOrderCommandSchema>;
+
+/**
+ * Command input for updating an existing order.
+ * Same editable fields as create — partial is not needed since all fields are required.
+ */
+export const UpdateOrderCommandSchema = CreateOrderCommandSchema;
+
+export type UpdateOrderCommand = z.infer<typeof UpdateOrderCommandSchema>;

@@ -20,6 +20,12 @@ const OrderCreatePage = lazy(() =>
   })),
 );
 
+const OrderEditPage = lazy(() =>
+  import("./pages/OrderEditPage.js").then((m) => ({
+    default: m.OrderEditPage,
+  })),
+);
+
 function OrderSuspense({ children }: { children: React.ReactNode }) {
   return (
     <Suspense fallback={<Skeleton variant="card" />}>{children}</Suspense>
@@ -57,6 +63,14 @@ export const routes = [
     element: (
       <OrderSuspense>
         <OrderCreatePage />
+      </OrderSuspense>
+    ),
+  },
+  {
+    path: "/edit/:id",
+    element: (
+      <OrderSuspense>
+        <OrderEditPage />
       </OrderSuspense>
     ),
   },

@@ -57,6 +57,10 @@ export function OrderDetailPage() {
     navigate("..");
   }, [navigate]);
 
+  const handleEdit = useCallback(() => {
+    navigate(`../edit/${id}`);
+  }, [id, navigate]);
+
   if (isLoading) {
     return (
       <PageLayout title="Order Details">
@@ -90,6 +94,7 @@ export function OrderDetailPage() {
           <Button variant="ghost" onClick={handleBack}>
             Back
           </Button>
+          <Button onClick={handleEdit}>Edit</Button>
         </Inline>
       }
     >

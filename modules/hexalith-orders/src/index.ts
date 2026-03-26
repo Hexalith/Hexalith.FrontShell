@@ -8,6 +8,7 @@ export type {
   OrderDetail,
   OrderLineItem,
   CreateOrderCommand,
+  UpdateOrderCommand,
 } from "./schemas/orderSchemas.js";
 
 export {
@@ -15,4 +16,5 @@ export {
   OrderDetailSchema,
   OrderLineItemSchema,
   CreateOrderCommandSchema,
+  UpdateOrderCommandSchema,
 } from "./schemas/orderSchemas.js";

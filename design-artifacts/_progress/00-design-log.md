@@ -282,3 +282,18 @@
   - `Select.stories.tsx` — Added InlineVariant, HiddenLabel, DarkTheme stories
 - Debt verified: useQuery unhandled rejection no longer reproduces (360/360 clean)
 - Remaining debt: 1 medium (status bar placeholders), 1 low (manual browser verification)
+
+### Cycle 24: Orders Module — Edit Page
+
+**Selected target:** Complete orders module with edit page (Medium impact, Low effort)
+- Status: **Complete**
+- Files created:
+  - `OrderEditPage.tsx` — Load existing order, pre-fill form, submit UpdateOrder command
+  - `OrderEditPage.test.tsx` — 8 tests: loading, pre-fill, submit, rejection, replay, cancel, missing ID, fetch error
+- Files updated:
+  - `orderSchemas.ts` — Added `UpdateOrderCommandSchema` and `UpdateOrderCommand` type
+  - `OrderDetailPage.tsx` — Added Edit button with `navigate(\`../edit/${id}\`)`
+  - `routes.tsx` — Added lazy-loaded `/edit/:id` route
+  - `manifest.ts` — Registered `/edit/:id` route
+  - `index.ts` — Exported UpdateOrderCommand type and schema
+- Orders module now has full CRUD parity with tenants: List, Detail, Create, Edit
