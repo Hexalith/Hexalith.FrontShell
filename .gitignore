@@ -461,4 +461,4 @@ pnpm-debug.log*
 
 
 #Ignore cursor AI rules
-.cursor\rules\codacy.mdc
+.cursor/rules/codacy.mdc
