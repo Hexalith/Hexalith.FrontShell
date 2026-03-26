@@ -22,6 +22,7 @@ Welcome to the Hexalith module developer documentation. These guides cover every
 | Add a table, form, or page  | [Module Development — UI Patterns](./module-development.md#ui-component-patterns)                     |
 | Write tests                 | [Module Development — Testing](./module-development.md#testing-strategy)                              |
 | Write E2E or component tests| [E2E & Component Testing Guide](./e2e-testing-guide.md)                                               |
+| Understand bundle optimization | [Performance & Bundle Optimization Guide](./performance-guide.md)                                  |
 | Publish my module           | [Module Development — Shell Integration](./module-development.md#shell-integration-via-git-submodule) |
 | Look up a hook or component | [API Reference](./api-reference.md)                                                                   |
 | Choose the right component  | [Component Usage Guidelines](../design-artifacts/D-Design-System/component-usage-guidelines.md)       |
@@ -46,6 +47,10 @@ Welcome to the Hexalith module developer documentation. These guides cover every
 - **[E2E & Component Testing Guide](./e2e-testing-guide.md)** — Playwright E2E and component tests: configuration, mock providers, visual regression, accessibility validation, CI integration, and how to add tests for new modules.
 
 - **[Accessibility Audit](../design-artifacts/F-Testing/accessibility-audit.md)** — WCAG 2.1 AA compliance report — fully compliant.
+
+## Performance
+
+- **[Performance & Bundle Optimization Guide](./performance-guide.md)** — Chunk splitting, lazy loading, caching strategy, Turborepo, CI performance gates, Docker build, and font loading.
 
 ## AI Module Generation
 

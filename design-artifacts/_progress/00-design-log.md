@@ -227,3 +227,11 @@
 - Deliverable: `docs/e2e-testing-guide.md`
 - Coverage: Test types overview, E2E config & mock provider swap, mock data setup, writing E2E tests, component tests (Playwright CT), visual regression, accessibility helpers, CI pipeline integration, coverage thresholds, test quality standards, adding E2E tests for new modules, standalone dev-host
 - File updated: `docs/index.md` — Added guide to "I want to" table and Quality & Testing section
+
+### Cycle 18: Performance & Bundle Optimization Guide
+
+**Selected target:** Performance documentation (Medium impact, Low effort)
+- Status: **Complete**
+- Deliverable: `docs/performance-guide.md`
+- Coverage: Chunk splitting strategy (6 vendor groups), route-based lazy loading, lazyWithRetry resilience, browser caching (nginx), Turborepo build caching, library builds (tsup ESM), CI performance gates (build duration tracking, bundle freshness, contracts), Docker multi-stage build, font loading, future opportunities
+- File updated: `docs/index.md` — Added Performance section and "I want to" entry
