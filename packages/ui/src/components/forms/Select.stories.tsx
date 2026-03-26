@@ -74,3 +74,63 @@ export const Disabled: Story = {
     disabled: true,
   },
 };
+
+export const InlineVariant: Story = {
+  name: 'Inline Variant (Status Bar)',
+  args: {
+    label: 'Switch tenant',
+    hideLabel: true,
+    variant: 'inline',
+    value: 'tenant-alpha',
+    options: [
+      { value: 'tenant-alpha', label: 'Acme Corporation' },
+      { value: 'tenant-beta', label: 'TechVentures Inc.' },
+      { value: 'tenant-gamma', label: 'Northern Logistics' },
+    ],
+  },
+  decorators: [
+    (Story) => (
+      <div style={{
+        background: 'var(--color-surface-secondary)',
+        padding: 'var(--spacing-2) var(--spacing-3)',
+        borderRadius: 'var(--spacing-1)',
+        display: 'inline-flex',
+        alignItems: 'center',
+      }}>
+        <Story />
+      </div>
+    ),
+  ],
+};
+
+export const HiddenLabel: Story = {
+  name: 'Hidden Label',
+  args: {
+    label: 'Category',
+    hideLabel: true,
+    value: 'engineering',
+    options: [
+      { value: 'engineering', label: 'Engineering' },
+      { value: 'marketing', label: 'Marketing' },
+      { value: 'finance', label: 'Finance' },
+    ],
+  },
+};
+
+export const DarkTheme: Story = {
+  args: {
+    ...Default.args,
+    value: 'europe-west',
+  },
+  decorators: [
+    (Story) => (
+      <div data-theme="dark" style={{
+        background: 'var(--color-surface-primary)',
+        padding: 'var(--spacing-4)',
+        borderRadius: 'var(--spacing-2)',
+      }}>
+        <Story />
+      </div>
+    ),
+  ],
+};

@@ -273,3 +273,12 @@
   - `apps/shell` StatusBar: Swapped native `<select>` for `<Select>` with `hideLabel` + `variant="inline"`
   - CSS truncation via `text-overflow: ellipsis` replaces JS `truncateName` function
   - Tests: Mocked Select to isolate from Radix internals; 225/225 passing
+
+### Cycle 23: Select Stories + Debt Cleanup
+
+**Selected target:** Storybook stories for new Select variants + debt verification
+- Status: **Complete**
+- Files updated:
+  - `Select.stories.tsx` — Added InlineVariant, HiddenLabel, DarkTheme stories
+- Debt verified: useQuery unhandled rejection no longer reproduces (360/360 clean)
+- Remaining debt: 1 medium (status bar placeholders), 1 low (manual browser verification)

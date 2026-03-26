@@ -13,7 +13,7 @@ No high-priority items remaining.
 | # | Item | Source | Impact | Effort | Notes |
 |---|------|--------|--------|--------|-------|
 | ~~3~~ | ~~`packages/` in `.gitignore`~~ | Story 2.7 | — | — | **Resolved** — `git check-ignore` confirms files are not ignored. Re-inclusion rules work correctly. |
-| 4 | **Unhandled rejection warning in useQuery.test.ts** | Story 2.5 | Test console noise only; no production impact | Low | Pre-existing async warning. Suppress or fix the unhandled promise in the test. |
+| ~~4~~ | ~~Unhandled rejection warning in useQuery.test.ts~~ | Story 2.5 | — | — | **Resolved** — Warning no longer reproduces. 360/360 tests pass cleanly. |
 | 5 | **Status bar placeholder segments** | Epic 1 | Last-command and connection segments show em-dash placeholders | Low | Replace with live data once CQRS command tracking and connection health are wired to the status bar. |
 | ~~6~~ | ~~Native HTML select for tenant switching~~ | Epic 1 | — | — | **Resolved** — StatusBar now uses `@hexalith/ui` Select with `variant="inline"` and `hideLabel`. |
 
@@ -39,6 +39,7 @@ Kept for historical reference. No action needed.
 | Import-order errors in test files | Stories 2.5, 2.6 | Fixed via `eslint --fix` (Button.spec.tsx) |
 | `packages/` in `.gitignore` | Story 2.7 | Verified: `git check-ignore` confirms re-inclusion rules work correctly |
 | Native HTML select for tenant switching | Epic 1 | StatusBar uses `@hexalith/ui` Select with `variant="inline"` and `hideLabel` |
+| Unhandled rejection in useQuery.test.ts | Story 2.5 | Warning no longer reproduces; 360/360 tests pass cleanly |
 
 ## How to Use This File
 
