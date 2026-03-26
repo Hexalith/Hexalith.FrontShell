@@ -263,3 +263,13 @@
 - Sprint status: Marked epics 3-6 as done (all stories complete)
 - Debt #3 (`.gitignore`): Verified resolved — `git check-ignore` confirms re-inclusion rules work
 - Debt backlog updated: 0 high, 3 medium, 1 low remaining
+
+### Cycle 22: StatusBar — Design System Select
+
+**Selected target:** Replace native `<select>` with `@hexalith/ui` Select (Medium debt item)
+- Status: **Complete**
+- Changes:
+  - `packages/ui` Select: Added `hideLabel` prop (visually hidden, accessible) and `variant="inline"` (transparent trigger, compact)
+  - `apps/shell` StatusBar: Swapped native `<select>` for `<Select>` with `hideLabel` + `variant="inline"`
+  - CSS truncation via `text-overflow: ellipsis` replaces JS `truncateName` function
+  - Tests: Mocked Select to isolate from Radix internals; 225/225 passing

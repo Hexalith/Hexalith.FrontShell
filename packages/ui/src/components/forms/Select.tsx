@@ -36,6 +36,10 @@ export interface SelectProps {
   isSearchable?: boolean;
   /** Shows required indicator — defaults to false */
   required?: boolean;
+  /** Visually hide label (still accessible to screen readers) — defaults to false */
+  hideLabel?: boolean;
+  /** Visual variant — 'default' for forms, 'inline' for compact/embedded contexts */
+  variant?: 'default' | 'inline';
   /** Additional CSS class */
   className?: string;
 }
@@ -109,6 +113,8 @@ export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
       error,
       isSearchable = false,
       required = false,
+      hideLabel = false,
+      variant = 'default',
       className,
     },
     ref,
@@ -180,7 +186,7 @@ export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
       <div
         className={clsx(styles.root, disabled && styles.disabled, className)}
       >
-        <label className={styles.label} htmlFor={triggerId}>
+        <label className={clsx(styles.label, hideLabel && styles.labelHidden)} htmlFor={triggerId}>
           {label}
           {required && (
             <span className={styles.requiredIndicator} aria-hidden="true">
@@ -198,7 +204,7 @@ export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
           <RadixSelect.Trigger
             ref={ref}
             id={triggerId}
-            className={styles.trigger}
+            className={clsx(styles.trigger, variant === 'inline' && styles.triggerInline)}
             aria-required={required ? 'true' : undefined}
             aria-invalid={error ? 'true' : undefined}
             aria-describedby={error ? errorId : undefined}

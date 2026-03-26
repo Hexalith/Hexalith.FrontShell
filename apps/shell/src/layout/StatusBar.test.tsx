@@ -18,6 +18,40 @@ import type {
 
 import { StatusBar } from "./StatusBar";
 
+// Mock @hexalith/ui Select so tests don't depend on Radix internals.
+// The Select component itself is tested in packages/ui.
+vi.mock("@hexalith/ui", () => ({
+  Select: ({
+    label,
+    options,
+    value,
+    onChange,
+    disabled,
+  }: {
+    label: string;
+    options: Array<{ value: string; label: string }>;
+    value?: string;
+    onChange?: (value: string) => void;
+    disabled?: boolean;
+    [key: string]: unknown;
+  }) => (
+    <select
+      aria-label={label}
+      value={value}
+      onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+        onChange?.(e.target.value)
+      }
+      disabled={disabled}
+    >
+      {options.map((o) => (
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
+      ))}
+    </select>
+  ),
+}));
+
 // Mock modules so useActiveModule resolves active module from route
 vi.mock("../modules", async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>;
@@ -76,9 +110,7 @@ function renderStatusBar(overrides?: {
 describe("AC #1 — Status bar renders 4 segments", () => {
   it("renders tenant context segment", () => {
     renderStatusBar();
-    // Tenant name appears in both <span> and <option> — use getAllByText
-    const matches = screen.getAllByText(/test-tenant/);
-    expect(matches.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByLabelText("Switch tenant")).toBeTruthy();
   });
 
   it("renders connection health segment", () => {
@@ -126,25 +158,30 @@ describe("AC #3 — Tenant segment typography", () => {
   });
 });
 
-describe("AC #8 — Tenant name truncation", () => {
-  it("truncates tenant name at 20 characters with tooltip", () => {
+describe("AC #8 — Tenant name display", () => {
+  it("displays long tenant name in select options", () => {
+    const longName = "A Very Long Tenant Name That Exceeds Limit";
     renderStatusBar({
       tenantContext: {
-        activeTenant: "A Very Long Tenant Name That Exceeds Limit",
+        activeTenant: longName,
+        availableTenants: [longName],
       },
     });
-    const truncated = screen.getByText("A Very Long Tenant N...");
-    expect(truncated).toBeTruthy();
-    expect(truncated.getAttribute("title")).toBe(
-      "A Very Long Tenant Name That Exceeds Limit",
-    );
+    const select = screen.getByLabelText("Switch tenant") as HTMLSelectElement;
+    expect(select.value).toBe(longName);
+    const option = select.querySelector("option");
+    expect(option?.textContent).toBe(longName);
   });
 
-  it("does not truncate names with 20 or fewer characters", () => {
+  it("displays short tenant names", () => {
     renderStatusBar({
-      tenantContext: { activeTenant: "Short Tenant" },
+      tenantContext: {
+        activeTenant: "Short Tenant",
+        availableTenants: ["Short Tenant"],
+      },
     });
-    expect(screen.getByText("Short Tenant")).toBeTruthy();
+    const select = screen.getByLabelText("Switch tenant") as HTMLSelectElement;
+    expect(select.value).toBe("Short Tenant");
   });
 });
 
@@ -199,14 +236,12 @@ describe("AC #4 — Tenant dropdown", () => {
         availableTenants: [],
       },
     });
-    // "No tenant" appears in both <span> label and <option> — use getAllByText
-    const matches = screen.getAllByText(/No tenant/);
-    expect(matches.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("No tenant")).toBeTruthy();
     const select = screen.getByLabelText("Switch tenant") as HTMLSelectElement;
     expect(select.disabled).toBe(true);
   });
 
-  it("dropdown options show full tenant names (no truncation)", () => {
+  it("dropdown options show full tenant names", () => {
     const longName = "A Very Long Tenant Name That Exceeds Limit";
     renderStatusBar({
       tenantContext: {

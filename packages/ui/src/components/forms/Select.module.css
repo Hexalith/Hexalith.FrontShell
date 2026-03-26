@@ -13,6 +13,18 @@
     line-height: var(--line-height-normal);
   }
 
+  .labelHidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
   .requiredIndicator {
     color: var(--color-status-danger);
     margin-left: var(--spacing-1);
@@ -35,6 +47,17 @@
     transition-property: border-color, box-shadow;
     transition-duration: var(--transition-duration-fast);
     transition-timing-function: var(--transition-easing-default);
+  }
+
+  .triggerInline {
+    background-color: transparent;
+    border-color: transparent;
+    padding: var(--spacing-1) var(--spacing-2);
+    font-size: var(--font-size-sm);
+  }
+
+  .triggerInline:hover {
+    background-color: var(--color-surface-secondary);
   }
 
   .trigger:focus-visible {

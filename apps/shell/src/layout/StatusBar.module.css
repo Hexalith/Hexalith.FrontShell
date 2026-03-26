@@ -37,23 +37,17 @@
 }
 
 .tenantSelect {
-  appearance: none;
-  background: transparent;
-  border: none;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-  padding: 0;
+  gap: 0;
 }
 
-.tenantSelect:disabled {
-  cursor: default;
-  opacity: 0.7;
+.tenantSelect button {
+  max-width: 180px;
 }
 
-.tenantSelect:focus-visible {
-  outline: 2px solid var(--color-accent-default);
-  outline-offset: 2px;
+.tenantSelect button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .healthDot {
