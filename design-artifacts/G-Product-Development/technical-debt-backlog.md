@@ -6,10 +6,7 @@ Single source of truth for all known technical debt. Updated 2026-03-26.
 
 ### HIGH — Fix before next feature epic
 
-| # | Item | Source | Impact | Effort | Notes |
-|---|------|--------|--------|--------|-------|
-| 1 | **Stylelint plugin build-order dependency** | Epic 2 retro | Lint-staged pre-commit fails if `packages/ui/dist/` not built | Low | `.stylelintrc.json` references `./packages/ui/dist/tokenCompliance.js`. Pre-commit must skip stylelint or ensure `ui` is built first. |
-| 2 | **Import-order errors in test files** | Stories 2.5, 2.6 | Lint noise; pre-commit may flag untouched files | Low | Pre-existing violations in test files that were not modified during Epics 1-2. Fix: batch auto-fix with `eslint --fix`. |
+No high-priority items remaining.
 
 ### MEDIUM — Address during next epic
 
@@ -38,6 +35,8 @@ Kept for historical reference. No action needed.
 | Responsive sidebar collapse | Epic 1 | Fully implemented with media query breakpoint |
 | Coverage gates (80%/95%) | Epic 1 | 95% for foundation packages, 80% for modules/apps — enforced in CI |
 | No consolidated debt backlog | Epic 1, Epic 2 | This file |
+| Stylelint plugin build-order dependency | Epic 2 retro | Pre-commit hook now builds UI package before lint-staged |
+| Import-order errors in test files | Stories 2.5, 2.6 | Fixed via `eslint --fix` (Button.spec.tsx) |
 
 ## How to Use This File
 

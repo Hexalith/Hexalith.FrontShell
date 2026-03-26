@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/experimental-ct-react';
 
 import { Button } from './Button';
-import { Inline } from '../layout/Inline';
 import { expectNoA11yViolations, setDarkTheme } from '../../test-utils/a11y-helpers';
+import { Inline } from '../layout/Inline';
 
 test.describe('Button accessibility', () => {
   test('has no a11y violations in light theme', async ({ mount, page }) => {

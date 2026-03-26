@@ -244,3 +244,14 @@
 - Audit results: 13 original items → 6 resolved, 7 open (2 high, 4 medium, 1 low)
 - Key finding: Sidebar collapse and coverage gates were already resolved but not tracked
 - Supersedes: `_bmad-output/implementation-artifacts/deferred-work.md`
+
+### Cycle 20: Fix High-Priority Technical Debt
+
+**Selected target:** Fix 2 high-priority debt items + template lint failure
+- Status: **Complete**
+- Fixes:
+  1. **Stylelint build-order** — Pre-commit hook now builds `@hexalith/ui` before lint-staged, ensuring `tokenCompliance.js` exists
+  2. **Import-order violation** — Fixed `Button.spec.tsx` import ordering via `eslint --fix`
+  3. **Template ExampleEditPage.test.tsx** — Fixed 3 bugs: wrong import name (`DETAIL_QUERY` → `EXAMPLE_DETAIL_QUERY`), missing `Routes`/`Route` wrapper, wrong option name (`routePath` → `initialRoute`)
+  4. **tsconfig.templates.json** — Updated stale pnpm store paths for `@vitejs/plugin-react` and `vite`
+- Verification: `pnpm turbo lint --force` passes 8/8 tasks (0 errors)

@@ -1,1 +1,4 @@
+# Build UI package so stylelint tokenCompliance plugin is available
+pnpm --filter @hexalith/ui build --silent 2>/dev/null
+
 pnpm exec lint-staged
