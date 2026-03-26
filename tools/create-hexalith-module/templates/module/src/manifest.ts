@@ -25,6 +25,7 @@ export const manifest: ModuleManifest = {
     { path: "/" },
     { path: "/detail/:id" },
     { path: "/create" },
+    { path: "/edit/:id" },
   ],
 
   /** Sidebar / top-nav entries. `path` must match a declared route. */

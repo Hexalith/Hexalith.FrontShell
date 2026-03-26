@@ -41,3 +41,36 @@ export const Default: Story = {
     ],
   },
 };
+
+export const FlatOptions: Story = {
+  name: 'Flat Options (Status Filter)',
+  args: {
+    label: 'Status',
+    options: [
+      { value: 'active', label: 'Active' },
+      { value: 'suspended', label: 'Suspended' },
+      { value: 'provisioning', label: 'Provisioning' },
+    ],
+  },
+};
+
+export const WithError: Story = {
+  args: {
+    label: 'Priority',
+    options: [
+      { value: 'low', label: 'Low' },
+      { value: 'high', label: 'High' },
+    ],
+    error: 'Priority is required',
+    required: true,
+  },
+};
+
+export const Disabled: Story = {
+  args: {
+    label: 'Region',
+    value: 'europe-west',
+    options: [{ value: 'europe-west', label: 'Europe West' }],
+    disabled: true,
+  },
+};

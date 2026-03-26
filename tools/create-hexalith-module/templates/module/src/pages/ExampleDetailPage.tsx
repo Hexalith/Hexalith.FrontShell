@@ -44,6 +44,10 @@ export function ExampleDetailPage() {
     navigate("..");
   }, [navigate]);
 
+  const handleEdit = useCallback(() => {
+    navigate(`../edit/${id}`);
+  }, [navigate, id]);
+
   if (isLoading) {
     return (
       <PageLayout title="Item Details">
@@ -77,7 +81,7 @@ export function ExampleDetailPage() {
           <Button variant="ghost" onClick={handleBack}>
             Back
           </Button>
-          <Button variant="secondary">Edit</Button>
+          <Button variant="secondary" onClick={handleEdit}>Edit</Button>
           <Button variant="secondary">Delete</Button>
         </Inline>
       }

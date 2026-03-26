@@ -55,3 +55,16 @@ export const Default: Story = {
     onRowClick: () => {},
   },
 };
+
+export const DarkTheme: Story = {
+  args: {
+    ...Default.args,
+  },
+  decorators: [
+    (Story) => (
+      <div data-theme="dark" style={{ background: 'var(--color-surface-primary)', padding: 'var(--spacing-5)' }}>
+        <Story />
+      </div>
+    ),
+  ],
+};

@@ -756,6 +756,7 @@ const GATE_DISPLAY_NAMES: Record<string, string> = {
   coverage: "Coverage",
   accessibility: "Accessibility",
   manifest: "Manifest",
+  "ux-patterns": "UX Patterns",
 };
 
 /** Human-readable text format (AC: #1, #6) */
@@ -1077,6 +1078,99 @@ async function runAccessibilityGate(absoluteModulePath: string): Promise<GateRes
   return { gate: "accessibility", status: "pass", violations: [], duration_ms: Date.now() - start };
 }
 
+function runUxPatternsGate(absoluteModulePath: string): GateResult {
+  const start = Date.now();
+  const violations: GateViolation[] = [];
+  const pagesDir = resolve(absoluteModulePath, "src", "pages");
+
+  if (!existsSync(pagesDir)) {
+    return { gate: "ux-patterns", status: "pass", violations: [], duration_ms: Date.now() - start };
+  }
+
+  const pageFiles = collectFiles(pagesDir, (fp) =>
+    fp.endsWith(".tsx") && !fp.endsWith(".test.tsx") && !fp.endsWith(".spec.tsx") && !fp.endsWith(".stories.tsx") && !fp.endsWith(".module.css"),
+  );
+
+  for (const filePath of pageFiles) {
+    const content = readFileSync(filePath, "utf-8");
+    const fileName = filePath.replace(/\\/g, "/").split("/").pop() ?? filePath;
+
+    // Check state handling in list pages
+    if (fileName.includes("List")) {
+      if (!content.includes("Skeleton")) {
+        violations.push({
+          gate: "ux-patterns",
+          severity: "warning",
+          file: filePath,
+          message: "List page missing loading state (Skeleton)",
+          remediation: 'Add `if (isLoading) return <Skeleton variant="table" />`',
+        });
+      }
+      if (!content.includes("ErrorDisplay")) {
+        violations.push({
+          gate: "ux-patterns",
+          severity: "warning",
+          file: filePath,
+          message: "List page missing error state (ErrorDisplay)",
+          remediation: "Add `if (error) return <ErrorDisplay error={error} onRetry={refetch} />`",
+        });
+      }
+      if (!content.includes("EmptyState")) {
+        violations.push({
+          gate: "ux-patterns",
+          severity: "warning",
+          file: filePath,
+          message: "List page missing empty state (EmptyState)",
+          remediation: "Add `if (!data?.length) return <EmptyState ... />`",
+        });
+      }
+    }
+
+    // Check for absolute navigation paths
+    const absoluteNavPattern = /navigate\(\s*["'`]\/[a-z]/g;
+    let navMatch: RegExpExecArray | null;
+    while ((navMatch = absoluteNavPattern.exec(content)) !== null) {
+      const lineNumber = content.substring(0, navMatch.index).split("\n").length;
+      violations.push({
+        gate: "ux-patterns",
+        severity: "warning",
+        file: filePath,
+        line: lineNumber,
+        message: "Absolute navigation path detected — use relative paths",
+        remediation: 'Use navigate(".."), navigate("create"), navigate(`detail/${id}`)',
+      });
+    }
+
+    // Check for manual date formatting instead of Intl.DateTimeFormat
+    const manualDatePatterns = [
+      /\.toLocaleDateString\(/g,
+      /\.toLocaleString\(/g,
+      /\.toDateString\(/g,
+    ];
+    for (const pattern of manualDatePatterns) {
+      let dateMatch: RegExpExecArray | null;
+      while ((dateMatch = pattern.exec(content)) !== null) {
+        const lineNumber = content.substring(0, dateMatch.index).split("\n").length;
+        violations.push({
+          gate: "ux-patterns",
+          severity: "warning",
+          file: filePath,
+          line: lineNumber,
+          message: "Manual date formatting detected — use Intl.DateTimeFormat",
+          remediation: 'Use new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(value))',
+        });
+      }
+    }
+  }
+
+  return {
+    gate: "ux-patterns",
+    status: violations.some((v) => v.severity === "error") ? "fail" : "pass",
+    violations,
+    duration_ms: Date.now() - start,
+  };
+}
+
 async function runManifestGate(absoluteModulePath: string): Promise<GateResult> {
   const start = Date.now();
 
@@ -1221,6 +1315,7 @@ async function main(): Promise<void> {
   gates.push(await runTestGate(absoluteModulePath));
   gates.push(await runAccessibilityGate(absoluteModulePath));
   gates.push(await runManifestGate(absoluteModulePath));
+  gates.push(runUxPatternsGate(absoluteModulePath));
 
   const report = buildReport(packageName, cliArgs.modulePath, gates);
   outputReport(report, cliArgs);

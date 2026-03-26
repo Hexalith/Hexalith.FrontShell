@@ -23,11 +23,31 @@ Welcome to the Hexalith module developer documentation. These guides cover every
 | Write tests                 | [Module Development — Testing](./module-development.md#testing-strategy)                              |
 | Publish my module           | [Module Development — Shell Integration](./module-development.md#shell-integration-via-git-submodule) |
 | Look up a hook or component | [API Reference](./api-reference.md)                                                                   |
+| Choose the right component  | [Component Usage Guidelines](../design-artifacts/D-Design-System/component-usage-guidelines.md)       |
+| Use a design token          | [Design Token Reference](../design-artifacts/D-Design-System/design-token-reference.md)               |
+| Build a page correctly      | [UX Interaction Patterns](../design-artifacts/C-UX-Scenarios/ux-interaction-patterns.md)              |
+| Contribute to the platform  | [CONTRIBUTING.md](../CONTRIBUTING.md)                                                                 |
+
+## Design & UX
+
+- **[Product Vision](../design-artifacts/A-Product-Brief/product-vision.md)** — Strategic direction, priorities, and roadmap for Hexalith FrontShell.
+
+- **[UX Interaction Patterns](../design-artifacts/C-UX-Scenarios/ux-interaction-patterns.md)** — Mandatory page templates (List, Detail, Create, Edit), state handling, navigation, forms, CQRS integration, and styling rules.
+
+- **[Design Token Reference](../design-artifacts/D-Design-System/design-token-reference.md)** — Complete catalog of CSS custom properties: colors, spacing, typography, motion, radius, z-index, and shadows.
+
+- **[Component Usage Guidelines](../design-artifacts/D-Design-System/component-usage-guidelines.md)** — Decision trees, composition recipes, variant guides, and common mistakes.
+
+## Quality & Testing
+
+- **[Testing Strategy](./testing-strategy.md)** — Test pyramid, quality standards, AC markers, and contract testing approach.
+
+- **[Accessibility Audit](../design-artifacts/F-Testing/accessibility-audit.md)** — WCAG 2.1 AA compliance report — fully compliant.
 
 ## AI Module Generation
 
 - **[AI Knowledge Bundle](./ai-knowledge-bundle/index.md)** — Structured, machine-readable platform knowledge for AI agents. Includes manifest schema (JSON Schema), CQRS hook APIs, UI component catalog, naming conventions, scaffold structure, and test fixtures. Use this bundle when generating modules with AI assistance.
 
-## Interactive documentation
+## Interactive Documentation
 
-- **Storybook** — Interactive component catalog with live examples, prop controls, and accessibility audits. Run with `pnpm storybook` (or `pnpm -F @hexalith/ui storybook`).
+- **Storybook** — Interactive component catalog with live examples, prop controls, accessibility audits, and dark theme previews. Run with `pnpm storybook` (or `pnpm -F @hexalith/ui storybook`).

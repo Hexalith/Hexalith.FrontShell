@@ -128,3 +128,13 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
+
+export const DarkTheme: Story = {
+  decorators: [
+    (Story) => (
+      <div data-theme="dark" style={{ background: 'var(--color-surface-primary)', minHeight: '100vh' }}>
+        <Story />
+      </div>
+    ),
+  ],
+};

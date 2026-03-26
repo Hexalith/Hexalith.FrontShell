@@ -77,3 +77,11 @@ export const CreateExampleCommandSchema = z.object({
 });
 
 export type CreateExampleInput = z.infer<typeof CreateExampleCommandSchema>;
+
+/**
+ * Command input for updating an existing example entity.
+ * Same fields as create but all optional (partial update).
+ */
+export const UpdateExampleCommandSchema = CreateExampleCommandSchema.partial();
+
+export type UpdateExampleInput = z.infer<typeof UpdateExampleCommandSchema>;

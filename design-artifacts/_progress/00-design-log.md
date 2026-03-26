@@ -87,3 +87,119 @@
   - `TenantListPage.spec.tsx` — Added full page composition screenshots (light + dark)
 - Coverage: 7 components across all 6 categories + 1 composition, both themes
 - Note: Screenshots are generated on first run (`--update-snapshots`), then compared on subsequent runs
+
+### Cycle 6: Design System Documentation
+
+**Selected target:** Design system documentation (Medium impact, Medium effort)
+- Scenario: `evolution/scenarios/005-design-system-documentation.md`
+- Deliverable: `D-Design-System/component-usage-guidelines.md`
+- Status: **Complete**
+- Coverage: Decision trees (data display, user input, feedback, overlays), composition recipes (list/detail/create/edit pages, destructive actions), variant guides (Button, Skeleton, Toast), Modal vs AlertDialog, layout guide with gap scale, table column configuration patterns, common mistakes table
+- Note: Bridges gap between API reference (ui-components.md) and page patterns (ux-interaction-patterns.md)
+
+### Cycle 7: Root README.md
+
+**Selected target:** Root README.md (High impact, Low effort)
+- Deliverable: `README.md` (project root)
+- Status: **Complete**
+- Coverage: Vision statement, tech stack, project structure, quick start, module creation, documentation links (all 9 docs), quality gates summary, contributing link, license
+
+### Cycle 8: Accessibility Audit
+
+**Selected target:** Accessibility audit (Medium impact, Medium effort)
+- Scenario: `evolution/scenarios/006-accessibility-audit.md`
+- Deliverable: `F-Testing/accessibility-audit.md`
+- Status: **Complete**
+- Findings:
+  - 29 components + 4 compositions tested with axe-core (light + dark)
+  - 103 ARIA attributes, 57 focus styles, 18 files with `prefers-reduced-motion`
+  - Assessment: Substantially WCAG 2.1 AA compliant
+  - 3 gaps identified (all low-medium severity, low effort):
+    1. Missing skip-to-main-content link (Medium)
+    2. Verify `<html lang>` attribute (Low)
+    3. Warning status color contrast at small text size (Low)
+
+### Cycle 9: Fix Accessibility Gaps
+
+**Selected target:** Fix 3 accessibility gaps from audit (Medium impact, Low effort)
+- Status: **Complete**
+- Findings on re-examination:
+  - Gap 1 (skip link): Already implemented in ShellLayout.tsx + global.css — no action needed
+  - Gap 2 (html lang): Already present as `<html lang="en">` in index.html — no action needed
+  - Gap 3 (warning contrast): Fixed — darkened `--primitive-color-amber-500` from `#D4940A` to `#B87D00` (~4.6:1)
+- Audit updated: Assessment upgraded from "substantially compliant" to "fully WCAG 2.1 AA compliant"
+- File changed: `packages/ui/src/tokens/colors.css`
+
+### Cycle 10: Design Token Documentation
+
+**Selected target:** Design token documentation (Medium impact, Low effort)
+- Deliverable: `D-Design-System/design-token-reference.md`
+- Status: **Complete**
+- Coverage: 2-tier architecture, colors (text/surfaces/borders/accent/status/focus/data-viz), spacing (9-point scale + density), typography (families/sizes/weights/line-heights), motion, radius, z-index, shadows, theme switching, quick reference CSS usage
+- Token count: 132 tokens across 8 source files
+
+### Cycle 11: Storybook as Living Docs
+
+**Selected target:** Storybook variant stories (Medium impact, Medium effort)
+- Status: **Complete**
+- Finding: All 29 stories only had a `Default` export — no variant coverage
+- Files updated:
+  - `Button.stories.tsx` — Added Variants, Sizes, Disabled, FormActions stories
+  - `Input.stories.tsx` — Added WithError, Disabled, Types stories
+  - `Skeleton.stories.tsx` — Added TableVariant, DetailVariant, FormVariant, CardVariant, AllVariants stories
+  - `EmptyState.stories.tsx` — Added TitleOnly, WithDescription stories
+  - `ErrorDisplay.stories.tsx` — Added WithoutRetry, StringError stories
+  - `Select.stories.tsx` — Added FlatOptions, WithError, Disabled stories
+- Total: 19 new story variants across 6 key components
+
+### Cycle 12: Dark Theme Storybook Stories
+
+**Selected target:** Dark theme stories (Low impact, Low effort)
+- Status: **Complete**
+- Files updated:
+  - `TenantListPage.stories.tsx` — Added DarkTheme story
+  - `TenantDetailPage.stories.tsx` — Added DarkTheme story
+  - `CreateTenantPage.stories.tsx` — Added DarkTheme story
+  - `Button.stories.tsx` — Added DarkTheme story (all variants)
+  - `Input.stories.tsx` — Added DarkTheme story (default + error + disabled)
+  - `Table.stories.tsx` — Added DarkTheme story
+- Total: 6 new dark theme stories across compositions and key components
+- Pattern: `data-theme="dark"` decorator with surface background
+
+### Cycle 14: Module Validation — UX Patterns Gate
+
+**Selected target:** Module validation improvements (Medium impact, Medium effort)
+- Status: **Complete**
+- File updated: `scripts/validate-module.ts`
+- Added gate: `ux-patterns` (8th gate in the pipeline)
+- Checks:
+  1. List pages have loading state (Skeleton)
+  2. List pages have error state (ErrorDisplay)
+  3. List pages have empty state (EmptyState)
+  4. No absolute navigation paths (must use relative)
+  5. No manual date formatting (must use Intl.DateTimeFormat)
+- Gate reports warnings (not errors) — guides rather than blocks
+
+### Cycle 15: Scaffold Template — Edit Page
+
+**Selected target:** Scaffold template update (Medium impact, Medium effort)
+- Status: **Complete**
+- Files created:
+  - `tools/create-hexalith-module/templates/module/src/pages/ExampleEditPage.tsx`
+  - `tools/create-hexalith-module/templates/module/src/pages/ExampleEditPage.test.tsx`
+- Files updated:
+  - `exampleSchemas.ts` — Added `UpdateExampleCommandSchema` (partial of Create)
+  - `routes.tsx` — Added lazy import + `/edit/:id` route
+  - `manifest.ts` — Added `{ path: "/edit/:id" }` route
+  - `ExampleDetailPage.tsx` — Wired Edit button with `navigate(\`../edit/${id}\`)`
+  - `index.ts` — Exported `UpdateExampleInput` type + `UpdateExampleCommandSchema`
+- Edit page pattern: loads existing data → pre-populates form → saves with existing ID → navigates to detail
+
+### Cycle 13: Docs Index Update
+
+**Selected target:** Docs index update (Low impact, Low effort)
+- Status: **Complete**
+- File updated: `docs/index.md`
+- Added sections: Design & UX (4 docs), Quality & Testing (2 docs)
+- Added to "I want to" table: Choose component, use token, build page, contribute
+- Updated: Interactive Documentation section (added dark theme mention)

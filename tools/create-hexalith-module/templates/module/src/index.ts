@@ -7,10 +7,12 @@ export type {
   ExampleItem,
   ExampleDetail,
   CreateExampleInput,
+  UpdateExampleInput,
 } from "./schemas/exampleSchemas.js";
 
 export {
   ExampleItemSchema,
   ExampleDetailSchema,
   CreateExampleCommandSchema,
+  UpdateExampleCommandSchema,
 } from "./schemas/exampleSchemas.js";

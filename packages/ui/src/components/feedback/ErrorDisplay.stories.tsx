@@ -18,3 +18,16 @@ export const Default: Story = {
     onRetry: () => console.log('Retrying...'),
   },
 };
+
+export const WithoutRetry: Story = {
+  args: {
+    error: new Error('The command was rejected by the server.'),
+    title: 'Command failed',
+  },
+};
+
+export const StringError: Story = {
+  args: {
+    error: 'Network connection lost. Please check your internet connection.',
+  },
+};

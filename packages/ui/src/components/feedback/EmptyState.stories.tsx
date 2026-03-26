@@ -21,3 +21,16 @@ export const Default: Story = {
     },
   },
 };
+
+export const TitleOnly: Story = {
+  args: {
+    title: 'No results match your search',
+  },
+};
+
+export const WithDescription: Story = {
+  args: {
+    title: 'No orders yet',
+    description: 'Create your first order to get started tracking deliveries.',
+  },
+};

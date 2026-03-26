@@ -21,6 +21,12 @@ const ExampleCreatePage = lazy(() =>
   })),
 );
 
+const ExampleEditPage = lazy(() =>
+  import("./pages/ExampleEditPage.js").then((m) => ({
+    default: m.ExampleEditPage,
+  })),
+);
+
 function ExampleSuspense({ children }: { children: React.ReactNode }) {
   return (
     <Suspense fallback={<Skeleton variant="card" />}>{children}</Suspense>
@@ -58,6 +64,14 @@ export const routes = [
     element: (
       <ExampleSuspense>
         <ExampleCreatePage />
+      </ExampleSuspense>
+    ),
+  },
+  {
+    path: "/edit/:id",
+    element: (
+      <ExampleSuspense>
+        <ExampleEditPage />
       </ExampleSuspense>
     ),
   },
