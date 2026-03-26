@@ -255,3 +255,11 @@
   3. **Template ExampleEditPage.test.tsx** — Fixed 3 bugs: wrong import name (`DETAIL_QUERY` → `EXAMPLE_DETAIL_QUERY`), missing `Routes`/`Route` wrapper, wrong option name (`routePath` → `initialRoute`)
   4. **tsconfig.templates.json** — Updated stale pnpm store paths for `@vitejs/plugin-react` and `vite`
 - Verification: `pnpm turbo lint --force` passes 8/8 tasks (0 errors)
+
+### Cycle 21: Housekeeping — Sprint Status & Debt Verification
+
+**Selected target:** Close stale sprint status + verify debt items
+- Status: **Complete**
+- Sprint status: Marked epics 3-6 as done (all stories complete)
+- Debt #3 (`.gitignore`): Verified resolved — `git check-ignore` confirms re-inclusion rules work
+- Debt backlog updated: 0 high, 3 medium, 1 low remaining
