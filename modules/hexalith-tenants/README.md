@@ -1,24 +1,22 @@
-# @hexalith/__MODULE_PACKAGE_NAME__
+# @hexalith/tenants
 
-__MODULE_DISPLAY_NAME__ module for Hexalith FrontShell.
+Multi-tenant administration module. Provides CRUD pages for managing tenants within the Hexalith shell.
 
 ## Pages
 
 | Page | Route | Description |
 |------|-------|-------------|
-| ListPage | `/` | Table with filtering |
-| DetailPage | `/detail/:id` | Record details |
-| CreatePage | `/create` | Create form |
-| EditPage | `/edit/:id` | Edit form |
+| TenantListPage | `/` | Table with filtering and row actions |
+| TenantDetailPage | `/detail/:id` | Read-only tenant details |
+| TenantCreatePage | `/create` | New tenant form |
+| TenantEditPage | `/edit/:id` | Edit existing tenant |
 
 ## Structure
 
 ```
 src/
 ├── pages/       # Page components (List, Detail, Create, Edit)
-├── schemas/     # Zod domain types
-├── components/  # Module-specific components
-├── hooks/       # Custom hooks
+├── schemas/     # Zod domain types (TenantItem, TenantDetail, CreateTenantInput, etc.)
 ├── data/        # Sample data and mocks
 ├── testing/     # Test helpers (renderWithProviders)
 ├── styles/      # Module-scoped CSS

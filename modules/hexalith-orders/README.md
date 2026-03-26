@@ -1,24 +1,21 @@
-# @hexalith/__MODULE_PACKAGE_NAME__
+# @hexalith/orders
 
-__MODULE_DISPLAY_NAME__ module for Hexalith FrontShell.
+Order management module. Provides pages for viewing, creating, and inspecting orders with line item detail.
 
 ## Pages
 
 | Page | Route | Description |
 |------|-------|-------------|
-| ListPage | `/` | Table with filtering |
-| DetailPage | `/detail/:id` | Record details |
-| CreatePage | `/create` | Create form |
-| EditPage | `/edit/:id` | Edit form |
+| OrderListPage | `/` | Table with sorting and filtering |
+| OrderDetailPage | `/detail/:id` | Order details with line items |
+| OrderCreatePage | `/create` | New order form |
 
 ## Structure
 
 ```
 src/
-├── pages/       # Page components (List, Detail, Create, Edit)
-├── schemas/     # Zod domain types
-├── components/  # Module-specific components
-├── hooks/       # Custom hooks
+├── pages/       # Page components (List, Detail, Create)
+├── schemas/     # Zod domain types (OrderItem, OrderDetail, OrderLineItem, CreateOrderCommand)
 ├── data/        # Sample data and mocks
 ├── testing/     # Test helpers (renderWithProviders)
 ├── styles/      # Module-scoped CSS

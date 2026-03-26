@@ -203,3 +203,19 @@
 - Added sections: Design & UX (4 docs), Quality & Testing (2 docs)
 - Added to "I want to" table: Choose component, use token, build page, contribute
 - Updated: Interactive Documentation section (added dark theme mention)
+
+### Cycle 16: Workspace READMEs
+
+**Selected target:** Add README.md to every workspace (Medium impact, Low effort)
+- Status: **Complete**
+- Files created:
+  - `apps/shell/README.md` — Architecture, scripts, dependencies
+  - `packages/ui/README.md` — Component catalog, tokens, testing
+  - `packages/cqrs-client/README.md` — Hooks reference, testing entry, structure
+  - `packages/shell-api/README.md` — Context providers, manifest schema, MockShellProvider
+  - `modules/hexalith-tenants/README.md` — Pages, structure, dev scripts
+  - `modules/hexalith-orders/README.md` — Pages, structure, dev scripts
+  - `tools/create-hexalith-module/README.md` — Usage, naming, generated structure
+- File updated:
+  - `tools/create-hexalith-module/templates/module/README.md` — Enriched scaffold template
+- Coverage: 7 READMEs + 1 template so new modules get a README on scaffold
