@@ -764,8 +764,9 @@ So that I can provide clear user feedback without writing transport or polling c
 **Acceptance Criteria:**
 
 **Given** `useSubmitCommand` hook is created in `src/commands/useSubmitCommand.ts`
-**When** a module developer calls `const { submit, correlationId, error } = useSubmitCommand()`
+**When** a module developer calls `const { submit, correlationId, error, pendingIds } = useSubmitCommand()`
 **Then** `submit(command)` sends a `POST /api/v1/commands` request and returns `{ correlationId }`
+**And** `pendingIds: Set<string>` tracks entity IDs of submitted-but-not-confirmed commands
 **And** the return shape uses object destructuring (never tuples)
 
 **Given** `useCommandStatus` hook is created in `src/commands/useCommandStatus.ts`
@@ -793,6 +794,19 @@ So that I can provide clear user feedback without writing transport or polling c
 **When** the polling detects it
 **Then** polling stops and the appropriate error (`CommandTimeoutError`) is surfaced
 **And** the hook exposes a `replay` function for retrying via `POST /api/v1/commands/replay/{correlationId}`
+
+**Given** a command is submitted with `submit({ entityId: 'alex@acme.com', ... })`
+**When** `submit()` resolves successfully
+**Then** `'alex@acme.com'` is added to `pendingIds`
+
+**Given** an entityId is in `pendingIds`
+**When** a SignalR projection update arrives for that entity
+**Then** the entityId is removed from `pendingIds`
+
+**Given** multiple commands are submitted simultaneously
+**When** checking `pendingIds`
+**Then** all in-flight entity IDs are tracked (Set supports multiple concurrent entries)
+**And** if the degradation threshold (15s) is reached without confirmation, the entityId remains in `pendingIds` for the UI's degradation pattern to handle
 
 **Given** `useCommandPipeline` is called outside the shell provider context
 **When** the hook attempts to access auth/tenant context
@@ -1056,9 +1070,35 @@ So that I can hide or disable buttons and forms the user cannot use, avoiding un
 *FRs covered: FR16 (partial — extends command result feedback to include pre-flight authorization)*
 *Note: Pre-flight validation is optional — module developers can skip it and let the command/query fail with a 403 if they prefer*
 
+### Story 2.10: Toast Batch Consolidation
+
+As a module developer,
+I want multiple command confirmation toasts arriving in rapid succession to batch into a single toast,
+So that users performing sequential operations (e.g., revoking 3 memberships) are not overwhelmed by toast overflow.
+
+**Acceptance Criteria:**
+
+**Given** multiple Phase 3 command confirmations arrive within a 100ms window
+**When** the toast system processes them
+**Then** a single batched toast displays (e.g., "3 actions confirmed") instead of individual toasts
+
+**Given** a single command confirmation arrives
+**When** the 100ms batching window expires with no additional confirmations
+**Then** a standard individual toast displays as before
+
+**Given** a batch of confirmations includes mixed command types
+**When** the batched toast renders
+**Then** the message summarizes the count and action (e.g., "Removed ext-vendor-9 from 2 tenants")
+
+**Given** the batching window is configurable
+**When** a module developer needs a different window
+**Then** the batch interval can be overridden via toast provider options (default: 100ms)
+
+*FRs covered: FR16 (extends command feedback with batched confirmation UX)*
+
 ---
 
-**Epic 2 Summary:** 9 stories covering 9 FRs (FR9-FR17). Stories 2.1-2.2 establish the package foundation and authenticated fetch client. Stories 2.3-2.4 deliver command and query hooks. Story 2.5 adds freshness and connection state. Story 2.6 provides mocks, SignalR simulation, and contract tests. Story 2.7 adds SignalR real-time push. Story 2.8 adds ETag query cache integration. Story 2.9 adds pre-flight authorization validation. The epic follows a 5-phase incremental build: foundation → commands → queries → SignalR → validation.
+**Epic 2 Summary:** 10 stories covering 9 FRs (FR9-FR17). Stories 2.1-2.2 establish the package foundation and authenticated fetch client. Stories 2.3-2.4 deliver command and query hooks (2.3 includes `pendingIds` for tracking in-flight commands). Story 2.5 adds freshness and connection state. Story 2.6 provides mocks, SignalR simulation, and contract tests. Story 2.7 adds SignalR real-time push. Story 2.8 adds ETag query cache integration. Story 2.9 adds pre-flight authorization validation. Story 2.10 adds toast batch consolidation for rapid sequential operations. The epic follows a 5-phase incremental build: foundation → commands → queries → SignalR → validation.
 
 ---
 
@@ -1440,9 +1480,171 @@ So that I can discover, test, and copy-paste components with confidence they're 
 **And** bundled glance test: "What's the primary action on screenshot B?" — 4/5 answer correctly in 3 seconds
 **And** this is a manual gate — not automatable, run once before first module ships
 
+### Story 3.10: AuditTimeline — Event Timeline with Dual-Layer Display
+
+As a module developer,
+I want a reusable timeline component that displays temporal event data as human-readable narratives with expandable technical detail,
+So that I can build audit, activity, and event history views without custom timeline implementations.
+
+**Acceptance Criteria:**
+
+**Given** `<AuditTimeline>` is created in `@hexalith/ui`
+**When** a module developer provides `data: TEvent[]` and `narrativeTemplate: (event: TEvent) => string`
+**Then** each event renders as a human-readable narrative sentence with a vertical connector line between events
+
+**Given** an event in the timeline
+**When** the user clicks the expand toggle or presses Enter
+**Then** the technical detail panel expands below the narrative with `aria-expanded="true"`
+**And** default detail panel renders JSON key-value display; custom rendering via `expandedDetailTemplate` prop
+
+**Given** `loading={true}`
+**When** the component renders
+**Then** a content-aware skeleton displays (3 session groups, 2 events each, connector line visible)
+
+**Given** events with different `eventCategory` values
+**When** the component renders
+**Then** access events show accent-derived left border and admin events show neutral-derived left border
+
+**Given** 500 events in the data array
+**When** the component renders
+**Then** initial render completes in < 100ms (measured by React profiler)
+
+**Given** the component is rendered
+**When** checking accessibility
+**Then** events use semantic `<ol>`, arrow keys navigate events, `aria-expanded` on detail toggles, screen reader announces narrative text + timestamp
+
+*FRs covered: FR39 (extends component library with timeline pattern)*
+*Design tokens: uses existing spacing/color tokens + new `--timeline-connector-color` (Tier 3)*
+*Prop budget: Complex — ≤ 20 props. Phase 2 features via `<AuditTimeline.SessionGroup>` compound component (Story 3.13)*
+
+### Story 3.11: ConsequencePreview — Impact Display for High-Stakes Commands
+
+As a module developer,
+I want a component that displays the consequences of a destructive or high-impact command before the user confirms,
+So that users understand the impact of irreversible actions and can make informed decisions.
+
+**Acceptance Criteria:**
+
+**Given** `<ConsequencePreview>` is created in `@hexalith/ui`
+**When** a module developer provides `consequences: Array<{ severity: 'info' | 'warning' | 'danger', message: string }>`
+**Then** each consequence renders with the correct severity icon and color
+
+**Given** any consequence has `severity: 'danger'`
+**When** the component renders
+**Then** the panel background escalates to urgent treatment (distinct from info/warning-only panels)
+
+**Given** `loading={true}`
+**When** the component renders
+**Then** a skeleton placeholder displays matching the consequence list layout
+
+**Given** `compact={true}`
+**When** the component renders
+**Then** the component uses reduced padding for inline display within forms
+
+**Given** the consequence preview is rendered before an action button
+**When** a screen reader reaches the action button
+**Then** the consequences are announced via `role="alert"` with `aria-live="polite"` before the button receives focus
+**And** severity icons have `aria-label` ("Warning", "Danger", "Info")
+
+*FRs covered: FR39 (extends component library with consequence preview pattern)*
+*Design tokens: uses existing `--color-status-*` tokens + new `--consequence-bg` (Tier 3)*
+*Prop budget: Simple — ≤ 12 props*
+
+### Story 3.12: Role Semantic Tokens & Component Tokens
+
+As a module developer,
+I want semantic design tokens for role-based badge colors and component-specific backgrounds,
+So that role indicators and specialized component surfaces are visually consistent across modules and themes.
+
+**Acceptance Criteria:**
+
+**Given** 3 role semantic tokens (Tier 2) are added to the design token system
+**When** the tokens are defined
+**Then** `--role-owner-color` maps to accent-derived values (light: `--primitive-color-accent-600`, dark: `--primitive-color-accent-400`)
+**And** `--role-contributor-color` maps to neutral-derived values (light: `--primitive-color-neutral-600`, dark: `--primitive-color-neutral-400`)
+**And** `--role-reader-color` maps to gray-derived values (light: `--primitive-color-gray-500`, dark: `--primitive-color-gray-400`)
+
+**Given** 2 component tokens (Tier 3) are added
+**When** the tokens are defined
+**Then** `--timeline-connector-color` maps to `--color-border-secondary` in both themes
+**And** `--consequence-bg` maps to `--primitive-color-amber-50` in light theme; dark theme uses `--primitive-color-amber-950` or fallback to `--color-surface-elevated` (test for muddy appearance)
+
+**Given** the role tokens are defined
+**When** the token parity checker runs
+**Then** all 3 role tokens have light AND dark values
+**And** ΔE (perceptual color difference) between any two role tokens ≥ 20
+
+**Given** `--consequence-bg` in dark theme
+**When** rendered on a dark surface
+**Then** the contrast between consequence text and background meets WCAG AA (4.5:1)
+
+**Given** the token budget is checked
+**When** new tokens are counted
+**Then** +3 Tier 2 + 2 Tier 3 = 5 tokens, within budget (Tier 2 ≤ 80, Tier 3 ≤ 40)
+
+*FRs covered: FR39 (extends design token system for new component patterns)*
+*Compliance: Role tokens must be added to token compliance scan for ΔE validation*
+
+### Story 3.13: AuditTimeline Grouped-by-Session Mode
+
+As a module developer,
+I want the AuditTimeline to support grouping events by actor session,
+So that audit views can collapse related actions into logical groups for easier scanning of high-volume event streams.
+
+**Acceptance Criteria:**
+
+**Given** `<AuditTimeline.SessionGroup>` compound component is available
+**When** a module developer wraps the timeline with `<AuditTimeline.SessionGroup groupBy="actorId" window={30 * 60 * 1000} />`
+**Then** events from the same actor within the time window are visually grouped under a collapsible session header
+
+**Given** a session group is rendered
+**When** the user collapses the group
+**Then** only the session header (actor + time range + event count) is visible
+**And** `aria-expanded="false"` is set on the group toggle
+
+**Given** events span multiple sessions for the same actor
+**When** the timeline renders
+**Then** each session is a separate group, ordered chronologically
+
+*FRs covered: FR39 (extends AuditTimeline with compound component pattern)*
+*Dependency: Story 3.10 (AuditTimeline MVP)*
+*Priority: P2 — fast follow enhancement, not blocking Tenants Phase 2*
+
+### Story 3.14: Three-Phase Feedback Storybook Pattern Story
+
+As a module developer,
+I want a canonical Storybook story demonstrating the `useCommand` three-phase feedback pattern,
+So that I can understand and copy-paste the optimistic → confirming → confirmed pattern with `pendingIds`.
+
+**Acceptance Criteria:**
+
+**Given** a Storybook story is created under `@hexalith/ui/Patterns/Three-Phase Feedback`
+**When** a developer opens the story
+**Then** an interactive demo shows a table row being removed via three-phase feedback:
+  - Phase 1: row dims (40% opacity, strikethrough) — marked, not removed
+  - Phase 2: animated underline, "Confirming removal..." micro-text
+  - Phase 3: row slides out (200ms, `prefers-reduced-motion`: instant), toast with undo
+
+**Given** the story includes code snippets
+**When** viewing the "View Code" panel
+**Then** the canonical `useCommand` + `pendingIds` usage pattern is displayed:
+```typescript
+const { submit, pendingIds } = useCommand('RemoveUserFromTenant');
+const rowClassName = (member) =>
+  pendingIds.includes(member.userId) ? 'row-pending-removal' : undefined;
+```
+
+**Given** the story includes an additive variant
+**When** interacting with the "Add" demo
+**Then** Phase 1 shows a provisional row inserted, Phase 3 replaces it with real projection data
+
+*FRs covered: FR39 (developer documentation through interactive examples)*
+*Dependency: Story 2.3 (`pendingIds`), Story 3.5/3.6 (Data Table)*
+*Priority: P2 — documentation, not blocking implementation*
+
 ---
 
-**Epic 3 Summary:** 9 stories covering 3 FRs (FR39-FR41). Stories 3.1-3.2 deliver layout and interactive foundations, 3.3-3.4 add feedback and navigation, 3.5-3.6 deliver the data table (split into core and advanced), 3.7 adds forms and detail views, 3.8 delivers overlays, 3.9 validates everything with Storybook, accessibility, and the Slack test. This is the largest implementation epic with ~15 components, dual-theme support, and comprehensive accessibility testing.
+**Epic 3 Summary:** 14 stories covering 3 FRs (FR39-FR41). Stories 3.1-3.2 deliver layout and interactive foundations, 3.3-3.4 add feedback and navigation, 3.5-3.6 deliver the data table (split into core and advanced), 3.7 adds forms and detail views, 3.8 delivers overlays, 3.9 validates everything with Storybook, accessibility, and the Slack test. Stories 3.10-3.14 add components and tokens driven by the Tenants reference module: 3.10 `<AuditTimeline>` MVP, 3.11 `<ConsequencePreview>`, 3.12 role semantic + component tokens (5 new), 3.13 `<AuditTimeline>` grouped mode (fast follow), 3.14 three-phase feedback Storybook pattern story. This is the largest implementation epic with ~17 components, dual-theme support, and comprehensive accessibility testing.
 
 ---
 
@@ -2019,8 +2221,13 @@ So that we prove `useCommand` and `useProjection` work with real domain types ag
 **When** a user creates a new tenant via the form
 **Then** `useCommand().send(createTenantCommand)` submits to the backend
 **And** the three-phase feedback pattern is visible: optimistic → confirming → confirmed
+**And** `pendingIds` marks the affected entity row (40% opacity, strikethrough) during Phase 1-2
 **And** on success, the tenant list projection is invalidated and refreshes
 **And** on rejection, a `CommandRejectedError` is displayed inline
+
+**Given** a user performs rapid sequential operations (e.g., revoking 3 memberships)
+**When** multiple Phase 3 confirmations arrive within 100ms
+**Then** a single batched toast displays instead of individual toasts per operation
 
 **Given** the Tenants module runs in the dev host
 **When** using mock implementations
@@ -2062,7 +2269,8 @@ So that the complete platform stack is validated end-to-end with a real module.
 
 **Given** the Tenants module exercises all @hexalith/ui components
 **When** reviewing the module
-**Then** it uses: `<Table>`, `<Form>`, `<DetailView>`, `<PageLayout>`, `<Stack>`, `<Button>`, `<Input>`, `<Select>`, `<Skeleton>`, `<EmptyState>`, `<ErrorDisplay>`, `<Toast>`, `<Modal>` (for delete confirmation)
+**Then** it uses: `<Table>`, `<Form>`, `<DetailView>`, `<PageLayout>`, `<Stack>`, `<Button>`, `<Input>`, `<Select>`, `<Skeleton>`, `<EmptyState>`, `<ErrorDisplay>`, `<Toast>`, `<Modal>` (for delete confirmation), `<AuditTimeline>` (for audit tab and standalone view), `<ConsequencePreview>` (for disable tenant and revoke user)
+**And** role badges use `--role-owner-color`, `--role-contributor-color`, `--role-reader-color` semantic tokens
 **And** all components render correctly in both light and dark themes
 
 **Given** the Tenants module is the end-to-end validation artifact
@@ -2158,7 +2366,7 @@ So that the ATDD practice established in Epic 1 is formally enforced by CI, and 
 
 ---
 
-**Epic 6 Summary:** 6 stories covering 9 FRs (FR47-FR48, FR51-FR57) plus end-to-end validation of all previous epics via the Tenants reference module. Stories 6.1-6.2 establish the full CI pipeline and publishing workflow, 6.3-6.4 build and integrate the Tenants module as proof of the complete stack, 6.5 adds monitoring integration, 6.6 enforces testing strategy and quality gates. After this epic, the platform is production-validated.
+**Epic 6 Summary:** 6 stories covering 9 FRs (FR47-FR48, FR51-FR57) plus end-to-end validation of all previous epics via the Tenants reference module. Stories 6.1-6.2 establish the full CI pipeline and publishing workflow, 6.3-6.4 build and integrate the Tenants module as proof of the complete stack (6.3 validates `pendingIds` three-phase row marking and toast batch consolidation; 6.4 validates `<AuditTimeline>`, `<ConsequencePreview>`, and role semantic tokens), 6.5 adds monitoring integration, 6.6 enforces testing strategy and quality gates. After this epic, the platform is production-validated.
 
 ---
 

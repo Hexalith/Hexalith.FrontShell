@@ -4,7 +4,7 @@
 **Triggered by:** Hexalith.Tenants UX Design Specification (`Hexalith.Tenants/_bmad-output/planning-artifacts/ux-design-specification.md`)
 **Author:** Jerome (facilitated by Sally, UX Designer Agent)
 **Change scope:** Moderate — 2 new `@hexalith/ui` components, 5 new design tokens, 1 hook enhancement, 1 Storybook pattern story
-**Status:** Proposed
+**Status:** Applied (2026-03-26)
 
 ---
 

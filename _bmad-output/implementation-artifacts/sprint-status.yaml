@@ -39,6 +39,8 @@ project_key: NOKEY
 tracking_system: file-system
 story_location: "{project-root}/_bmad-output/implementation-artifacts"
 last_updated: "2026-03-26"
+# Sprint change proposal 2026-03-25 (Tenants UX Components) applied to epics 2026-03-26
+# Reopened Epics 2, 3, 6 — new stories added, modified stories reopened for pendingIds/component integration
 # Epic 3 retrospective completed 2026-03-26
 # Epics 3-6 marked done — all stories complete, retrospectives optional 2026-03-26
 # Epic 2 retrospective completed 2026-03-25, epic marked done
@@ -128,20 +130,23 @@ development_status:
 
   # Epic 2: Backend Integration — Commands, Projections & Real-Time
   # Updated 2026-03-15 per Sprint Change Proposal (SignalR, ETag, pre-flight validation)
-  epic-2: done
+  # Updated 2026-03-26 per Sprint Change Proposal (Tenants UX Components) — reopened for pendingIds + toast batching
+  epic-2: in-progress
   2-1-cqrs-client-package-and-error-hierarchy: done
   2-2-authenticated-fetch-client-with-correlation-id: done
-  2-3-command-hooks-submit-status-pipeline: done
+  2-3-command-hooks-submit-status-pipeline: backlog  # Reopened — needs pendingIds: Set<string> implementation
   2-4-query-hook-with-zod-validation: done
   2-5-projection-freshness-and-connection-state: done
   2-6-mock-implementations-and-contract-tests: done
   2-7-signalr-connection-and-projection-subscriptions: done
   2-8-etag-query-cache-integration: done
   2-9-preflight-authorization-validation: done
+  2-10-toast-batch-consolidation: backlog
   epic-2-retrospective: done
 
   # Epic 3: Component Library — Beautiful by Default
-  epic-3: done
+  # Updated 2026-03-26 per Sprint Change Proposal (Tenants UX Components) — reopened for 5 new stories
+  epic-3: in-progress
   3-1-ui-package-setup-and-structural-layout-components: done
   3-2-core-interactive-components: done
   3-3-feedback-and-state-components: done
@@ -151,6 +156,11 @@ development_status:
   3-7-form-and-detail-view-components: done
   3-8-overlay-components: done
   3-9-storybook-showcase-and-accessibility-pipeline: done
+  3-10-audit-timeline: backlog
+  3-11-consequence-preview: backlog
+  3-12-role-semantic-tokens-and-component-tokens: backlog
+  3-13-audit-timeline-grouped-mode: backlog
+  3-14-three-phase-feedback-storybook-pattern-story: backlog
   epic-3-retrospective: done
 
   # Epic 4: Module Scaffold & Independent Development
@@ -174,11 +184,12 @@ development_status:
   epic-5-retrospective: optional
 
   # Epic 6: Build Pipeline, Quality Gates & Reference Module
-  epic-6: done
+  # Updated 2026-03-26 per Sprint Change Proposal (Tenants UX Components) — reopened for new component integration
+  epic-6: in-progress
   6-1-full-ci-pipeline-and-quality-gates: done
   6-2-module-publishing-via-git-integration: done
-  6-3-tenants-reference-module-cqrs-integration: done
-  6-4-tenants-reference-module-ui-and-shell-integration: done
+  6-3-tenants-reference-module-cqrs-integration: backlog  # Reopened — needs pendingIds row marking + batched toasts
+  6-4-tenants-reference-module-ui-and-shell-integration: backlog  # Reopened — needs AuditTimeline, ConsequencePreview, role tokens
   6-5-error-monitoring-integration: done
   6-6-testing-strategy-and-quality-gates-ci-formalization: done
   epic-6-retrospective: optional
