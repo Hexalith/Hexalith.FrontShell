@@ -16,11 +16,14 @@
     "create-module": "node tools/create-hexalith-module/dist/index.js",
     "check:test-quality": "tsx scripts/check-test-quality.ts",
     "check:bundle-freshness": "tsx scripts/check-bundle-freshness.ts",
-    "check:validate-module": "tsx scripts/validate-module.ts"
+    "check:validate-module": "tsx scripts/validate-module.ts",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^3.2.4",
     "eslint": "^9.0.0",
+    "husky": "^9.0.0",
+    "lint-staged": "^15.0.0",
     "postcss": "^8.5.8",
     "stylelint": "^17.4.0",
     "turbo": "^2.0.0",
