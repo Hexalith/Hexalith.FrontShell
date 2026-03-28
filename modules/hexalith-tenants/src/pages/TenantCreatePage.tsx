@@ -41,7 +41,7 @@ export function TenantCreatePage() {
     async (data: CreateTenantInput) => {
       await send({
         commandType: "CreateTenant",
-        domain: "Tenants",
+        domain: "tenants",
         aggregateId: crypto.randomUUID(),
         payload: data,
       });

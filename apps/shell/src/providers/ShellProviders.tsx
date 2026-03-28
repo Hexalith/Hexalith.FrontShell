@@ -11,6 +11,7 @@ import {
   ThemeProvider,
   LocaleProvider,
 } from "@hexalith/shell-api";
+import { ToastProvider } from "@hexalith/ui";
 
 import { ErrorMonitoringProvider } from "../errors/ErrorMonitoringProvider";
 import { VersionGuard } from "../navigation/VersionGuard";
@@ -61,7 +62,9 @@ function InnerProviders({
         <ConnectionHealthProvider backendUrl={backendUrl}>
           <FormDirtyProvider>
             <ThemeProvider>
-              <LocaleProvider>{children}</LocaleProvider>
+              <LocaleProvider>
+                <ToastProvider>{children}</ToastProvider>
+              </LocaleProvider>
             </ThemeProvider>
           </FormDirtyProvider>
         </ConnectionHealthProvider>

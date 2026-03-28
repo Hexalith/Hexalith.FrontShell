@@ -108,7 +108,7 @@ describe("TenantEditPage", () => {
 
     const call = commandBus.getCalls()[0];
     expect(call.command.commandType).toBe("UpdateTenant");
-    expect(call.command.domain).toBe("Tenants");
+    expect(call.command.domain).toBe("tenants");
     expect(call.command.aggregateId).toBe(firstDetail.id);
   });
 

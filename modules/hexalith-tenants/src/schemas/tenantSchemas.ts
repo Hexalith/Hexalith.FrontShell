@@ -29,8 +29,15 @@ export const TenantItemSchema = z.object({
 /** Inferred type — use this instead of manually defining interfaces */
 export type TenantItem = z.infer<typeof TenantItemSchema>;
 
-/** Response wrapper for the list query */
-export const TenantListSchema = z.array(TenantItemSchema);
+/** Paginated response from the backend (PaginatedResult<T>) */
+const PaginatedTenantListSchema = z.object({
+  items: z.array(TenantItemSchema),
+  cursor: z.string().nullable(),
+  hasMore: z.boolean(),
+});
+
+/** Response wrapper for the list query — extracts the items array */
+export const TenantListSchema = PaginatedTenantListSchema.transform((r) => r.items);
 
 /**
  * Tenant detail view model — full entity with audit and extra fields.

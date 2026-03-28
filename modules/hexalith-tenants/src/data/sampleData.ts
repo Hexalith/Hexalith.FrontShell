@@ -6,23 +6,24 @@ import {
 } from "../schemas/tenantSchemas.js";
 
 /**
- * Query param constants — MockQueryBus matches on these
- * to return the correct sample data for each page.
+ * Query param constants — must match the server-side IQueryContract values
+ * (e.g. ListTenantsQuery.Domain, ListTenantsQuery.QueryType).
  */
 export const TENANT_LIST_QUERY = {
-  domain: "Tenants",
-  queryType: "GetTenantList",
+  domain: "tenants",
+  queryType: "list-tenants",
+  aggregateId: "index",
 } as const;
 
 export const TENANT_DETAIL_QUERY = {
-  domain: "Tenants",
-  queryType: "GetTenantDetail",
+  domain: "tenants",
+  queryType: "get-tenant",
 } as const;
 
 export function buildTenantDetailQuery(id: string) {
   return {
-    domain: "Tenants",
-    queryType: "GetTenantDetail",
+    domain: "tenants",
+    queryType: "get-tenant",
     aggregateId: id,
   };
 }

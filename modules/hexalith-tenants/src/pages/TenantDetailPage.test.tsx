@@ -208,7 +208,7 @@ describe("TenantDetailPage", () => {
 
     const call = commandBus.getCalls()[0];
     expect(call.command.commandType).toBe("DisableTenant");
-    expect(call.command.domain).toBe("Tenants");
+    expect(call.command.domain).toBe("tenants");
   });
 
   it("hides Disable button when status is Disabled", async () => {

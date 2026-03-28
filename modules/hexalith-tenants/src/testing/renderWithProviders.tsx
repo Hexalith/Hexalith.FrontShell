@@ -33,7 +33,7 @@ function createConfiguredQueryBus(): MockQueryBus {
   const TENANT = createMockTenantContext().activeTenant;
 
   // Build keys from query constants to prevent manual string typos
-  const listKey = `${TENANT}:${TENANT_LIST_QUERY.domain}:${TENANT_LIST_QUERY.queryType}::`;
+  const listKey = `${TENANT}:${TENANT_LIST_QUERY.domain}:${TENANT_LIST_QUERY.queryType}:${TENANT_LIST_QUERY.aggregateId}:`;
   mockQueryBus.setResponse(listKey, sampleTenants);
 
   for (const detail of sampleTenantDetails) {

@@ -51,7 +51,7 @@ export function TenantEditPage() {
   const handleSubmit = useCallback(
     async (formData: UpdateTenantInput) => {
       await send({
-        domain: "Tenants",
+        domain: "tenants",
         commandType: "UpdateTenant",
         aggregateId: id!,
         payload: formData,

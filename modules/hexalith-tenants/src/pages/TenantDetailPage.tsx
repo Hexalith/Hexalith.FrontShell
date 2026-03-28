@@ -70,7 +70,7 @@ export function TenantDetailPage() {
       setIsDisableModalOpen(false);
       toast({ title: "Disabling tenant...", variant: "info" });
       await sendDisable({
-        domain: "Tenants",
+        domain: "tenants",
         commandType: "DisableTenant",
         aggregateId: id!,
         payload: formData,

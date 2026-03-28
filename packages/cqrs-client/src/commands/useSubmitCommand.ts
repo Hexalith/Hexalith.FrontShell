@@ -3,6 +3,7 @@ import { useState, useCallback } from "react";
 import { useTenant } from "@hexalith/shell-api";
 
 import { useCqrs } from "../CqrsProvider";
+import { generateCorrelationId } from "../core/correlationId";
 import { ApiError, ForbiddenError, HexalithError } from "../errors";
 
 import type { SubmitCommandInput } from "./types";
@@ -33,9 +34,10 @@ export function useSubmitCommand(): UseSubmitCommandResult {
       setCorrelationId(null);
 
       try {
+        const messageId = generateCorrelationId();
         const response = await fetchClient.post<SubmitCommandResponse>(
           "/api/v1/commands",
-          { body: { ...command, tenant: activeTenant } },
+          { body: { ...command, messageId, tenant: activeTenant } },
         );
         setCorrelationId(response.correlationId);
         return response;

@@ -13,7 +13,19 @@ const shellPackage = JSON.parse(
 
 const appVersion = process.env.npm_package_version ?? shellPackage.version ?? "dev";
 
+// When running under Aspire, proxy API requests to avoid CORS issues.
+const eventStoreUrl = process.env.services__eventstore__http__0;
+
 export default defineConfig({
+  server: eventStoreUrl
+    ? {
+        proxy: {
+          "/hubs": { target: eventStoreUrl, changeOrigin: true, ws: true },
+          "/api": { target: eventStoreUrl, changeOrigin: true },
+          "/health": { target: eventStoreUrl, changeOrigin: true },
+        },
+      }
+    : undefined,
   plugins: [
     manifestValidationPlugin(),
     react(),
@@ -21,6 +33,28 @@ export default defineConfig({
       name: "hexalith-shell-version",
       transformIndexHtml(html) {
         return html.replaceAll("%VITE_APP_VERSION%", appVersion);
+      },
+    },
+    {
+      name: "aspire-runtime-config",
+      configureServer(server) {
+        // When running under Aspire, generate /config.json from injected env vars.
+        // Falls through to the static public/config.json when env vars are absent.
+        server.middlewares.use((req, res, next) => {
+          if (req.url !== "/config.json") return next();
+
+          const apiUrl = process.env.services__eventstore__http__0;
+          if (!apiUrl) return next();
+
+          const config = {
+            oidcAuthority: process.env.OIDC_AUTHORITY ?? "http://localhost:8180/realms/hexalith",
+            oidcClientId: process.env.OIDC_CLIENT_ID ?? "hexalith-frontshell",
+            commandApiBaseUrl: "/",
+            tenantClaimName: "eventstore:tenant",
+          };
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify(config, null, 2));
+        });
       },
     },
   ],
