@@ -6,6 +6,7 @@ import type { NavigationItem } from "@hexalith/ui";
 
 import { useActiveModule } from "../hooks/useActiveModule";
 import { modules, buildNavigationItems } from "../modules";
+import { resolveIcon } from "./icons";
 
 interface SidebarProps {
   isCollapsed?: boolean;
@@ -16,7 +17,7 @@ const HOME_ITEM: NavigationItem = {
   id: "/",
   label: "Home",
   href: "/",
-  icon: undefined,
+  icon: resolveIcon("home"),
 };
 
 export function Sidebar({
@@ -31,7 +32,7 @@ export function Sidebar({
     return moduleItems.map<NavigationItem>((item) => ({
       id: item.to,
       label: item.label,
-      icon: item.icon,
+      icon: resolveIcon(item.icon),
       href: item.to,
       category: item.category,
     }));

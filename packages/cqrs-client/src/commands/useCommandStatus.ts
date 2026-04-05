@@ -18,6 +18,7 @@ const TERMINAL_STATUSES = [
 ] as const;
 
 const POLL_INTERVAL_MS = 1000;
+const POLL_TIMEOUT_MS = 30_000;
 
 export interface UseCommandStatusResult {
   status: PipelineStatus;
@@ -69,11 +70,16 @@ export function useCommandStatus(
   const [response, setResponse] = useState<CommandStatusResponse | null>(null);
   const [error, setError] = useState<HexalithError | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const stopPolling = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
+    }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
     }
   }, []);
 
@@ -117,6 +123,20 @@ export function useCommandStatus(
     // Poll immediately, then every POLL_INTERVAL_MS
     poll();
     intervalRef.current = setInterval(poll, POLL_INTERVAL_MS);
+
+    // Client-side timeout: stop polling if no terminal status within POLL_TIMEOUT_MS
+    timeoutRef.current = setTimeout(() => {
+      if (intervalRef.current) {
+        stopPolling();
+        setStatus("timedOut");
+        setError(
+          new CommandTimeoutError(
+            `${POLL_TIMEOUT_MS / 1000}s`,
+            correlationId,
+          ),
+        );
+      }
+    }, POLL_TIMEOUT_MS);
 
     return stopPolling;
   }, [correlationId, fetchClient, stopPolling]);

@@ -9,10 +9,12 @@
   "files": ["dist"],
   "exports": {
     ".": {
+      "source": "./src/index.ts",
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
     },
     "./testing": {
+      "source": "./src/testing.ts",
       "import": "./dist/testing.js",
       "types": "./dist/testing.d.ts"
     }

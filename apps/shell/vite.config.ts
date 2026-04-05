@@ -17,6 +17,9 @@ const appVersion = process.env.npm_package_version ?? shellPackage.version ?? "d
 const eventStoreUrl = process.env.services__eventstore__http__0;
 
 export default defineConfig({
+  resolve: {
+    conditions: ["source"],
+  },
   server: eventStoreUrl
     ? {
         proxy: {
